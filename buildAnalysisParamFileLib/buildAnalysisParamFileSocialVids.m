@@ -14,15 +14,15 @@ switch machine
   case 'homeDesktopWork'
     ephysVolume = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Data');
     stimulusLogVolume = ephysVolume;
-    outputVolume = 'C:/Analyzed';
-    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzy\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    outputVolume = 'H:/Analyzed';
+    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
-    stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzy\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
+    stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
   case 'Alienware_FA'
     ephysVolume = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('D:\DataAnalysis\March2020');
-    stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzy\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
   case {'turing.rockefeller.edu','hopper.rockefeller.edu'}
     ephysVolume = '/Freiwald/lab_files/raw_data/EPHYS/Farid_ESINRec/Data2018';
@@ -32,19 +32,8 @@ switch machine
     ephysVolume = slashSwap('\\BlackrockPC\nsp\Data');
     stimulusLogVolume = slashSwap('\\CONTROLLERPC\Monkeylogic Experiments');
     outputVolume = slashSwap('C:\Users\Farid\OneDrive\Lab\ESIN_Ephys_Files\Analysis\Analyzed_Rig');
-    stimParamsFilename = slashSwap('C:\Users\Farid\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzy\stimParamFileLib\StimParamFileSocialVids_Full.mat');                  %#ok
-    stimDir = slashSwap('C:\Users\Farid\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
-  case 'DESKTOP-MAT9KQ7'
-    ephysVolume = 'C:/Users/aboha/Onedrive/Lab/ESIN_Ephys_Files/Analysis/Data';
-    stimulusLogVolume = ephysVolume;
-    outputVolume = 'C:/Users/aboha/Onedrive/Lab/ESIN_Ephys_Files/Analysis/Analyzed';
-    stimParamsFilename = 'C:/Users/aboha/Onedrive/Lab/ESIN_Ephys_Files/Analysis/phyzzy/StimParamFileSocialVids_V2.mat';   %#ok
-  case 'SurfaceBook2FA'
-    ephysVolume = 'C:/Users/Farid Aboharb/OneDrive/Lab/ESIN_Ephys_Files/Analysis/Data 2018';
-    stimulusLogVolume = ephysVolume;
-    outputVolume = 'C:/Users/Farid Aboharb/OneDrive/Lab/ESIN_Ephys_Files/Analysis/Analyzed';
-    stimParamsFilename = 'C:/Users/Farid Aboharb/OneDrive/Lab/ESIN_Ephys_Files/Analysis/phyzzy/StimParamFileSocialVids_Full.mat';   %#ok
-    stimDir = 'G:/StimuliForFaridfromJulia/SocialCategories';       
+    stimParamsFilename = slashSwap('C:\Users\Farid\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');                  %#ok
+    stimDir = slashSwap('C:\Users\Farid\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories'); 
 end
 
 analysisLabel = 'Basic';
