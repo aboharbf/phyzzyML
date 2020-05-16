@@ -1,4 +1,4 @@
-Specifying your analysis:
+# Specifying your analysis:
 
 - Variables that change frequently are specified in buildAnalysisParamFile.m, or in additional files built off the buildAnalysisParamFile template. This has two positive effects. First, variables that change are in a separate file from the code, which makes versioning easier. Second, a copy of the processing parameters is always stored with the analyzed data. 
 
