@@ -11,11 +11,11 @@ function [] = processRunBatch(varargin)
 %       parameters defined in the analysisParamFile and the paramTable.
 
 replaceAnalysisOut = 1;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-outputVolume = 'C:\Analyzed';          % Only used for the excel doc. change in analysisParamFile to change destination.
+outputVolume = 'H:\Analyzed';                                                 % Only used for the excel doc. change in analysisParamFile to change destination.
 dataLog = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Data\analysisParamTable.xlsx';    % Only used to find recording log, used to overwrite params.
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
-debugNoTry = 1;
+debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
 %% Load Appropriate variables and paths
 addpath('buildAnalysisParamFileLib');
@@ -36,7 +36,7 @@ if ~replaceAnalysisOut
   end
   
   %% Create all of the appropriate AnalysisParamFiles as a cell array.
-  [analysisParamFileList, analysisParamFileName] = deal(cell(0));
+  [analysisParamFileList, analysisParamFileName, outDirList] = deal(cell(0));
   meta_ind = 1;
   
   % Load in a page from an excel sheet in the data directory.
@@ -104,17 +104,18 @@ if ~replaceAnalysisOut
 
       % Save files
       save(analysisParamFilename);
+      outDirList{meta_ind} = outDir;
       analysisParamFileList{meta_ind} = analysisParamFilename;
       analysisParamFileName{meta_ind} = [dateSubject runNum];
       meta_ind = meta_ind + 1;
     end
   end
-  
+  outDirList = outDirList';
   analysisParamFileList = analysisParamFileList';
   analysisParamFileName = analysisParamFileName';
   
   %% Process the runs
-  [errorMsg, startTimes, endTimes, analysisOutFilename] = deal(cell(length(analysisParamFileList),1));
+  [errorMsg, startTimes, endTimes, analysisOutFilename] = deal(cell(size(analysisParamFileList)));
   
   tmp  = load(analysisParamFileList{1}, 'outputVolume');
   outputVolume = tmp.outputVolume;
@@ -185,8 +186,8 @@ if ~replaceAnalysisOut
     end
   end
   
-%% If generating excel...  
 else
+  %% If generating excel...  
   if nargin >= 1
     %If there is only 1 file, it loads the analysisParamFile and composes a
     %list from all the data files in the ephysVolume.
@@ -195,20 +196,23 @@ else
     load(feval(analysisParamFile), 'analysisLabel');
   end
   
-  disp('Recompiling structures for excel output')  
-  analysisOutFilename = dir(fullfile(outputVolume, '**', analysisLabel,'**','analyzedData.mat'));
+  disp('Recompiling structures for excel output')
+  
+  % Find all the param files and the analyzedData files.
+  analyzedDataList = dir(fullfile(outputVolume, '**', analysisLabel,'**','analyzedData.mat'));
   analysisParamList = dir(fullfile(outputVolume, '**', analysisLabel,'**','AnalysisParams.mat'));
   
-  analysisOutFilename = {analysisOutFilename.folder}';
+  analyzedDataListDir = {analyzedDataList.folder}';
   analysisParamFilename = {analysisParamList.folder}';
-  [~, B] = setdiff(analysisParamFilename, analysisOutFilename);
-  analysisParamFilename(B) = [];
+  [~, B] = setdiff(analysisParamFilename, analyzedDataListDir);
+  
+  
   errorMsg = cell(length(analysisParamFilename),1);
   % If preprocessing was used, the error message is in a different spot.
   if usePreprocessed
-    analysisList = fullfile(analysisParamFilename, 'preprocessedData.mat');
+    analysisList = fullfile(analyzedDataListDir, 'preprocessedData.mat');
   else
-    analysisList = fullfile(analysisParamFilename, 'AnalysisParams.mat');
+    analysisList = fullfile(analyzedDataListDir, 'AnalysisParams.mat');
   end
   
   % Iterate through the files, sometimes error message is missing for some
@@ -225,22 +229,22 @@ else
   end
   fprintf('Missing Error Count %d \n', errorCount)
   
-  [startTimes, endTimes] = deal(cell(length(analysisOutFilename),1));
+  [startTimes, endTimes] = deal(cell(length(analyzedDataList),1));
   [startTimes{:}, endTimes{:}] = deal(datetime(now,'ConvertFrom','datenum'));
   
-  % Process the strings to generate
+  % Process the strings to generate the run labels and the paths to
+  % analyzedData.mat
   breakString = @(x) strsplit(x, filesep);
   joinStrings = @(x) strjoin([x(length(x)-2), x(length(x))],'');
   
-  tmpAnalysisParamFileName = cellfun(breakString, analysisOutFilename, 'UniformOutput',0);
+  tmpAnalysisParamFileName = cellfun(breakString, analysisParamFilename, 'UniformOutput',0);
   analysisParamFileName = cellfun(joinStrings, tmpAnalysisParamFileName, 'UniformOutput',0);
-  analysisOutFilename = fullfile(analysisOutFilename, 'analyzedData.mat');
-
+  analysisOutFilename = fullfile(analysisParamFilename, 'analyzedData.mat');
+  analysisOutFilename(B) = deal(cell(1,1));
+  errorMsg(B) = deal({'No analyzedData.mat'});
 end
 
 %% Compose Excel sheet output
-
-
 %analysisOutFilename is now a cell array of the filepaths to the outputs of
 %runAnalyses. Cycle through them and extract desired information (# of
 %units, significance), which you can add to the output file.
@@ -248,24 +252,42 @@ end
 
 % Find the first non-empty Entry to retrieve some general information for
 % the loops below
+%save('postBatchRun')
+%load('postBatchRun')
+
 firstEntry = find(~cellfun('isempty', analysisOutFilename), 1);
 if ~isempty(firstEntry)
   tmp = load(analysisOutFilename{firstEntry},'sigStruct');
   epochType = tmp.sigStruct.IndInfo{1};
   dataType = tmp.sigStruct.IndInfo{3};
+  epochCount = length(epochType);
+else
+  error('No entries');
 end
 
-% Generate a cell array.
-tableVar = {'File_Analyzed', 'Error', 'Channel', 'Unit_Count', 'SubEvent Unsorted', 'SubEvent Unit', 'SubEvent MUA', ...
+% Generate a cell array and the empty row to be used as a template.
+tableVar = {'File_Analyzed', 'Error', 'Channel', 'Unit_Count', 'Pupil Dil', 'subEvent Unsorted', 'subEvent Unit', 'subEvent MUA', ...
   'Sig Unit count', 'Sig Unsorted', 'Sig MUA', 'Stimuli_count', 'Stimuli','ANOVA','Other Info'};
-epochCount = length(epochType);
-tableA = cell(epochCount,1);
-[tableA{:}] = deal(cell(length(analysisOutFilename), length(tableVar)));
-true_ind = 1;
+emptyTable = cell2table(cell(0,length(tableVar)), 'VariableNames', tableVar);
+emptyRow = cell([1, length(tableVar)]);
+
+[emptyRow{strcmp(tableVar, 'Unit_Count')}, emptyRow{strcmp(tableVar, 'Sig Unsorted')}, ...
+  emptyRow{strcmp(tableVar, 'Sig Unit count')}, emptyRow{strcmp(tableVar, 'Sig MUA')}, ...
+  emptyRow{strcmp(tableVar, 'Stimuli_count')}]  = deal(NaN);
+
+emptyRow{strcmp(tableVar, 'Pupil Dil')} = "";
+
+dataArray = cell(epochCount, 1);
+[dataArray{:}] = deal(emptyTable);
 
 for ii = 1:length(analysisParamFileName)
+  dataRow = emptyRow;
+  dataRow(strcmp(tableVar, 'File_Analyzed')) = analysisParamFileName(ii);
+  dataRow(strcmp(tableVar, 'Error')) = errorMsg(ii);
+  
+  % Check for analyzedData.mat to open
   if ~isempty((analysisOutFilename{ii}))
-    tmp = load(analysisOutFilename{ii}, 'stimStatsTable','sigStruct','frEpochs', 'subEventSigStruct'); %Relies on genStats function in runAnalyses.
+    tmp = load(analysisOutFilename{ii}, 'stimStatsTable','sigStruct','frEpochs', 'subEventSigStruct', 'eyeDataStruct'); %Relies on genStats function in runAnalyses.
     
     if isfield(tmp, 'sigStruct')
       channelCount = length(tmp.sigStruct.data);
@@ -273,29 +295,23 @@ for ii = 1:length(analysisParamFileName)
       channelCount = 1;
     end
     
-    true_ind_page = true_ind;
     for epoch_i = 1:epochCount
       for channel_ind = 1:channelCount
-        [channel, subECell, sigStimNames, ANOVASigString] = deal({' '});
-        [UnitCount, sigUnits, sigUnsorted, sigMUA, sigStimLen] = deal(0);
-
+        
         % Null model based significance testing
         if isfield(tmp, 'sigStruct')
-          channel = tmp.sigStruct.channelNames(channel_ind);
-          UnitCount = tmp.sigStruct.unitCount(channel_ind);
-          sigUnsorted = tmp.sigStruct.sigInfo(channel_ind, 1);
-          sigUnits = tmp.sigStruct.sigInfo(channel_ind, 2);
-          sigMUA = tmp.sigStruct.sigInfo(channel_ind, 3);
+          dataRow(strcmp(tableVar, 'Channel')) = tmp.sigStruct.channelNames(channel_ind);
+          dataRow{strcmp(tableVar, 'Unit_Count')} = tmp.sigStruct.unitCount(channel_ind);
+          dataRow{strcmp(tableVar, 'Sig Unsorted')} = tmp.sigStruct.sigInfo(channel_ind, 1);
+          dataRow{strcmp(tableVar, 'Sig Unit count')} = tmp.sigStruct.sigInfo(channel_ind, 2);
+          dataRow{strcmp(tableVar, 'Sig MUA')} = tmp.sigStruct.sigInfo(channel_ind, 3);
           
           sigStim = vertcat(tmp.sigStruct.data{channel_ind}{epoch_i,:,strcmp(dataType, 'Stimuli')});
-          sigStimLen = length(sigStim);
           if ~isempty(sigStim)
-            sigStimNames = strjoin(sigStim, ' ');
-          else
-            sigStimNames = ' ';
+            dataRow{strcmp(tableVar, 'Stimuli_count')} = length(sigStim);
+            dataRow{strcmp(tableVar, 'Stimuli')} = strjoin(sigStim, '|');
           end
         end
-        
         
         % ANOVA based significance
         if isfield(tmp, 'stimStatsTable')
@@ -308,6 +324,9 @@ for ii = 1:length(analysisParamFileName)
             end
             ANOVASigString = [ANOVASigString ['[' num2str(unitStructs{unit_ind}.taskModulatedP < 0.05) ';' num2str(anovaSig(1)) ']']];
           end
+          
+          dataRow{strcmp(tableVar, 'ANOVA')} = ANOVASigString;
+          
         end
         
         % Event based analysis significance
@@ -323,56 +342,57 @@ for ii = 1:length(analysisParamFileName)
               unitSig = chanSig(:, 2:end-1);
               UnitSESig = strjoin(subEventSigStruct.events(any(unitSig,2)), ', ');
             end
-            subECell = [{UnsortSESig}, {UnitSESig}, {MUASESig}];
-            for jj = 1:length(subECell)
-              if isempty(subECell{jj})
-                subECell{jj} = ' ';
-              end
-            end
-          else
-            subECell = [{' '}, {' '}, {' '}];
+            
+            dataRow{strcmp(tableVar, 'subEvent Unit')} = UnitSESig;
+            dataRow{strcmp(tableVar, 'subEvent Unsorted')} = UnsortSESig;
+            dataRow{strcmp(tableVar, 'subEvent MUA')} = MUASESig;
+            
           end
-        else
-          subECell = [{' '}, {' '}, {' '}];
         end
+        
+        if isfield(tmp, 'eyeDataStruct')
+          catStrings = [];
+          for cat_i = 1:length(tmp.eyeDataStruct.pupilStats.catComp)
+            if ~isempty(tmp.eyeDataStruct.pupilStats.catStats{cat_i}) && tmp.eyeDataStruct.pupilStats.catStats{cat_i}{1} < 0.05
+              statsStr = cellfun(@(x) num2str(x, 3), tmp.eyeDataStruct.pupilStats.catStats{cat_i}, 'UniformOutput', 0);
+              statsStr = sprintf('(%s)', strjoin(statsStr, ';'));
+              nameStats = strjoin([tmp.eyeDataStruct.pupilStats.catComp{cat_i} " " statsStr]);
+              catStrings = [catStrings; nameStats];
+            end
+          end
+          
+          if ~isempty(catStrings)
+            dataRow{strcmp(tableVar, 'Pupil Dil')} = strjoin(catStrings, '| ');
+          end
+          
+        end
+        
         % Package Outputs into structure for table
-        tableA{epoch_i}(true_ind, :) = [analysisParamFileName(ii), errorMsg(ii), channel, UnitCount, ...
-                                        subECell, sigUnits, sigUnsorted, sigMUA, sigStimLen, sigStimNames, ANOVASigString, {' '}];
-        true_ind = true_ind + 1;     
+        dataArray{epoch_i} = [dataArray{epoch_i}; dataRow];
+                                                                    
       end
-      
-      if epoch_i ~= epochCount % More pages to do = let count reset.
-        true_ind = true_ind_page;
-      end
-      
     end
+    
   else
-    [channel, UnitCount, subECell, sigUnits, sigUnsorted, sigMUA, sigStimLen, sigStimNames, ANOVASigString] = deal([]);
-    true_ind_page = true_ind;
+    
+    % Append empty row to each epoch's table.
     for epoch_i = 1:epochCount
-      tableA{epoch_i}(true_ind, :) = [analysisParamFileName(ii), startTimes(ii), endTimes(ii), errorMsg(ii), channel, UnitCount, ...
-                                      subECell, sigUnits, sigUnsorted, sigMUA, sigStimLen, sigStimNames, ANOVASigString, {' '}];
-      true_ind = true_ind + 1;
-      
-      if epoch_i ~= epochCount % More pages to do = let count reset.
-        true_ind = true_ind_page;
-      end
-      
+      dataArray{epoch_i} = [dataArray{epoch_i}; dataRow]; 
     end
+    
   end
+
 end
 
 if isempty(firstEntry)
   fprintf('Done - No Excel sheet to produce')
 else
   %Save Batch Run Results
-  for table_ind = 1:length(tableA)
-    tableA{table_ind}{3,end} = sprintf('%d - %d ms', tmp.frEpochs(table_ind,1), tmp.frEpochs(table_ind,2));
-    T = cell2table(tableA{table_ind});
-    T.Properties.VariableNames = tableVar;
-    %T.Unit_Count = tableA{1}(:, strcmp(tableVar, 'Unit_Count')); % For some reason the cell2table step overwrite the numbers.
-    writetable(T,sprintf('%s/BatchRunResults.xlsx',outputVolume),'Sheet', sprintf('%s Epoch', epochType{table_ind}))
+  for table_ind = 1:length(dataArray)
+    dataArray{table_ind}.("Other Info"){3} = sprintf('%d - %d ms', tmp.frEpochs(table_ind,1), tmp.frEpochs(table_ind,2));
+    writetable(dataArray{table_ind},sprintf('%s/BatchRunResults.xlsx',outputVolume),'Sheet', sprintf('%s Epoch', epochType{table_ind}))
   end
+  
 end
 
 % %PDF Summary

@@ -34,7 +34,7 @@ function [runAnalysisInputs, analysisOutFilename] = processRun( varargin )
 %       Note: functionNames are strings, and do not include the trailing '.m'; see 'feval' docs
 %   Notes:
 %   Depends:
-%   - contents of 'dependencies' folder (details coming)
+%   - contents of 'dependencies' folder.
 %   - R2016a (or later) if joint psth-evoked potential plots desired
 %   - Signal Processing Toolbox (for dpss taper calculation, LFP filters)
 

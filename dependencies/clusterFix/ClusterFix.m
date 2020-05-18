@@ -143,7 +143,6 @@ for cndlop = 1:length(eyedat)
         
         %fprintf('sil = %s \n', num2str(sil)) %DB
         
-        
         %---Local Re-Clustering---%
         notfixations = [];
         for ii = 1:size(fixationtimes,2)
@@ -248,18 +247,18 @@ for cndlop = 1:length(eyedat)
         
         %---Calculate Whole Saccade and Fixation Parameters---%
         pointfix = NaN(size(fixationtimes,2),7);
-        for i = 1:size(fixationtimes,2)
-          xss = x(fixationtimes(1,i):fixationtimes(2,i));
-          yss = y(fixationtimes(1,i):fixationtimes(2,i));
+        for fix_i = 1:size(fixationtimes,2)
+          xss = x(fixationtimes(1,fix_i):fixationtimes(2,fix_i));
+          yss = y(fixationtimes(1,fix_i):fixationtimes(2,fix_i));
           [pp] = extractVariables(xss,yss,samprate);
-          pointfix(i,:) = pp;
+          pointfix(fix_i,:) = pp;
         end
         pointsac = NaN(size(saccadetimes,2),7);
-        for i = 1:size(saccadetimes,2)
-          xss = x(saccadetimes(1,i):saccadetimes(2,i));
-          yss = y(saccadetimes(1,i):saccadetimes(2,i));
+        for sac_i = 1:size(saccadetimes,2)
+          xss = x(saccadetimes(1,sac_i):saccadetimes(2,sac_i));
+          yss = y(saccadetimes(1,sac_i):saccadetimes(2,sac_i));
           [pp] = extractVariables(xss,yss,samprate);
-          pointsac(i,:) = pp;
+          pointsac(sac_i,:) = pp;
         end
         recalc_meanvalues(1,:) = mean(pointfix,1);
         recalc_meanvalues(2,:) = mean(pointsac,1);
@@ -267,6 +266,7 @@ for cndlop = 1:length(eyedat)
           recalc_stdvalues(1,:) = NaN;
           recalc_stdvalues(2,:) = NaN;
         else
+          clear recalc_stdvalues     % Bug where if 1 trial hits defines recalc_stdvales as [NaN; NaN], a size error is thrown next trial. Clear to avoid.
           recalc_stdvalues(1,:) = nanstd(pointfix,1);
           recalc_stdvalues(2,:) = nanstd(pointsac,1);
         end

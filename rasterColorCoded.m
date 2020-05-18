@@ -3,7 +3,7 @@ function [ ] = rasterColorCoded(figHandle, spikesByItem, pictureLabels, psthPara
 %channel data. Uses information from the attendedObjData structure to color
 %code the spikes based on what object the subject was looking at. 
 %    Note: if no spikes on any trial of an image, that image will not appear in legend
-% colorSwitch (in AnalysisParam): 1 = Spikes, 2 = Shaded Regions, 3 =
+% colorSwitch (in AnalysisParam): 1 = Spikes, 2 = Shaded Regions for attended Obj, 3 =
 % Shaded region for Saccades, 4 = shaded region for pupil dil, no saccades.
 
 % Color Spikes vs Color Shaded Region
@@ -177,17 +177,19 @@ hold off;
 
 %Create a legend which gives the color code for the shaded region or the
 %individual spikes. Invisible axes with bar plots for each color.
-invisAx = axes('Color','none','XColor','none');
-
-handleToThisBarSeries = gobjects(length(attendedObjData.objList),1);
-for b = 1 : length(attendedObjData.objList)
-	handleToThisBarSeries(b) = bar(nan, nan, 'BarWidth', 0.5);
-	set(handleToThisBarSeries(b), 'FaceColor', attendedObjData.colorCode{b});
-	hold on;
+if colorSwitch == 2
+  invisAx = axes('Color','none','XColor','none');
+  
+  handleToThisBarSeries = gobjects(length(attendedObjData.objList),1);
+  for b = 1 : length(attendedObjData.objList)
+    handleToThisBarSeries(b) = bar(nan, nan, 'BarWidth', 0.5);
+    set(handleToThisBarSeries(b), 'FaceColor', attendedObjData.colorCode{b});
+    hold on;
+  end
+  legend(attendedObjData.objList, 'Location', 'southeastoutside');
+  invisAx.Visible = 'off';
+  linkprop([rasterAxes invisAx],'Position');
 end
-legend(attendedObjData.objList, 'Location', 'southeastoutside');
-invisAx.Visible = 'off';
-linkprop([rasterAxes invisAx],'Position');
 
 end
 

@@ -27,6 +27,9 @@ end
 % load lfp data
 assert(logical(exist(lfpFilename,'file')),'The LFP file you requested does not exist.');
 tmp = openNSx(lfpFilename,'report','read');
+if isa(tmp, 'double') && tmp == -1
+  error('openNSx returned -1 for lfp')
+end
 lfpHeader = tmp.MetaTags;
 assert(lfpHeader.SamplingFreq/(decimateFactorPass1*decimateFactorPass2) == 1000, 'error: expected lfp data to decimate to 1ks/sec');
 lfpDataRaw = double(tmp.Data); %note: returns each channel as a row

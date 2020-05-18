@@ -13,7 +13,7 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %     specified in the stim param file
 %% unpack inputs
 %List of inputs to be unpacked
-if 1
+% if 0
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
 for input_ind = 1:length(inputFields)
@@ -79,7 +79,6 @@ chColors = [{'b'}, {[0 .6 0]} , {'m'}];
 %   end
 % end
 
-
 %% check calcSwitch definitions, set defaults, and apply field name updates as needed
 calcSwitchFields = fields(calcSwitch);
 % update deprecated fieldnames: syntax is:
@@ -108,12 +107,14 @@ for field_i = 1:length(analysisGroupFields)
     analysisGroups.(field).groups = {};
   end
 end
+
 % remove images and categories not presented from analysis groups
 % assumes that either, (1) the groups field will contain a depth=1 cell array of
 % stimulus/category names, or (2) the field groupDepth will exist and give
 % the correct cell array depth of groups. Future version can check depth
 % automatically. Also, asumes all fields other than groupDepth are cell
 % arrays.
+
 analysisGroupFields = fieldnames(analysisGroups);
 for field_i = 1:length(analysisGroupFields)
   field = analysisGroupFields{field_i};
@@ -263,9 +264,6 @@ catIndStruct.eventIDs = eventIDs;
 catIndStruct.categoryList = categoryList;
 
 %% Analyses
-save('spikePupilCorrPre')
-end
-load('spikePupilCorrPre')
 
 % Eye Signal Processing
 eyeStatsParams.eventIDs = eventIDs;
@@ -280,7 +278,7 @@ if isfield(plotSwitch, 'eyeStatsAnalysis') && plotSwitch.eyeStatsAnalysis
   [eyeDataStruct, eyeBehStatsByStim, eyeInByEvent] = eyeStatsAnalysis(analogInByEvent, eyeStatsParams, taskData, eyeDataStruct);
   save(analysisOutFilename, 'eyeBehStatsByStim', '-append');
 else
-  Reshapes analogInByEvent into eye signal. not smoothed
+  % Reshapes analogInByEvent into eye signal. not smoothed
   eyeInByEvent = cellfun(@(n) squeeze(n(:,1:2,:,lfpPaddedBy+1:length(n)-(lfpPaddedBy+1))), analogInByEvent, 'UniformOutput', false);
 end
 
@@ -314,6 +312,10 @@ elseif calcSwitch.imagePSTH
   save(analysisOutFilename,'psthByImage','psthErrByImage', '-append');
 end
 
+% save('spikePupilCorrPre')
+% end
+% load('spikePupilCorrPre')
+
 % Spike, Task data, Eye Data Analysis
 
 if isfield(plotSwitch, 'subEventAnalysis') && plotSwitch.subEventAnalysis
@@ -340,7 +342,11 @@ if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
   else
     spikePupilCorrStruct = spikePupilCorr(spikesByEventBinned, eyeDataStruct, taskData, calcSwitch.spikeTimes, psthParams, eventIDs, spikeAlignParams, figStruct);
   end
+  
+  save(analysisOutFilename,'spikePupilCorrStruct','-append');
+
 end
+
 %% Plotting and further analyses
 
 if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
@@ -389,7 +395,7 @@ if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
       title(psthTitle);
       figData.z = psthByImage{channel_i}{unit_i};
       figData.x = -psthPre:psthImDur+psthPost;
-      saveFigure(outDir, sprintf('imPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
+      saveFigure(outDir, sprintf('imPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}, runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
     end
   end
 end
@@ -553,8 +559,8 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           figData.x = -psthPre:psthImDur+psthPost;
           raster(spikesByEvent(imageSortOrderInd(1:topStimToPlot)), sortedImageLabels(1:topStimToPlot), psthParams, stimTiming.ISI, channel_i, unit_i, colors);
           title(sprintf('Preferred Images, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
-          saveFigure(outDir, sprintf('prefImRaster_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
-          if closeFig
+          saveFigure(outDir, sprintf('prefImRaster_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+          if figStruct.closeFig
             close(fh);
           end
         end
@@ -576,8 +582,8 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           figData.x = -psthPre:psthImDur+psthPost;
           rasterColorCoded(fh, spikesByEvent(imageSortOrderInd(1:topStimToPlot)), sortedEventIDs(1:topStimToPlot), psthParams, stimTiming.ISI, channel_i, unit_i, eyeDataStruct,  plotSwitch.prefImRasterColorCoded);
           title(sprintf('Preferred Images, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
-          saveFigure(outDir, sprintf('prefImRaster_%s_%s_%s_Run%s',colorTag, chanUnitTag,epochTag,runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
-          if closeFig
+          saveFigure(outDir, sprintf('prefImRaster_%s_%s_%s_Run%s',colorTag, chanUnitTag,epochTag,runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+          if figStruct.closeFig
             close(fh);
           end
         end
@@ -587,8 +593,8 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           fh = figure('Name',prefImRasterEvokedOverlayTitle,'NumberTitle','off');
           rasterEvoked(spikesByEvent(imageSortOrderInd), lfpByEvent(imageSortOrderInd), sortedImageLabels, psthPre, psthPost, psthImDur, stimTiming.ISI, lfpPaddedBy, channel_i, colors, 1)
           title(sprintf('Preferred Images, from top, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
-          saveFigure(outDir, sprintf('prefImRaster-LFP_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
-          if closeFig
+          saveFigure(outDir, sprintf('prefImRaster-LFP_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+          if figStruct.closeFig
             close(fh);
           end
         end
@@ -598,8 +604,8 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           fh = figure('Name',prefImRasterAverageEvokedOverlayTitle,'NumberTitle','off');
           averageEvoked(spikesByEvent(imageSortOrderInd), lfpByEvent(imageSortOrderInd), sortedImageLabels, psthPre, psthPost, psthImDur, stimTiming.ISI, lfpPaddedBy, channel_i, colors)
           title(sprintf('Preferred Images - Average Evoked, from top, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
-          saveFigure(outDir, sprintf('prefImAverage-LFP_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
-          if closeFig
+          saveFigure(outDir, sprintf('prefImAverage-LFP_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+          if figStruct.closeFig
             close(fh);
           end
         end
@@ -609,8 +615,8 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           fh = figure('Name',prefImMultiChRasterEvokedOverlayTitle,'NumberTitle','off');
           rasterEvokedMultiCh(spikesByEvent(imageSortOrderInd), lfpByEvent(imageSortOrderInd), sortedImageLabels, psthPre, psthPost, psthImDur, stimTiming.ISI, lfpPaddedBy, 1:length(lfpChannels), channelNames, colors)
           title(sprintf('Preferred Images, from top, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
-          saveFigure(outDir, sprintf('prefImRaster-LFP-MultiChannel_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
-          if closeFig
+          saveFigure(outDir, sprintf('prefImRaster-LFP-MultiChannel_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+          if figStruct.closeFig
             close(fh);
           end
         end
@@ -649,8 +655,8 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           clear figData
           figData.y = imageSortedRates;
           figData.e = imFrErrSorted;
-          saveFigure(outDir, sprintf('imageTuningSorted, %s %s %s R%s',groupName, chanUnitTag, epochTag,runNum), figData, saveFig, exportFig, saveFigData, figStruct.figTag );
-          if closeFig
+          saveFigure(outDir, sprintf('imageTuningSorted, %s %s %s R%s',groupName, chanUnitTag, epochTag,runNum), figData, figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+          if figStruct.closeFig
             close(fh);
           end
         end
@@ -4526,8 +4532,8 @@ specSubEvent = 1;     % Analyze individual instances of subEvents in eventData.
 % trials that take place during the run, matching them to the stimuli as 
 % present in the taskData.eventIDs field.
 frameMotionData = taskData.frameMotionData;
-eventIDs = taskData.eventIDs;
-taskEventIDs = subEventParams.taskEventIDs;
+eventIDs = subEventParams.eventIDs;
+taskEventIDs = taskData.taskEventIDs;
 
 taskEventIDInd = zeros(length(taskEventIDs),1);
 for ev_i = 1:length(eventIDs)
@@ -4776,7 +4782,10 @@ if specSubEvent
   % Remove the subEvents which are specific instances, they need to be
   % processed differently.
   subEventInd = false(length(subEventNames),1);
-  subEventInd(specEventInds(1):specEventInds(2)) = true;
+  % In case there are only saccades and blinks.
+  if exist('specEventInds', 'var')
+    subEventInd(specEventInds(1):specEventInds(2)) = true;
+  end
   
   % Copy the structure generated
   specSubEventPSTH = psthBySubEvent;
@@ -4816,83 +4825,85 @@ end
 tabPerEvent = 1; % Plot line PSTHes for each event.
 
 % Generate an array for referencing subEvents correctly.
-tmp = cellfun(@(x) strsplit(x, '|'), uniqueSubEvents, 'UniformOutput', 0);
-specSubEventNamesSorted = cellfun(@(x) x{1}, tmp, 'UniformOutput', 0);
-eventsInEventDataPlot = strrep(subEventNames, '_',' ');
-
-for chan_i = 1:length(psthBySubEvent)
-  for unit_i = 1:length(psthBySubEvent{chan_i})
-    
-    % Create per unit figure
-    psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, ephysParams.channelUnitNames{chan_i}{unit_i});
-    figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
-    if ~tabPerEvent
-      sgtitle(psthTitle)
-    end
-    plotLabels = [{'Event'}, {'Null'}];
-    
-    % Cycle through events
-    for event_i = 1:length(subEventNames)
-      if ~tabPerEvent
-        axesH = subplot(length(subEventNames), 1, event_i);
-      else
-        objTab = uitab('Title', subEventNames{event_i});
-        axesH = axes('parent', objTab);
-      end
-            
-      plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
-      plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
-      plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
-      [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
-      hold on
-      if event_i ~= length(subEventNames)
-        axesH.XLabel.String = '';
-      end
+if exist('uniqueSubEvents', 'var')
+  tmp = cellfun(@(x) strsplit(x, '|'), uniqueSubEvents, 'UniformOutput', 0);
+  specSubEventNamesSorted = cellfun(@(x) x{1}, tmp, 'UniformOutput', 0);
+  eventsInEventDataPlot = strrep(subEventNames, '_',' ');
+  
+  for chan_i = 1:length(psthBySubEvent)
+    for unit_i = 1:length(psthBySubEvent{chan_i})
       
-      % Plot individual traces
-      if specSubEvent
-        relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
-        newLines = gobjects(length(relevantEventInd),1);
-        psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + -subEventParams.psthParams.psthPost;
-        for ii = 1:length(relevantEventInd)
-          newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
+      % Create per unit figure
+      psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, ephysParams.channelUnitNames{chan_i}{unit_i});
+      figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
+      if ~tabPerEvent
+        sgtitle(psthTitle)
+      end
+      plotLabels = [{'Event'}, {'Null'}];
+      
+      % Cycle through events
+      for event_i = 1:length(subEventNames)
+        if ~tabPerEvent
+          axesH = subplot(length(subEventNames), 1, event_i);
+        else
+          objTab = uitab('Title', subEventNames{event_i});
+          axesH = axes('parent', objTab);
         end
         
-        % Expand vertical bars to capture new traces
-        [vertLineHands(1).YData, vertLineHands(2).YData] = deal(ylim());
+        plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
+        plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
+        plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
+        [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
+        hold on
+        if event_i ~= length(subEventNames)
+          axesH.XLabel.String = '';
+        end
         
-        % Update the legend
-        handles = [psthHand.mainLine, newLines'];
-        labels = [plotLabels, uniqueSubEvents(relevantEventInd)'];
-        legend(handles, labels);        
+        % Plot individual traces
+        if specSubEvent
+          relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
+          newLines = gobjects(length(relevantEventInd),1);
+          psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + -subEventParams.psthParams.psthPost;
+          for ii = 1:length(relevantEventInd)
+            newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
+          end
+          
+          % Expand vertical bars to capture new traces
+          [vertLineHands(1).YData, vertLineHands(2).YData] = deal(ylim());
+          
+          % Update the legend
+          handles = [psthHand.mainLine, newLines'];
+          labels = [plotLabels, uniqueSubEvents(relevantEventInd)'];
+          legend(handles, labels);
+        end
+        
+      end
+      if subEventParams.closeFig
+        saveFigure(subEventParams.outDir, psthTitle, [], subEventParams.saveFig, subEventParams.exportFig, 0, '', 'close')
+      else
+        saveFigure(subEventParams.outDir, psthTitle, [], subEventParams.saveFig, subEventParams.exportFig, 0)
       end
       
     end
-    if subEventParams.closeFig
-      saveFigure(subEventParams.outDir, psthTitle, [], subEventParams.saveFig, subEventParams.exportFig, 0, '', 'close')
-    else
-      saveFigure(subEventParams.outDir, psthTitle, [], subEventParams.saveFig, subEventParams.exportFig, 0)
+  end
+  
+  % SubEvent Occurances for stimulus visual events, not saccades/blinks.
+  plotName = 'SubEvent Occurances';
+  h = figure('Name', plotName,'NumberTitle','off','units','normalized');
+  for event_i = 1:length(stimEventMat)
+    axesH = subplot(length(stimEventMat), 1, event_i);
+    [~, colorbarH] = plotPSTH(stimEventMat{event_i}, [], [], subEventParams.stimPlotParams, 'color', eventsInEventDataPlot(event_i) , strrep(eventIDs, '_', ' '));
+    delete(colorbarH)
+    axesH.FontSize = 10;
+    if event_i ~= length(eventsInEventData)
+      axesH.XLabel.String = '';
     end
-    
   end
-end
-
-% SubEvent Occurances for stimulus visual events, not saccades/blinks.
-plotName = 'SubEvent Occurances';
-h = figure('Name', plotName,'NumberTitle','off','units','normalized');
-for event_i = 1:length(stimEventMat)
-  axesH = subplot(length(stimEventMat), 1, event_i);
-  [~, colorbarH] = plotPSTH(stimEventMat{event_i}, [], [], subEventParams.stimPlotParams, 'color', eventsInEventDataPlot(event_i) , strrep(eventIDs, '_', ' '));
-  delete(colorbarH)
-  axesH.FontSize = 10;
-  if event_i ~= length(eventsInEventData)
-    axesH.XLabel.String = '';
+  if subEventParams.closeFig
+    saveFigure(subEventParams.outDir, plotName, [], subEventParams.saveFig, subEventParams.exportFig, 0, '', 'close')
+  else
+    saveFigure(subEventParams.outDir, plotName, [], subEventParams.saveFig, subEventParams.exportFig, 0)
   end
-end
-if subEventParams.closeFig
-  saveFigure(subEventParams.outDir, plotName, [], subEventParams.saveFig, subEventParams.exportFig, 0, '', 'close')
-else
-  saveFigure(subEventParams.outDir, plotName, [], subEventParams.saveFig, subEventParams.exportFig, 0)
 end
 
 % Package outputs
@@ -4953,16 +4964,7 @@ else
   end
 end
 
-preAlign = spikeAlignParams.preAlign;
-postAlign = spikeAlignParams.postAlign;
-
 smoothingWidth = psthParams.smoothingWidth;
-movingWin = psthParams.movingWin;
-times = -psthParams.psthPre:(psthParams.psthImDur+psthParams.psthPost);
-psthErrorType = psthParams.errorType;
-psthErrorRangeZ = psthParams.errorRangeZ;
-psthBootstrapSamples = psthParams.bootstrapSamples;
-
 lfpPaddedBy = psthParams.movingWin(1)/2 + 1;
 
 if ~spikeTimes
@@ -4971,243 +4973,160 @@ if ~spikeTimes
   smoothingFilter = smoothingFilter/sum(smoothingFilter);
 end
 
-[psthByStim, corrByStim, pByStim] = deal(initNestedCellArray(spikesByEvent));
-
 % Method - make histograms of pupil values where spikes happen vs don't. t
 % test between them
 
-plotType = 1;       % Type of plot to generate. 1 = single tabbed plot with each tab having a figure "Stim" with all units. 2 being a "Unit Across Stim" image, another switch below.
-figureType = 1;
+% Plot 1 - for each stimulus, check if unit's response was coupled to
+% pupil.
+figTitle = 'Pupil Spike vs No Spike Histogram';
+h = figure('Name',figTitle,'NumberTitle','off','units', 'normalized', 'Position', [0 0 1 0.9]);
+objTbGrp = uitabgroup('Parent', h);
+spikePupilSigArray = cell(length(spikesByEvent{1}), 2);
 
-switch plotType
-  case 1
-    h = figure('Name','Pupil Spike vs No Spike Histogram','NumberTitle','off','units', 'normalized', 'Position', [0 0 1 0.9]);
-    objTbGrp = uitabgroup('Parent', h);
-    for stim_i = 1:length(spikesByEvent)
-      objTab = uitab('Parent', objTbGrp, 'Title', eventIDs{stim_i});
-      axesH = axes('parent', objTab);
-      pupilStimData = pupilByStim{stim_i};
-      %plotInd = 1;
-      
-      % Plot stuff
-      histHandle = histogram(pupilStimData);
-      hold on
-      pupilDataMean = nanmean(nanmean(pupilStimData));
-      maxBin = max(histHandle.Values);
-      legendHandles = plot([pupilDataMean pupilDataMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
-      legendLabels = {sprintf('%s = Grand Mean', num2str(pupilDataMean,3))};
-      for chan_i = 1:length(spikesByEvent{stim_i})
-        meanLineHandles = gobjects(length(spikesByEvent{stim_i}{chan_i}),1);
-        meanLabels = cell(length(spikesByEvent{stim_i}{chan_i}),1);
-        for unit_i = 1:length(spikesByEvent{stim_i}{chan_i})
-          pupilStimCopy = pupilStimData;
-          spikeBins = spikesByEvent{stim_i}{chan_i}{unit_i}(:,lfpPaddedBy:end-lfpPaddedBy);
-          pupilSpikeVals = [];
-          
-          % For every trial, pull pupil values where spikes occur, replacing
-          % them with NaNs.
-          for trial_i = 1:size(spikeBins,1)
-            spikeInds = find(spikeBins(trial_i,:));
-            pupilSpikeVals = [pupilSpikeVals, pupilStimData(trial_i, spikeInds)];
-            pupilStimCopy(trial_i,spikeInds) = deal(NaN);
-          end
-          
-          % Plot Stuff
-          grandMeanSubset = nanmean(pupilStimCopy(:));
-          [~, B] = ttest2(pupilSpikeVals, pupilStimCopy(:));
-          histogram(pupilSpikeVals);
-          meanLineHandles(unit_i) = plot([nanmean(pupilSpikeVals) nanmean(pupilSpikeVals)], [0 maxBin], 'Linewidth', 3);
-          meanLabels{unit_i} = sprintf('%s = Ch%dU%d (%s)', num2str(nanmean(pupilSpikeVals),3), chan_i, unit_i, num2str(B,3));
-          if B < 0.05
-            text(nanmean(pupilSpikeVals), maxBin*1.01, '*', 'Fontsize', 14)
-          end
-        end
-        
-        % Add Legends
-        legendHandles = [legendHandles; meanLineHandles];
-        legendLabels = [legendLabels; meanLabels];
-      end
-      
-      % Title, Legends
-      title(sprintf('Pupil Dilations for %s', eventIDs{stim_i}))
-      legend(legendHandles, legendLabels);
-    end
-    
-  case 2
-    for chan_i = 1:length(spikesByEvent{1})
-      for unit_i = 1:length(spikesByEvent{1}{chan_i})
-        % Generate a figure which describes the unit's coupling to pupil
-        % diameter.
-        figTitle = sprintf('Pupil Spike vs No Spike Histogram, %s', figStruct.channelUnitNames{chan_i}{unit_i});
-        h = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'Position', [0 0 1 0.9]);
-        
-        switch figureType
-          case 1
-            % Option 1 - lots of little plots, 1 per stim
-            objTbGrp = uitabgroup('Parent', h);
-            
-            for stim_i = 1:length(spikesByEvent)
-              [spikingBins, nonSpikingBins] = deal([]);
-              spikeEventData = spikesByEvent{stim_i}{chan_i}{unit_i};
-              pupilEventData = pupilByStim{stim_i};
-              for trial_i = 1:size(spikeEventData, 1)
-                spikeEventTrial = spikeEventData(trial_i, :);
-                
-                nonSpikingBins = [nonSpikingBins, pupilEventData(trial_i, ~logical(spikeEventTrial))];
-                loopSub = 0;
-                while any(spikeEventTrial)
-                  % Keep looping until spikeEventTrial is empty.
-                  spikeEventTrial = max(spikeEventTrial-loopSub,0);
-                  if any(spikeEventTrial)
-                    spikingBins = [spikingBins, pupilEventData(trial_i, logical(spikeEventTrial))];
-                    loopSub = 1;
-                  end
-                end
-              end
-              % Start a new Tab
-              objTab = uitab('Parent', objTbGrp, 'Title', eventIDs{stim_i});
-              axesH = axes(objTab);
-              
-              % Make a histogram of the results
-              nSHist = histogram(nonSpikingBins);
-              hold on
-              sHist = histogram(spikingBins, nSHist.NumBins);
-              
-              % Add lines at the means
-              nonSpikeMean = nanmean(nonSpikingBins);
-              spikeMean = nanmean(spikingBins);
-              
-              maxBin = max(nSHist.Values);
-              grandMeanHand = plot([nonSpikeMean nonSpikeMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
-              grandMeanLabel = {sprintf('%s = Grand Mean', num2str(nonSpikeMean, 3))};
-              
-              spikeMeanHand = plot([spikeMean spikeMean], [0 maxBin*1.05], 'color','b', 'Linewidth', 3);
-              spikeMeanLabel = {sprintf('%s = Unit Spike Mean', num2str(spikeMean, 3))};
-              
-              % T test, Add Star if Significant
-              [A, pVal, ~, stats] = ttest2(nonSpikingBins, spikingBins);
-              cohensD = (spikeMean - nonSpikeMean)/stats.sd;
-              if A
-                text(spikeMean, spikeMeanHand.YData(2)*1.00, '*', 'Fontsize', 14)
-              end
-              % Title, Legends
-              title(sprintf('Pupil Spike Dilations for %s activity, p = %s, Cohens D = %s, ', figTitle, num2str(pVal, 3), num2str(cohensD, 3)))
-              legend([grandMeanHand, spikeMeanHand], [grandMeanLabel, spikeMeanLabel]);
-              
-            end
-          case 2
-            % Option 2 - One big plot, all pupil diameters dumped in, all spikes
-            % dumped in.
-            % Option 2.1 - Soc vs Non-Social?
-            [spikingBins, nonSpikingBins] = deal([]);
-            for stim_i = 1:length(spikesByEvent)
-              spikeEventData = spikesByEvent{stim_i}{chan_i}{unit_i};
-              pupilEventData = pupilByStim{stim_i};
-              for trial_i = 1:size(spikeEventData, 1)
-                spikeEventTrial = spikeEventData(trial_i, :);
-                
-                nonSpikingBins = [nonSpikingBins, pupilEventData(trial_i, ~logical(spikeEventTrial))];
-                loopSub = 0;
-                while any(spikeEventTrial)
-                  % Keep looping until spikeEventTrial is empty.
-                  spikeEventTrial = max(spikeEventTrial-loopSub,0);
-                  if any(spikeEventTrial)
-                    spikingBins = [spikingBins, pupilEventData(trial_i, logical(spikeEventTrial))];
-                    loopSub = 1;
-                  end
-                end
-              end
-              
-            end
-            
-            % Make a histogram of the results
-            axesH = axes(h);
-            nSHist = histogram(nonSpikingBins);
-            hold on
-            sHist = histogram(spikingBins, nSHist.NumBins);
-            
-            % Add lines at the means
-            nonSpikeMean = nanmean(nonSpikingBins);
-            spikeMean = nanmean(spikingBins);
-            
-            maxBin = max(nSHist.Values);
-            grandMeanHand = plot([nonSpikeMean nonSpikeMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
-            grandMeanLabel = {sprintf('%s = Grand Mean', num2str(nonSpikeMean, 3))};
-            
-            spikeMeanHand = plot([spikeMean spikeMean], [0 maxBin*1.05], 'color','b', 'Linewidth', 3);
-            spikeMeanLabel = {sprintf('%s = Unit Spike Mean', num2str(spikeMean, 3))};
-            
-            % T test, Add Star if Significant
-            [A, pVal, ~, stats] = ttest2(nonSpikingBins, spikingBins);
-            cohensD = (spikeMean - nonSpikeMean)/stats.sd;
-            if A
-              text(spikeMean, spikeMeanHand.YData(2)*1.00, '*', 'Fontsize', 14)
-            end
-            % Title, Legends
-            title(sprintf('Pupil Spike Dilations for %s activity, p = %s, Cohens D = %s, ', figTitle, num2str(pVal, 3), num2str(cohensD, 3)))
-            legend([grandMeanHand, spikeMeanHand], [grandMeanLabel, spikeMeanLabel]);
-        end
-        
-      end
-    end
+for chan_i = 1:length(spikesByEvent{1})
+  [spikePupilSigArray{:}] = deal(zeros(length(spikesByEvent), length(spikesByEvent{1}{chan_i})));
 end
 
-% Method 1 - make PSTHes
-% for stim_i = 1:length(spikesByEvent)
-%   for channel_i = 1:length(spikesByEvent{stim_i})
-%     for unit_i = 1:length(spikesByEvent{stim_i}{channel_i})
-%       emptyPSTHbyTrial = zeros(size(spikesByEvent{stim_i}{channel_i}{unit_i}));
-%       for trial_i = 1:size(emptyPSTHbyTrial, 1)
-%         if ~spikeTimes
-%           %spikes are binned, convolve signal to get PSTH.
-%           emptyPSTHbyTrial(trial_i,:) = 1000*conv(spikesByItem{stim_i}{channel_i}{unit_i}(trial_i,:) ,smoothingFilter, 'same');
-%         else
-%           warning('not implemented w/ spikeTimes');
-%         end
-%       end
-%       psthByStim{stim_i}{channel_i}{unit_i} = emptyPSTHbyTrial;
-%     end
-%   end
-% end
+for stim_i = 1:length(spikesByEvent)
+  objTab = uitab('Parent', objTbGrp, 'Title', eventIDs{stim_i});
+  axesH = axes('parent', objTab);
+  pupilStimData = pupilByStim{stim_i};
+  %plotInd = 1;
+  
+  % Plot stuff
+  histHandle = histogram(pupilStimData);
+  hold on
+  pupilDataMean = nanmean(nanmean(pupilStimData));
+  maxBin = max(histHandle.Values);
+  legendHandles = plot([pupilDataMean pupilDataMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
+  legendLabels = {sprintf('%s = Grand Mean', num2str(pupilDataMean,3))};
+  for chan_i = 1:length(spikesByEvent{stim_i})
+    meanLineHandles = gobjects(length(spikesByEvent{stim_i}{chan_i}),1);
+    meanLabels = cell(length(spikesByEvent{stim_i}{chan_i}),1);
+    for unit_i = 1:length(spikesByEvent{stim_i}{chan_i})
+      pupilStimCopy = pupilStimData;
+      spikeBins = spikesByEvent{stim_i}{chan_i}{unit_i}(:,lfpPaddedBy:end-lfpPaddedBy);
+      pupilSpikeVals = [];
+      
+      % For every trial, pull pupil values where spikes occur, replacing
+      % them with NaNs.
+      for trial_i = 1:size(spikeBins,1)
+        spikeInds = find(spikeBins(trial_i,:));
+        pupilSpikeVals = [pupilSpikeVals, pupilStimData(trial_i, spikeInds)];
+        pupilStimCopy(trial_i,spikeInds) = deal(NaN);
+      end
+      
+      % Plot Stuff
+      grandMeanSubset = nanmean(pupilStimCopy(:));
+      unitMean = nanmean(pupilSpikeVals);
+      [~, B, ~, stats] = ttest2(pupilSpikeVals, pupilStimCopy(:));
+      histogram(pupilSpikeVals);
+      meanLineHandles(unit_i) = plot([unitMean unitMean], [0 maxBin], 'Linewidth', 3);
+      meanLabels{unit_i} = sprintf('%s = Ch%dU%d (%s)', num2str(unitMean,3), chan_i, unit_i, num2str(B,3));
+      cohensD = (unitMean - grandMeanSubset)/stats.sd;
+      
+      if B < 0.05
+        text(nanmean(pupilSpikeVals), maxBin*1.01, '*', 'Fontsize', 14)
+      end
+      
+      % Store significance test things
+      spikePupilSigArray{1}(stim_i, unit_i) = B;
+      spikePupilSigArray{2}(stim_i, unit_i) = cohensD;
 
-% Step 2 - Calculate the trial by trial correlation between the PSTH and the pupil
-% dilation value
-% for stim_i = 1:length(psthByStim)
-%   figure()
-%   sgtitle(sprintf('PSTH and pupil dilation correlation - %s', eventIDs{stim_i})); 
-%   unitSum = 1;
-% 
-%   pupilData = pupilByStim{stim_i};
-%   for chan_i = 1:length(psthByStim{stim_i})
-%     for unit_i = 1:length(psthByStim{stim_i}{chan_i})
-%       % Extract spikeData for specific unit, find correlations per trial.
-%       spikeData = psthByStim{stim_i}{chan_i}{unit_i}(:, lfpPaddedBy:end-lfpPaddedBy);
-%       [corrMat, pMat] = deal(nan(size(spikeData,1),1));
-%       for trial_i = 1:size(spikeData,1)
-%         [tmpC, tmpP] = corrcoef(spikeData(trial_i,:),pupilData(trial_i,:));
-%         corrMat(trial_i) = tmpC(2,1);
-%         pMat(trial_i) = tmpP(2,1);
-%         fprintf('Correlation - %s, P val = %s \n', num2str(tmpC(2,1)), num2str(tmpP(2,1), 3))
-%       end
-%       corrByStim{stim_i}{chan_i}{unit_i} = corrMat(2,1);
-%       pByStim{stim_i}{chan_i}{unit_i} = pMat(2,1);
-%       
-%       % Shape the data
-%       subplot(length(psthByStim{stim_i}), length(psthByStim{stim_i}{chan_i}), unitSum)
-%       unitSum = unitSum + 1;
-%       a = histogram(corrMat,100);
-%       levels = min(a.Values):1/length(pMat):sum(max(a.Values));
-%       for ii = 1:length(pMat)
-%         text(corrMat(ii), levels(ii), num2str(pMat(ii), 2))
-%       end
-%       title(sprintf('Ch%d, U%d', chan_i, unit_i))
-%     end
-%   end
-% end
+    end
+    
+    % Add Legends
+    legendHandles = [legendHandles; meanLineHandles];
+    legendLabels = [legendLabels; meanLabels];
+  end
+  
+  % Title, Legends
+  title(sprintf('Pupil Dilations for %s', eventIDs{stim_i}))
+  legend(legendHandles, legendLabels);
+end
 
-% Step 3 - Visualization this somehow.
-% 3a - if its bins, scatterplot with 2 histograms
-% 3b - if its a time series, maybe a mean per trial? Idk.
+% Save figure
+saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+
+
+% Plot 2 - for all stimulus together, check Unit-Pupil coupling
+spikePupilAllStim = cell(length(spikesByEvent{1}), 2);
+for chan_i = 1:length(spikesByEvent{1})
+  [pVec, dVec] = deal(zeros(1, length(spikesByEvent{1}{chan_i})));
+  for unit_i = 1:length(spikesByEvent{1}{chan_i})
+    % Generate a figure which describes the unit's coupling to pupil
+    % diameter.
+    figTitle = sprintf('Pupil Spike vs No Spike Histogram, %s', figStruct.channelUnitNames{chan_i}{unit_i});
+    h = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'Position', [0 0 1 0.9]);
+    
+    [spikingBins, nonSpikingBins] = deal([]);
+    for stim_i = 1:length(spikesByEvent)
+      spikeEventData = spikesByEvent{stim_i}{chan_i}{unit_i};
+      pupilEventData = pupilByStim{stim_i};
+      for trial_i = 1:size(spikeEventData, 1)
+        spikeEventTrial = spikeEventData(trial_i, :);
+        
+        nonSpikingBins = [nonSpikingBins, pupilEventData(trial_i, ~logical(spikeEventTrial))];
+        loopSub = 0;
+        while any(spikeEventTrial)
+          % Keep looping until spikeEventTrial is empty.
+          spikeEventTrial = max(spikeEventTrial-loopSub,0);
+          if any(spikeEventTrial)
+            spikingBins = [spikingBins, pupilEventData(trial_i, logical(spikeEventTrial))];
+            loopSub = 1;
+          end
+        end
+      end
+      
+    end
+    
+    % Make a histogram of the results
+    axesH = axes(h);
+    nSHist = histogram(nonSpikingBins);
+    hold on
+    sHist = histogram(spikingBins, nSHist.NumBins);
+    
+    % Add lines at the means
+    nonSpikeMean = nanmean(nonSpikingBins);
+    spikeMean = nanmean(spikingBins);
+    
+    maxBin = max(nSHist.Values);
+    grandMeanHand = plot([nonSpikeMean nonSpikeMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
+    grandMeanLabel = {sprintf('%s = Grand Mean', num2str(nonSpikeMean, 3))};
+    
+    spikeMeanHand = plot([spikeMean spikeMean], [0 maxBin*1.05], 'color','b', 'Linewidth', 3);
+    spikeMeanLabel = {sprintf('%s = Unit Spike Mean', num2str(spikeMean, 3))};
+    
+    % T test, Add Star if Significant
+    [A, pVal, ~, stats] = ttest2(nonSpikingBins, spikingBins);
+    cohensD = (spikeMean - nonSpikeMean)/stats.sd;
+    if A
+      text(spikeMean, spikeMeanHand.YData(2)*1.00, '*', 'Fontsize', 14)
+    end
+    
+    % Title, Legends
+    title(sprintf('Pupil Spike Dilations for %s activity, p = %s, Cohens D = %s, ', figTitle, num2str(pVal, 3), num2str(cohensD, 3)))
+    legend([grandMeanHand, spikeMeanHand], [grandMeanLabel, spikeMeanLabel]);
+    
+    % Store outputs
+    pVec(unit_i) = pVal;
+    dVec(unit_i) = cohensD;
+    
+    % Save figure
+    saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+
+  end
+  
+  % Store outputs
+  spikePupilAllStim{chan_i, 1} = pVec;
+  spikePupilAllStim{chan_i, 2} = dVec;
+  
+end
+
+spikePupilCorrStruct.spikePupilUnitStim.pVals = spikePupilSigArray(:,1);
+spikePupilCorrStruct.spikePupilUnitStim.dVals = spikePupilSigArray(:,2);
+spikePupilCorrStruct.spikePupilUnitAllStim.pVals = spikePupilAllStim(:,1);
+spikePupilCorrStruct.spikePupilUnitAllStim.dVals = spikePupilAllStim(:,2);
 
 end
 
@@ -6209,11 +6128,16 @@ for stim_i = 1:length(eyeInByEventAll)
         for blink_i = 1:size(blinkTimesTmp,2)
           % find a start value - mean of 10 prior values
           startInds = (blinkTimesTmp(1,blink_i)-12 : blinkTimesTmp(1,blink_i) - 2);
-          startVal = mean(trace(startInds));
+          if any(startInds < 0)
+            startVal = trace(blinkTimesTmp(2,blink_i)+5);
+            trace(blinkTimesTmp(1,blink_i):blinkTimesTmp(2,blink_i)+5) = deal(startVal);
+          else
+            % Replace values in the trace - easy method, may need to
+            % complicate.
+            startVal = mean(trace(startInds));
+            trace(blinkTimesTmp(1,blink_i)-2:blinkTimesTmp(2,blink_i)) = deal(startVal);
+          end
           
-          % Replace values in the trace - easy method, may need to
-          % complicate.
-          trace(blinkTimesTmp(1,blink_i)-2:blinkTimesTmp(2,blink_i)) = deal(startVal);
         end
         
         if eye_i == 1
@@ -6606,12 +6530,12 @@ for stim_i = 1:length(analogInByEvent)
 end
 
 % Plot distributions Catagory vs non-Catagory
-catagoryPlot = {'socialInteraction', 'chasing'};
+catagoryPlot = {'socialInteraction'};
+catStats = cell(length(catagoryPlot),1);
 for cat_i = 1:length(catagoryPlot)
   % see if the stimulus is present
   stimInd = catIndStruct.catIndMat(:, strcmp(catagoryPlot{cat_i}, catIndStruct.categoryList));
-  
-  if any(stimInd)
+  if length(unique(stimInd)) > 1
     % Prepare figure
     figTitle = sprintf('Catagory based Pupil dilations, %s vs Non-%s', catagoryPlot{cat_i}, catagoryPlot{cat_i});
     h = figure('Name',figTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
@@ -6642,14 +6566,23 @@ for cat_i = 1:length(catagoryPlot)
     if A
       text(catPupilMean, maxBin*1.01, '*', 'Fontsize', 14)
     end
+    cohensD = (nanmean(catPupil) - nanmean(nonCatPupil))/stats.sd;
     
     % Legends, Titles
-    title(sprintf('%s (p = %s)', figTitle, num2str(pVal,3)))
+    title(sprintf('%s (p = %s, Cohens D = %s)', figTitle, num2str(pVal,3), num2str(cohensD, 3)))
     h.Children.XLabel.String = 'Raw Pupil values';
     h.Children.YLabel.String = 'Frequency';
+    
+    % Save the figure
+    if figStruct.saveFig
+      % saveFigure( outDir, filename, figData, saveFig, exportFig, saveData, varargin )
+      saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+    end
+    
+    % Save to Output Struct
+    catStats{cat_i} = {pVal, cohensD};
   end
 end
-
 
 % Plot adaptation curves
 eventLabels = eyeStatsParams.eventLabels;
@@ -6657,9 +6590,11 @@ stimStart = eyeStatsParams.psthPre;
 stimEnd = eyeStatsParams.psthPre + eyeStatsParams.psthImDur;
 [meanVec, SDVec] = deal(cell(length(eventLabels),1));
 
-h = figure('Name','Pupil adaptation','NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
+figTitle = 'Pupil adaptation';
+h = figure('Name',figTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
 objTbGrp = uitabgroup('Parent', h);
-      
+
+stimPupilAdaptLine = cell(length(pupilImg),1);
 for stim_i = 1:length(pupilImg)
   objTab = uitab('Parent', objTbGrp, 'Title', eventLabels{stim_i});
   axesH = axes('parent', objTab);
@@ -6676,36 +6611,59 @@ for stim_i = 1:length(pupilImg)
   
   title(sprintf('Individual Trials - %s', eventLabels{stim_i}))
   legendLabels = [arrayfun(@(x) ['Trial ' num2str(x)], 1:size(pupilStimData,1), 'UniformOutput', 0), 'Mean']; 
-  legend(legendLabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');
-  
+  legend(legendLabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');  
   
   % Plot 2 - Is there a change over trial period?
   subplot(2,1,2)
+  hold on
   [meanV, SDV] = deal(zeros(size(pupilStimData,1), 1));
+  [ally, allx] = deal([]);
   for trial_i = 1:size(pupilStimData,1)
     meanV(trial_i) = nanmean(pupilStimData(trial_i, :));
     SDV(trial_i) = nanstd(pupilStimData(trial_i, :));
+    
+    ydata = pupilStimData(trial_i, :);
+    xdata = ones(size(ydata)) * trial_i;
+    
+    ally = [ally, ydata];
+    allx = [allx, xdata];
+
   end
+  plot(xdata, ydata, 'r*', 'MarkerSize', 1, 'LineWidth', 1);
+  hold on
   meanVec{stim_i} = meanV;
   SDVec{stim_i} = SDV;
   
-  mseb(1:length(meanV), meanV', SDV');
-  title('Pupilary Adaptation - Mean (SD)')
+  % Use this data to fit a linear model
+  linMod = fitlm(allx, ally);
+  plot(linMod);
+  [stimPupilAdaptLine{stim_i}, lineVals] = deal(linMod.Coefficients.Estimate);
   
+  title(sprintf('Pupilary Adaptation : x1 = %s, int = %s', num2str(lineVals(2), 2), num2str(lineVals(1), 2)))
 end
 
-% All Stim adaptation plot
-objTab = uitab('Parent', objTbGrp, 'Title', 'All Stim');
-axesH = axes('parent', objTab);
-trialCounts = cellfun('length', meanVec);
-[allMeanVec, allSDVec] = deal(nan(length(meanVec), max(trialCounts)));
-for stim_i = 1:size(allMeanVec)
-  allMeanVec(stim_i, 1:trialCounts(stim_i)) = meanVec{stim_i};
-  allSDVec(stim_i, 1:trialCounts(stim_i)) = SDVec{stim_i};
+% 
+% % All Stim adaptation plot
+% objTab = uitab('Parent', objTbGrp, 'Title', 'All Stim');
+% axesH = axes('parent', objTab);
+% trialCounts = cellfun('length', meanVec);
+% [allMeanVec, allSDVec] = deal(nan(length(meanVec), max(trialCounts)));
+% for stim_i = 1:size(allMeanVec)
+%   allMeanVec(stim_i, 1:trialCounts(stim_i)) = meanVec{stim_i};
+%   allSDVec(stim_i, 1:trialCounts(stim_i)) = SDVec{stim_i};
+% end
+% mseb(1:size(allMeanVec,2), nanmean(allMeanVec), nanmean(allSDVec));
+
+% Once done, Save the figure
+if figStruct.saveFig
+  % saveFigure( outDir, filename, figData, saveFig, exportFig, saveData, varargin )
+  saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag);
 end
-mseb(1:size(allMeanVec,2), nanmean(allMeanVec), nanmean(allSDVec))
 
 eyeDataStruct.pupilByStim = pupilImg;
+eyeDataStruct.pupilStats.catComp = catagoryPlot;
+eyeDataStruct.pupilStats.catStats = catStats;
+eyeDataStruct.pupilStats.pupilAdapt = stimPupilAdaptLine;
 
 end
 

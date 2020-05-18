@@ -52,7 +52,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Plot switches
 plotSwitch.pupilDilation = 1;               % plots image which illustrates continuous values for pupil dilation. 
-plotSwitch.subEventAnalysis = 0;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
+plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
 plotSwitch.imageEyeMap = 0;                 
 plotSwitch.eyeCorralogram = 0;              % Eye Gram
 plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements.
