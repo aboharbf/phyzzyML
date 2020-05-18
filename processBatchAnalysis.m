@@ -70,7 +70,7 @@ else
       fprintf('processing run %d... \n', ii)      
     end
     tmp = load([preprocessedList(ii).folder filesep preprocessedList(ii).name],'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign');
-    tmp2 = load([analyzedList(ii).folder filesep analyzedList(ii).name], 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage','attendedObjData', 'stimStatsTable', 'subEventSigStruct', 'psthBySubEvent');
+    tmp2 = load([analyzedList(ii).folder filesep analyzedList(ii).name], 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct');
     tmp3 = load([analyzedList(ii).folder filesep 'AnalysisParams.mat'], 'psthParams');
     
     sessField = sprintf('S%s%s', tmp2.dateSubject, tmp2.runNum);
@@ -80,17 +80,19 @@ else
     spikeDataBank.(sessField).spikesByEvent = tmp.spikesByEvent;
     spikeDataBank.(sessField).psthByImage = tmp2.psthByImage;
     spikeDataBank.(sessField).psthErrByImage = tmp2.psthErrByImage;
-    spikeDataBank.(sessField).attendedObjData = tmp2.attendedObjData;
+    spikeDataBank.(sessField).attendedObjData = tmp2.eyeDataStruct.attendedObjData;
     spikeDataBank.(sessField).groupLabelsByImage = tmp2.groupLabelsByImage;
     spikeDataBank.(sessField).tTest = tmp2.stimStatsTable;
     spikeDataBank.(sessField).subEventSigStruct = tmp2.subEventSigStruct;
-    spikeDataBank.(sessField).psthBySubEvent = tmp2.psthBySubEvent;
+    spikeDataBank.(sessField).psthBySubEvent = tmp2.subEventSigStruct.subEventPSTH;
+    
     spikeDataBank.(sessField).eventIDs = tmp.eventIDs;
     spikeDataBank.(sessField).eventCategories = tmp.eventCategories;
     spikeDataBank.(sessField).start = -tmp3.psthParams.psthPre;
     spikeDataBank.(sessField).stimDur = tmp3.psthParams.psthImDur;
     spikeDataBank.(sessField).end = tmp3.psthParams.psthImDur + tmp3.psthParams.psthPost;
-    spikeDataBank.(sessField).groupLabel = target; %Now in slidingANOVAparams.
+    
+    %spikeDataBank.(sessField).groupLabel = target; %Now in slidingANOVAparams.
     spikeDataBank.(sessField).figDir = preprocessedList(ii).folder;
   end
   spikeDataBankPath = saveSpikeDataBank(spikeDataBank, 2, 'save',outputDir);

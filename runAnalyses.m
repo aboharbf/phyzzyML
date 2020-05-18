@@ -312,9 +312,7 @@ elseif calcSwitch.imagePSTH
   save(analysisOutFilename,'psthByImage','psthErrByImage', '-append');
 end
 
-% save('spikePupilCorrPre')
-% end
-% load('spikePupilCorrPre')
+
 
 % Spike, Task data, Eye Data Analysis
 
@@ -335,6 +333,10 @@ elseif calcSwitch.categoryPSTH
   [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategoryBinned, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
   save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
 end
+
+% save('spikePupilCorrPre')
+% end
+% load('spikePupilCorrPre')
 
 if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
   if calcSwitch.spikeTimes
@@ -912,7 +914,6 @@ if isfield(plotSwitch, 'stimPSTHoverlay') && plotSwitch.stimPSTHoverlay
   stimPSTHoverlay(psthByImage, imageSortOrder, nullModelPvalues, stimDir, psthParams, lfpPaddedBy, eventIDs, outDir);
 end
 
-plotSwitch.spikeCorr = 1;
 if isfield(plotSwitch, 'spikeCorr') && plotSwitch.spikeCorr
   spikeCorrTraces = spikeCorr(spikesByEventBinned);
   save(analysisOutFilename,'spikeCorrTraces','-append');
@@ -4984,7 +4985,7 @@ objTbGrp = uitabgroup('Parent', h);
 spikePupilSigArray = cell(length(spikesByEvent{1}), 2);
 
 for chan_i = 1:length(spikesByEvent{1})
-  [spikePupilSigArray{:}] = deal(zeros(length(spikesByEvent), length(spikesByEvent{1}{chan_i})));
+  [spikePupilSigArray{chan_i, :}] = deal(zeros(length(spikesByEvent), length(spikesByEvent{1}{chan_i})));
 end
 
 for stim_i = 1:length(spikesByEvent)
@@ -5030,8 +5031,8 @@ for stim_i = 1:length(spikesByEvent)
       end
       
       % Store significance test things
-      spikePupilSigArray{1}(stim_i, unit_i) = B;
-      spikePupilSigArray{2}(stim_i, unit_i) = cohensD;
+      spikePupilSigArray{chan_i, 1}(stim_i, unit_i) = B;
+      spikePupilSigArray{chan_i, 2}(stim_i, unit_i) = cohensD;
 
     end
     
@@ -5065,7 +5066,6 @@ for chan_i = 1:length(spikesByEvent{1})
       pupilEventData = pupilByStim{stim_i};
       for trial_i = 1:size(spikeEventData, 1)
         spikeEventTrial = spikeEventData(trial_i, :);
-        
         nonSpikingBins = [nonSpikingBins, pupilEventData(trial_i, ~logical(spikeEventTrial))];
         loopSub = 0;
         while any(spikeEventTrial)
@@ -5080,41 +5080,44 @@ for chan_i = 1:length(spikesByEvent{1})
       
     end
     
-    % Make a histogram of the results
-    axesH = axes(h);
-    nSHist = histogram(nonSpikingBins);
-    hold on
-    sHist = histogram(spikingBins, nSHist.NumBins);
-    
-    % Add lines at the means
-    nonSpikeMean = nanmean(nonSpikingBins);
-    spikeMean = nanmean(spikingBins);
-    
-    maxBin = max(nSHist.Values);
-    grandMeanHand = plot([nonSpikeMean nonSpikeMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
-    grandMeanLabel = {sprintf('%s = Grand Mean', num2str(nonSpikeMean, 3))};
-    
-    spikeMeanHand = plot([spikeMean spikeMean], [0 maxBin*1.05], 'color','b', 'Linewidth', 3);
-    spikeMeanLabel = {sprintf('%s = Unit Spike Mean', num2str(spikeMean, 3))};
-    
-    % T test, Add Star if Significant
-    [A, pVal, ~, stats] = ttest2(nonSpikingBins, spikingBins);
-    cohensD = (spikeMean - nonSpikeMean)/stats.sd;
-    if A
-      text(spikeMean, spikeMeanHand.YData(2)*1.00, '*', 'Fontsize', 14)
+    if ~any([isempty(spikingBins), isempty(nonSpikingBins)])
+      % Make a histogram of the results
+      axesH = axes(h);
+      nSHist = histogram(nonSpikingBins);
+      hold on
+      sHist = histogram(spikingBins, nSHist.NumBins);
+      
+      % Add lines at the means
+      nonSpikeMean = nanmean(nonSpikingBins);
+      spikeMean = nanmean(spikingBins);
+      
+      maxBin = max(nSHist.Values);
+      grandMeanHand = plot([nonSpikeMean nonSpikeMean], [0 maxBin*1.05], 'color','k', 'Linewidth', 3);
+      grandMeanLabel = {sprintf('%s = Grand Mean', num2str(nonSpikeMean, 3))};
+      
+      spikeMeanHand = plot([spikeMean spikeMean], [0 maxBin*1.05], 'color','b', 'Linewidth', 3);
+      spikeMeanLabel = {sprintf('%s = Unit Spike Mean', num2str(spikeMean, 3))};
+      
+      % T test, Add Star if Significant
+      [A, pVal, ~, stats] = ttest2(nonSpikingBins, spikingBins);
+      cohensD = (spikeMean - nonSpikeMean)/stats.sd;
+      if A
+        text(spikeMean, spikeMeanHand.YData(2)*1.00, '*', 'Fontsize', 14)
+      end
+      
+      % Title, Legends
+      title(sprintf('Pupil Spike Dilations for %s activity, p = %s, Cohens D = %s, ', figTitle, num2str(pVal, 3), num2str(cohensD, 3)))
+      legend([grandMeanHand, spikeMeanHand], [grandMeanLabel, spikeMeanLabel]);
+      
+      % Store outputs
+      pVec(unit_i) = pVal;
+      dVec(unit_i) = cohensD;
+      
+      % Save figure
+      saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+    else
+      [pVec(unit_i), dVec(unit_i)] = deal(NaN);
     end
-    
-    % Title, Legends
-    title(sprintf('Pupil Spike Dilations for %s activity, p = %s, Cohens D = %s, ', figTitle, num2str(pVal, 3), num2str(cohensD, 3)))
-    legend([grandMeanHand, spikeMeanHand], [grandMeanLabel, spikeMeanLabel]);
-    
-    % Store outputs
-    pVec(unit_i) = pVal;
-    dVec(unit_i) = cohensD;
-    
-    % Save figure
-    saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
-
   end
   
   % Store outputs

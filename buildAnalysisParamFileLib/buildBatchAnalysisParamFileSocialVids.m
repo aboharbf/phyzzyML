@@ -8,17 +8,19 @@ switch machine
   case 'Alienware_FA'
     analysisDirectory = slashSwap('D:\DataAnalysis\March2020');
     outputDir = [analysisDirectory '/batchAnalysis'];
-    stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzy\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
+    recordingLogxls = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
   case 'homeDesktopWork'
-    analysisDirectory = 'C:/Analyzed';
+    analysisDirectory = 'H:/Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];
-    stimParamsFilename = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzy\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimParamsFilename = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
+    recordingLogxls = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
 end
 
 analysisLabel = 'Basic';
@@ -26,7 +28,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 saveFig = 1;                
-closeFig = 1;               %#ok
+closeFig = 0;               %#ok
 exportFig = 0;              %#ok
 saveFigData = 0;            %#ok
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
@@ -48,9 +50,9 @@ preprocessParams.preprocessedVars = {'spikesByEvent','eventIDs','eventCategories
 preprocessParams.analyzedVars = {'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','attendedObjData'}; %Variables extracted from analyzedData.mat
 preprocessParams.analysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
 
-cellCountParams.excludePhase2 = 0; % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
-cellCountParams.batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');                         %Batch analysis xlsx produced by processRunBatch.
-cellCountParams.recordingLogxls = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';  %Used to exclude phase 2 to give accurate unit counts.
+cellCountParams.excludePhase2 = 0;                                                    % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
+cellCountParams.batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');     % Batch analysis xlsx produced by processRunBatch.
+cellCountParams.recordingLogxls = recordingLogxls;                                    % Used to exclude phase 2 to give accurate unit counts.
 
 meanPSTHParams.outputDir = fullfile(outputDir,'meanPSTH');
 meanPSTHParams.stimParamsFilename = stimParamsFilename;

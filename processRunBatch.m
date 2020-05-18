@@ -185,8 +185,8 @@ if ~replaceAnalysisOut
       fprintf('Done! \n');
     end
   end
-  
-else
+end  
+if replaceAnalysisOut
   %% If generating excel...  
   if nargin >= 1
     %If there is only 1 file, it loads the analysisParamFile and composes a
@@ -266,7 +266,7 @@ else
 end
 
 % Generate a cell array and the empty row to be used as a template.
-tableVar = {'File_Analyzed', 'Error', 'Channel', 'Unit_Count', 'Pupil Dil', 'subEvent Unsorted', 'subEvent Unit', 'subEvent MUA', ...
+tableVar = {'File_Analyzed', 'Error', 'Channel', 'Unit_Count', 'Pupil Dil', 'spikePupilCorr', 'subEvent Unsorted', 'subEvent Unit', 'subEvent MUA', ...
   'Sig Unit count', 'Sig Unsorted', 'Sig MUA', 'Stimuli_count', 'Stimuli','ANOVA','Other Info'};
 emptyTable = cell2table(cell(0,length(tableVar)), 'VariableNames', tableVar);
 emptyRow = cell([1, length(tableVar)]);
@@ -275,7 +275,7 @@ emptyRow = cell([1, length(tableVar)]);
   emptyRow{strcmp(tableVar, 'Sig Unit count')}, emptyRow{strcmp(tableVar, 'Sig MUA')}, ...
   emptyRow{strcmp(tableVar, 'Stimuli_count')}]  = deal(NaN);
 
-emptyRow{strcmp(tableVar, 'Pupil Dil')} = "";
+[emptyRow{strcmp(tableVar, 'Pupil Dil')}, emptyRow{strcmp(tableVar, 'spikePupilCorr')}] = deal("");
 
 dataArray = cell(epochCount, 1);
 [dataArray{:}] = deal(emptyTable);
@@ -287,7 +287,7 @@ for ii = 1:length(analysisParamFileName)
   
   % Check for analyzedData.mat to open
   if ~isempty((analysisOutFilename{ii}))
-    tmp = load(analysisOutFilename{ii}, 'stimStatsTable','sigStruct','frEpochs', 'subEventSigStruct', 'eyeDataStruct'); %Relies on genStats function in runAnalyses.
+    tmp = load(analysisOutFilename{ii}, 'stimStatsTable','sigStruct','frEpochs', 'subEventSigStruct', 'eyeDataStruct', 'spikePupilCorrStruct'); %Relies on genStats function in runAnalyses.
     
     if isfield(tmp, 'sigStruct')
       channelCount = length(tmp.sigStruct.data);
@@ -350,6 +350,7 @@ for ii = 1:length(analysisParamFileName)
           end
         end
         
+        % Analysis of pupil dilation
         if isfield(tmp, 'eyeDataStruct')
           catStrings = [];
           for cat_i = 1:length(tmp.eyeDataStruct.pupilStats.catComp)
@@ -366,6 +367,19 @@ for ii = 1:length(analysisParamFileName)
           end
           
         end
+        
+        % Analysis of spike Pupil correlation
+        if isfield(tmp, 'spikePupilCorrStruct')
+          allStimPerUnit = tmp.spikePupilCorrStruct.spikePupilUnitAllStim.pVals{channel_ind};
+          stimPerUnit = sum(tmp.spikePupilCorrStruct.spikePupilUnitStim.pVals{channel_ind} < 0.05);
+          funInd = 1:length(stimPerUnit);
+          
+          % Combine
+          entryCells = arrayfun(@(x) sprintf("%d(%d)", allStimPerUnit(x), stimPerUnit(x)), funInd);
+          dataRow{strcmp(tableVar, 'spikePupilCorr')} = strjoin(entryCells, ' | ');
+        end
+        
+        % If these analyses have succeeded, erase the errors.
         
         % Package Outputs into structure for table
         dataArray{epoch_i} = [dataArray{epoch_i}; dataRow];

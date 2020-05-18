@@ -26,7 +26,7 @@ if plotSwitch.stimPresCount
   %last recording' to highlight days after long breaks.
 end
 
-if 1%~exist('unitCounts','var')
+if ~exist('unitCounts','var')
   [trueCellInd, trueCellInfo, unitCounts, resultTable, nullCells] = trueCellCount(cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
   for run_ind = 1:length(runList)
     sessionName = extractBetween(runList{run_ind}, 2, length(runList{run_ind}));
@@ -773,7 +773,7 @@ end
 
 % Identify Events, stimuli
 load(params.eventData);
-eventList = eventData.Properties.VariableNames;
+eventList = [eventData.Properties.VariableNames 'saccades', 'blinks'];
 stimList = eventData.Properties.RowNames;
 
 % Remove runs with no events from spikeDataBank;

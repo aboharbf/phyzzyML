@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '003';
-dateSubject = '20180628Mo';
+runNum = '001';
+dateSubject = '20191001Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
