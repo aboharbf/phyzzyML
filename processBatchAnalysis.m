@@ -84,7 +84,6 @@ else
     spikeDataBank.(sessField).groupLabelsByImage = tmp2.groupLabelsByImage;
     spikeDataBank.(sessField).tTest = tmp2.stimStatsTable;
     spikeDataBank.(sessField).subEventSigStruct = tmp2.subEventSigStruct;
-    spikeDataBank.(sessField).psthBySubEvent = tmp2.subEventSigStruct.subEventPSTH;
     
     spikeDataBank.(sessField).eventIDs = tmp.eventIDs;
     spikeDataBank.(sessField).eventCategories = tmp.eventCategories;

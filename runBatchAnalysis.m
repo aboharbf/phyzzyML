@@ -176,11 +176,13 @@ eventColors = 'kbrg';
 % extract the eventIDs field, generate a cell array of unique stimuli
 allStimuliVec = struct2cell(structfun(@(x) x.eventIDs, spikeDataBank,'UniformOutput', 0));
 allStimuliVec = unique(vertcat(allStimuliVec{:}));
+load(params.frameMotionDataPath);
+frameMotionDataNames = {frameMotionData.stimVid};
+
+% subEvent related markers
 load(params.eventData); % Puts eventData into the workspace.
 eventData = eventData(allStimuliVec, :);
 eventList = eventData.Properties.VariableNames;
-load(params.frameMotionDataPath);
-frameMotionDataNames = {frameMotionData.stimVid};
 
 % Generate grid for indexing into individual runs and extracting relevant
 % PSTHes.
@@ -270,11 +272,6 @@ for stim_ind = 1:length(allStimuliVec)
           end
         end
         
-        if params.removeRewardEpoch
-          unitActivity = unitActivity(1:rewardStart);
-          unitErr = unitErr(1:rewardStart);
-          params.psthPost = 0;
-        end
         presCount = tmpRunStruct.stimPresCount(psthStimIndex(subRun_ind));
         gridHole = tmpRunStruct.gridHoles;
         depth = tmpRunStruct.recDepth;
@@ -294,18 +291,17 @@ for stim_ind = 1:length(allStimuliVec)
           end
         end
         % Store the generated values into a dataArray
-        dataArray = cell(length(dataType),1); % Structure to store and iterate across.
-        % dataType = {'PSTH', 'PSTH Err', 'presCount','daysSinceLastPres', 'daysSinceLastRec', 'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
-        dataArray{1} = unitActivity;
-        dataArray{2} = unitErr;
-        dataArray{3} = presCount;
-        dataArray{4} = daysSinceLastPres;
-        dataArray{5} = daysSinceLastRec;
-        dataArray{6} = str2double(tmpRunStruct.runNum);
-        dataArray{7} = {num2str(gridHole{chan_ind})};
-        dataArray{8} = depth{chan_ind};
-        dataArray{9} = psthRunIndex(subRun_ind);
-                
+        dataArray = cell(size(dataType));
+        dataArray{strcmp(dataType, 'PSTH')} = unitActivity;
+        dataArray{strcmp(dataType, 'PSTH Err')} = unitErr;
+        dataArray{strcmp(dataType, 'presCount')} = presCount;
+        dataArray{strcmp(dataType, 'daysSinceLastPres')} = daysSinceLastPres;
+        dataArray{strcmp(dataType, 'daysSinceLastRec')} = daysSinceLastRec;
+        dataArray{strcmp(dataType, 'Run of Day')} = str2double(tmpRunStruct.runNum);
+        dataArray{strcmp(dataType, 'Grid Hole')} = {num2str(gridHole{chan_ind})};
+        dataArray{strcmp(dataType, 'Recording Depth')} = depth{chan_ind};
+        dataArray{strcmp(dataType, 'Run Ind')} = psthRunIndex(subRun_ind);
+        
         % Concatonate to the correct Matrix (index matching phyzzy convention)
         if unit_ind == 1 % Unsorted
           groupInd = 1;
@@ -347,6 +343,12 @@ if params.allStimPSTH
     groupData = cellfun(@(x) mean(x, 1), groupData, 'UniformOutput',0);
     plotData = vertcat(groupData{:});
     
+    if params.removeRewardEpoch
+      plotData = plotData(1:rewardStart);
+      %unitErr = unitErr(1:rewardStart);
+      %params.psthPost = 0;
+    end
+    
     if params.sortPresCountSort
       [~, newOrder] = sort(stimCounts);
       allStimuliLabel = allStimuliLabel(newOrder);
@@ -355,7 +357,7 @@ if params.allStimPSTH
     
     catPSTHTitle = sprintf('All Stimuli, Mean PSTH %s, %s', normTag, groupingType{group_ind});
     h = figure('NumberTitle', 'off', 'Name', catPSTHTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllStimPSTH]);
-    [catPSTHAxes, cbh] = plotPSTH(plotData, [], axes(), params, 'color', catPSTHTitle, allStimuliLabel);
+    [~, cbh] = plotPSTH(plotData, [], axes(), params, 'color', catPSTHTitle, allStimuliLabel);
     if params.normalize == 1
       cbh.Label.String = 'Signal Change relative to Baseline (%)';
     elseif params.normalize == 2
@@ -379,6 +381,10 @@ if params.catPSTH
     sliceStimPSTH = stimPSTH(broadLabelInd(:,broad_ind),:,dataInd2Plot);
     sliceStimLabels = briefStimList(broadLabelInd(:,broad_ind));
     sliceStimPresMat = stimPresMat(broadLabelInd(:,broad_ind),:);
+    
+    if params.removeRewardEpoch
+      sliceStimPSTH = cellfun(@(x) x(:, 1:rewardStart), sliceStimPSTH, 'UniformOutput', 0);
+    end
     
     % Generate a matrix of the meanPSTHes, with the last row being total
     % means. Add this to the counts as well.
@@ -461,7 +467,6 @@ if params.catPSTH
 end
 
 % Plot 3 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
-
 if params.allRunStimPSTH
   % Make a PSTH of each stimulus across all its repetitions.
   sortType = {'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
@@ -521,8 +526,15 @@ if params.allRunStimPSTH
     % Get the relevant frameMotion/eventData
     eventDataStim = eventData(allStimuliVec{stim_i},:);
     stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
-    for sort_i = 4%1:length(sortType)
-      for group_i = 2:size(stimPSTH,2)
+    for group_i = 2:size(stimPSTH,2)
+      stimData = stimPSTH{stim_i,group_i,1};
+      
+      if params.removeRewardEpoch
+        stimData = stimData(:,1:rewardStart);
+      end
+      
+      for sort_i = 4%1:length(sortType)
+        
         figTitle = sprintf('%s - %s PSTHs, Sorted by %s, %s', allStimuliNames{stim_i}, groupingType{group_i} ,sortType{sort_i}, normTag);
         h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH]);
         sgtitle(figTitle)
@@ -547,7 +559,7 @@ if params.allRunStimPSTH
         cbHandle = gobjects(subplot2Plot,1);
         for plot_i = 1:subplot2Plot
           plotLabels = sortLabel{stim_i, group_i, sort_i}(plotStarts(plot_i):plotEnds(plot_i));
-          plotData = stimPSTH{stim_i,group_i,1}(plotStarts(plot_i):plotEnds(plot_i), :);
+          plotData = stimData(plotStarts(plot_i):plotEnds(plot_i), :);
           %sortIndex = sortMat{stim_i, group_i, sort_i}(plotStarts(plot_i):plotEnds(plot_i));
           psthAxes = subplot(1,subplot2Plot,plot_i);
           [subplotAxes(plot_i), cbHandle(plot_i)] = plotPSTH(plotData, [], psthAxes, params, 'color', [], plotLabels); %(sortIndex,:)
@@ -594,11 +606,54 @@ if params.allRunStimPSTH
         
         saveFigure(params.outputDir, ['3.' figTitle], [], 1, exportFig, 0, {''})
         close(h)
+        
       end
-    end
+    end   
   end
-  
 end
+
+% Plot 3.1 - subEvent Analysis
+for stim_i = 1:size(stimPSTH,1)
+  % Get the relevant frameMotion/eventData
+  eventDataStim = eventData(allStimuliVec{stim_i},:);
+  stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
+  for group_i = 2:size(stimPSTH,2)
+    %for sort_i = 4%1:length(sortType)
+      % Add additional tabs denoting occurance of events
+      for event_i = 1:length(eventList)
+        if ~isempty(eventDataStim.(eventList{event_i}){1})
+          evTable = eventDataStim.(eventList{event_i}){1};
+          eventStarts = round(evTable.startFrame * stimTimePerFrame);
+          psthTimes = params.subEventPSTHParams.subEventTimes';
+          psthPre = params.psthPre;
+          
+          for inst_i = 1:length(eventStarts)
+            startT = eventStarts(inst_i)-psthTimes(1)+psthPre;
+            endT = eventStarts(inst_i)+psthTimes(2)+psthPre;
+            eventPSTHData = stimPSTH{stim_i,group_i,1}(:, startT:endT);
+            eventPSTHLabel = sortLabel{stim_i, group_i, 4};
+            
+            % Plot
+            figure()
+            figTitle = sprintf('%s - %s, %d - %d', extractBefore(allStimuliVec{stim_i}, regexp(allStimuliVec{stim_i}, '.avi')), eventList{event_i}, startT, endT);
+            psthAxes = subplot(2,1,1);
+            [subplotAxes(plot_i), cbHandle(plot_i)] = plotPSTH(eventPSTHData, [], psthAxes, params.subEventPSTHParams, 'color', [], eventPSTHLabel);
+            title(figTitle);
+
+            subplot(2,1,2);
+            arrayInd = 1:size(eventPSTHData,1);
+            meanPostEventPSTH = arrayfun(@(x) mean(eventPSTHData(x, psthTimes(1):end)), arrayInd);
+            stdPostEventPSTH = arrayfun(@(x) std(eventPSTHData(x, psthTimes(1):end)), arrayInd);
+            mseb(1:length(meanPostEventPSTH), meanPostEventPSTH, stdPostEventPSTH);
+            title('Trial by Trial Mean and STD');
+          end
+          
+        end
+      end
+    %end
+  end
+end
+
 
 % Plot 4 - Line plot with Line per Catagory
 if params.lineCatPlot
@@ -795,8 +850,8 @@ eventDataArray = cell(length(eventList), length(groupType), length(dataType));
 for run_i = 1:length(runList)
   runData = spikeDataBank.(runList{run_i});
   subEventSig = runData.subEventSigStruct;
-  subEventData = runData.psthBySubEvent(:,1);
-  subEventNull = runData.psthBySubEvent(:,2);
+  subEventData = subEventSig.subEventPSTH(:,1);
+  subEventNull = subEventSig.subEventNullPSTH(:,1);
   for event_i = 1:length(subEventSig.events)
     eventInd = strcmp(subEventSig.events{event_i}, eventList);
     for chan_i = 1:length(subEventData)
@@ -835,9 +890,16 @@ for run_i = 1:length(runList)
           PSTHNull = (PSTHNull - fixMean)/fixSD;
         end
         
-        %{'PSTH', 'Null PSTH', 'pVal', 'Cohens D', 'Run of Day', 'Grid Hole', 'Recording Depth', 'Run index'};
-        newEntry = [PSTHData PSTHNull pVal cohensD runOfDay {gridHole} recordingDepth {runLabel}];
-        
+        newEntry = cell(size(dataType));
+        newEntry{strcmp(dataType, 'PSTH')} = PSTHData;
+        newEntry{strcmp(dataType, 'Null PSTH')} = PSTHNull;
+        newEntry{strcmp(dataType, 'pVal')} = pVal;
+        newEntry{strcmp(dataType, 'Cohens D')} = cohensD;
+        newEntry{strcmp(dataType, 'Run of the Day')} = runOfDay;
+        newEntry{strcmp(dataType, 'Grid Hole')} = gridHole;
+        newEntry{strcmp(dataType, 'Recording Depth')} = recordingDepth;
+        newEntry{strcmp(dataType, 'Run Index')} = runLabel;
+
         % Compile relevant data from run
         for data_i = 1:length(dataType)
           eventDataArray{eventInd, groupInd, data_i} = [eventDataArray{eventInd, groupInd, data_i}; newEntry{data_i}];
@@ -851,9 +913,9 @@ end
 eventListPlot = strrep(eventList, '_', ' ');
 
 % Temp to account for lack of parameters in data
-psthParam.psthPre = 200;
-psthParam.psthImDur = 200;
-psthParam.psthPost = 0;
+psthParam.psthPre = abs(subEventSig.psthWindow(1));
+psthParam.psthImDur = subEventSig.testPeriod(2);
+psthParam.psthPost = subEventSig.testPeriod(1);
 
 % Plot all individual PSTHes available
 if params.allRunStimPSTH

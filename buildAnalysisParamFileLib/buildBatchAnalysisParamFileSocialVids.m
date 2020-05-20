@@ -27,10 +27,10 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-saveFig = 1;                
-closeFig = 0;               %#ok
-exportFig = 0;              %#ok
-saveFigData = 0;            %#ok
+figStruct.saveFig = 1;                
+figStruct.closeFig = 0;               
+figStruct.exportFig = 0;              
+figStruct.saveFigData = 0;            
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Switches
@@ -103,7 +103,7 @@ meanPSTHParams.allRunStimPSTH = 1;              % Stimuli Plot - 'All chasing 1 
 
 meanPSTHParams.lineCatPlot = 1;                 % Line plot with Line per Catagory
 meanPSTHParams.lineBroadCatPlot = 1;            % Means Line plot across broad catagorizations (like Social vs non Social)
-meanPSTHParams.exportFig = 0;                   % Turns on the 'exportFig' feature of saveFigure, which generates .pngs.
+meanPSTHParams.exportFig = figStruct.exportFig; % Turns on the 'exportFig' feature of saveFigure, which generates .pngs.
 meanPSTHParams.plotSizeCatPSTH = [.8 .6];       
 meanPSTHParams.plotSizeAllStimPSTH = [.5 1];           
 meanPSTHParams.plotSizeAllRunStimPSTH = [1 1];           
@@ -117,9 +117,14 @@ subEventPSTHParams.normalize = 1;                                 % Grab activit
 subEventPSTHParams.fixBuffer = 150;                                % normalization acts on the fixation period. Some effects of the fix dot appearance or stimulus onset may be driving neurons away from the true baseline. this number is the millisecond after true fix start, before fix end.
 subEventPSTHParams.allRunStimPSTH = 1;
 subEventPSTHParams.plotSizeAllRunStimPSTH = [1 1];
-subEventPSTHParams.exportFig = 0;
-subEventPSTHParams.saveFig = 1;
+subEventPSTHParams.exportFig = figStruct.exportFig;
+subEventPSTHParams.saveFig = figStruct.saveFig;
 subEventPSTHParams.sparseLabels = 1;                              % In the 'sorted' individual runs, sparse labeling only labels the first entry of that kind in the PSTH.
+meanPSTHParams.subEventPSTHParams = subEventPSTHParams; 
+meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];                    % psthPre and psthImDur for grabbing events.
+meanPSTHParams.subEventPSTHParams.psthPre = 200;                    % psthPre and psthImDur for grabbing events.
+meanPSTHParams.subEventPSTHParams.psthImDur = 200;                    % psthPre and psthImDur for grabbing events.
+meanPSTHParams.subEventPSTHParams.psthPost = 0;                    % psthPre and psthImDur for grabbing events.
 
 frameFiringParams.stimParamsFilename = stimParamsFilename;
 frameFiringParams.outputDir = fullfile(outputDir,'frameFiring');
@@ -139,7 +144,7 @@ slidingTestParams.target = {'socialInteraction','agents','interaction'};  %Label
 slidingTestParams.stimParamFile = stimParamsFilename;
 slidingTestParams.outputDir = fullfile(outputDir,'slidingTest');
 slidingTestParams.spikeDataFileName = preprocessParams.spikeDataFileName;
-slidingTestParams.exportFig = 1; 
+slidingTestParams.exportFig = figStruct.exportFig;
 slidingTestParams.plotSize = [.8 .6];        
 
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis');
@@ -159,3 +164,5 @@ function swappedString = slashSwap(pathString)
   stringParts = split(pathString, '\');
   swappedString = char(join(stringParts, '/'));
 end
+
+%#ok<*STRNU> % Gets rid of warning of not use.

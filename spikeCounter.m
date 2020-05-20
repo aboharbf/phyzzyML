@@ -29,7 +29,15 @@ for channel_i = 1:numChannels
       unitSpikeCounts{item_i} = s;
       channelSpikeRatesTrialAve(unit_i, item_i) = mean(s.rates);
       n = length(s.rates);
-      channelSpikeRatesTrialErr(unit_i, item_i) = (std(s.rates)/sqrt(n))*sqrt(2/(n-1))*(gamma(n/2)/gamma((n-1)/2));
+      %channelSpikeRatesTrialErr(unit_i, item_i) = (std(s.rates)/sqrt(n))*sqrt(2/(n-1))*(gamma(n/2)/gamma((n-1)/2));
+      
+      if n < 26
+        c4 = sqrt(2/(n-1))*(gamma(n/2)/gamma((n-1)/2)); %std small-n estimator bias correction, see
+      else
+        c4 = 1; % for n >= 26, this correction is <1%, and at large n, gamma function ratio becomes numerically unstable
+      end
+      channelSpikeRatesTrialErr(unit_i, item_i) = (std(s.rates)/sqrt(n))/c4;
+
     end
     channelSpikeCounts{unit_i} = unitSpikeCounts;
   end
