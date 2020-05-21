@@ -6,11 +6,9 @@ function [ ] = buildStimParamFileSocialVids_Auto()
 %the video. {{VideoID1; {label1}; {label2}...}{VideoID2; {label1};
 %{label2}...}. The second is a TriggerLabels, containing all possible labels. 
 
-% For experiment run 2018.10.10
-% Updated 2019.13.1 to include full stim set, including August stuff.
 
 %Find the folder with what you want
-StimFolder = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories';
+StimFolder = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories';
 stimType = '.avi';
 
 %Find every file in this folder with the extension desired.
@@ -25,6 +23,35 @@ end
 stimNames = {tmpStimFilesStack.name};
 [~, uniInd] = unique(stimNames);
 stimList = {tmpStimFilesStack(uniInd).name}';
+
+%% Load the eventTable
+eventDataPath = fullfile(StimFolder, 'eventData.mat');
+tmp = load(eventDataPath);
+eventDataCell = table2cell(tmp.eventData);
+eventDataStim = tmp.eventData.Properties.RowNames;
+resortInd = cellfun(@(x) find(strcmp(x, eventDataStim)), stimList);
+
+eventTitles = tmp.eventData.Properties.VariableNames;
+eventPresMat = cellfun(@(x) ~isempty(x.startFrame), eventDataCell);
+
+mergeHeadTurning = 1;
+if mergeHeadTurning
+  mergeRows = logical(strcmp(eventTitles, {'headTurn_right'}) + strcmp(eventTitles, {'headTurn_left'}));
+  headTurn = logical(sum(eventPresMat(:, mergeRows),2));
+  eventPresMat = [headTurn, eventPresMat(:, ~mergeRows)];
+  eventTitles = ['headTurn', eventTitles(~mergeRows)];
+end
+
+mergeTurning = 1;
+if mergeTurning
+  mergeRows = logical(strcmp(eventTitles, {'headTurn'}) + strcmp(eventTitles, {'bodyTurn'}));
+  allTurn = logical(sum(eventPresMat(:, mergeRows),2));
+  eventPresMat = [allTurn, eventPresMat];
+  eventTitles = ['allTurn', eventTitles];  
+end
+
+% Resort to match stimList
+eventPresMat = eventPresMat(resortInd,:);
 
 %% Turn that list into the appropriate file for phyzzy..
 pictureLabels = cell(size(stimList));
@@ -73,6 +100,8 @@ for ii = 1:length(stimList)
     %A change needed for the naming convention on animated stimuli controls
     if length(stimParts) > 2 && strncmp(stimParts(3),'C',1)
       stimLabels = horzcat(stimLabels ,'animControl');
+    elseif length(stimParts) == 2
+      stimLabels = horzcat(stimLabels ,'animSocialInteraction');
     end
   end
   
@@ -107,6 +136,11 @@ for ii = 1:length(stimList)
     elseif strncmp(stimParts(3),'C',1)
       label = strjoin(stimParts(3:end));
     end
+  end
+  
+  % Event based labels, derived from eventData.mat in stim folder.
+  if any(eventPresMat(ii, :))
+    stimLabels = horzcat(stimLabels, eventTitles(eventPresMat(ii, :)));
   end
   
   % Accounts for stimuli with no Labels
@@ -163,7 +197,7 @@ pictureLabels = [pictureLabels; labelAdd];
 
 categoryLabels = {'agents', 'objects', 'scramble', 'scene', 'interaction', 'nonInteraction', 'idle', 'socialInteraction','nonSocialInteraction'...
   'goalDirected', 'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing','animated', 'animControl',...
-  'foraging','sitting','faces','bodies','hands','background', 'subEvents', 'headTurn', 'bodyTurn', 'allStim'};
+  'foraging','sitting','faces','bodies','hands','background', 'subEvents', 'headTurn', 'bodyTurn', 'allTurn', 'eyeContact','allStim'};
   
 paramArray = stimList;
 

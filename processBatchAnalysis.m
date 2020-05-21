@@ -8,7 +8,7 @@ function spikeDataBankPath = processBatchAnalysis( varargin )
 % Output
 % - paths to relevant .mat files (sliced up spikeDataBank + other
 % variables). spikeDataBank files end with '_N', while the other variables
-% end with 'Vars'. Vars file is 1st in cell array of file paths. 
+% end with 'Vars'. Vars file is 1st in cell array of file paths.
 
 %% Parse Arguments
 addpath(genpath('dependencies'));

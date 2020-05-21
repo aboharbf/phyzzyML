@@ -27,17 +27,18 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 1;                
+figStruct.saveFig = 0;                
 figStruct.closeFig = 0;               
 figStruct.exportFig = 0;              
-figStruct.saveFigData = 0;            
+figStruct.saveFigData = 0;
+figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % Seeing whether 10th percentile values in previous analyses line up with 'novel' stimuli
 plotSwitch.slidingWindowANOVA = 0;
@@ -50,6 +51,7 @@ preprocessParams.preprocessedVars = {'spikesByEvent','eventIDs','eventCategories
 preprocessParams.analyzedVars = {'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','attendedObjData'}; %Variables extracted from analyzedData.mat
 preprocessParams.analysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
 
+meanPSTHParams.stimInclude = 2;                 % 0 = everything, 1 = Only Animations, 2 = Exclude Animations. 
 cellCountParams.excludePhase2 = 0;                                                    % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
 cellCountParams.batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');     % Batch analysis xlsx produced by processRunBatch.
 cellCountParams.recordingLogxls = recordingLogxls;                                    % Used to exclude phase 2 to give accurate unit counts.
@@ -66,8 +68,8 @@ meanPSTHParams.broadLabel = 0;                  % Transitions individual stimuli
 meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 meanPSTHParams.maxStimOnly = 1;                 % The max value and max index taken from the PSTH is only in the area of the stimulus presentation.
 meanPSTHParams.plotLabels = {'chasing','fighting','mounting','grooming','following',...
-    'objects','goalDirected','idle','scramble','scene','socialInteraction','animControl','animSocialInteraction','agents','headTurning'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
-meanPSTHParams.plotLabelSocialInd = [1 1 1 1 1 0 0 0 0 0 0 0 0 0 0]; %Index for single catagory labels which are social.
+    'objects','goalDirected','idle','scramble','scene','socialInteraction','animControl','animSocialInteraction','agents','headTurn','allTurn', 'headTurnClassic'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
+meanPSTHParams.plotLabelSocialInd = [1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0]; %Index for single catagory labels which are social.
 meanPSTHParams.socialColor = [240/255 62/255 47/255];
 meanPSTHParams.nonSocialColor = [9/255 217/255 107/255];
 meanPSTHParams.sortPresCountSort = 1;           % Sorts images based on counts.
@@ -91,18 +93,18 @@ load(meanPSTHParams.psthColormapFilename);
 meanPSTHParams.colormap = map;
 meanPSTHParams.tmpFileName = 'tmpStructPrcSigChange.mat';
 meanPSTHParams.plotSingleUnitTests = 1;         % Avoids running completed plot code.
-meanPSTHParams.stimInclude = 2;                 % 0 = everything, 1 = Only Animations, 2 = Exclude Animations. 
 meanPSTHParams.removeRewardEpoch = 1;           % Removes the reward period activity when generating plots.
 meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, include a additional axis as a line plot.
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
 meanPSTHParams.traceCountLabel = 0;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
 
-meanPSTHParams.catPSTH = 0;                     %  Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
-meanPSTHParams.allStimPSTH = 0;                 % All Stimuli means in the same plot.
-meanPSTHParams.allRunStimPSTH = 1;              % Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
+meanPSTHParams.catPSTH = 0;                     % 1.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
+meanPSTHParams.allStimPSTH = 0;                 % 2.0 - All Stimuli means in the same plot.
+meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
+meanPSTHParams.subEventPSTH = 0;                % 3.1 - Makes plot for every instance of an event in each stimulus.
+meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
+meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
 
-meanPSTHParams.lineCatPlot = 1;                 % Line plot with Line per Catagory
-meanPSTHParams.lineBroadCatPlot = 1;            % Means Line plot across broad catagorizations (like Social vs non Social)
 meanPSTHParams.exportFig = figStruct.exportFig; % Turns on the 'exportFig' feature of saveFigure, which generates .pngs.
 meanPSTHParams.plotSizeCatPSTH = [.8 .6];       
 meanPSTHParams.plotSizeAllStimPSTH = [.5 1];           
@@ -148,6 +150,7 @@ slidingTestParams.exportFig = figStruct.exportFig;
 slidingTestParams.plotSize = [.8 .6];        
 
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis');
+assert(length(meanPSTHParams.plotLabels) == length(meanPSTHParams.plotLabelSocialInd), 'These two variables must match in length')
 
 
 analysisParamFilenameStem = 'batchAnalysisParams.mat';

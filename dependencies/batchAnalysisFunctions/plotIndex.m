@@ -25,7 +25,7 @@ paramArray = tmp.paramArray(paramSortVec);
 briefStimList = tmp.pictureLabels(paramSortVec);
 
 % Iterate across stimuli and identify appropriate indicies
-plotMat = zeros(length(stimuliList),length(params.plotLabels));
+plotMat = false(length(stimuliList),length(params.plotLabels));
 
 for stim_ind = 1:size(plotMat,1)
   paramStimSet = paramArray{stim_ind};
