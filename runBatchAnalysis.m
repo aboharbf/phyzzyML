@@ -73,14 +73,13 @@ end
 % with additional dimension for identifying information. Expansions in
 % analyses should begin here, if pulling from spikeDataBank.
 if ~exist('stimPSTHStruct', 'var')
-  stimPSTHStruct = pullPSTH(spikeDataBank, meanPSTHParams);
+  [stimPSTHStruct, meanPSTHParams] = pullPSTH(spikeDataBank, meanPSTHParams);
   saveEnv(0);
 end
 
 % Combine PSTH across all runs for a particular stimulus.
 if plotSwitch.meanPSTH 
-  [stimPSTH, meanPSTHStruct] = meanPSTH(spikeDataBank, meanPSTHParams, figStruct);
-  %saveEnv()
+  [stimPSTH, meanPSTHStruct] = meanPSTH(stimPSTHStruct, meanPSTHParams, figStruct);
 end
 
 % Combine PSTH across all runs for a particular event.
@@ -173,24 +172,15 @@ end
 
 end
 
-function [stimPSTHStruct] = pullPSTH(spikeDataBank, params)
+function [stimPSTHStruct, meanPSTHParams] = pullPSTH(spikeDataBank, params)
 % Function which combines stimulus presentations across all runs in the spikeDataBank.
 % Inputs include spikeDataBank and list of parameters.
 disp('Compiling PSTH Struct...');
-% eventColors = 'kbrg';
-% groupIterInd = 3; % An index for which groups to look at. 1 = Unsorted, 2 = Units, 3 = MUA. Combine as fit.
 
 % Rebuild variables
 % extract the eventIDs field, generate a cell array of unique stimuli
 allStimuliVec = struct2cell(structfun(@(x) x.eventIDs, spikeDataBank,'UniformOutput', 0));
 allStimuliVec = unique(vertcat(allStimuliVec{:}));
-load(params.frameMotionDataPath);
-% frameMotionDataNames = {frameMotionData.stimVid};
-
-% subEvent related markers
-% load(params.eventData); % Puts eventData into the workspace.
-% eventData = eventData(allStimuliVec, :);
-% eventList = eventData.Properties.VariableNames;
 
 % Generate grid for indexing into individual runs and extracting relevant
 % PSTHes.
@@ -202,40 +192,7 @@ end
 
 stimPresCounts = sum(logical(small2BigInd),2);
 
-% If you only want stim above a certain count, remove here.
-% if params.plotTopStim
-%   keepInd = stimPresCounts >= params.topStimPresThreshold;
-%   stimPresCounts = stimPresCounts(keepInd);
-%   small2BigInd = small2BigInd(keepInd,:);
-%   allStimuliVec = allStimuliVec(keepInd,:);
-% end
-% 
-% animParam.stimParamsFilename = params.stimParamsFilename;
-% animParam.plotLabels = {'animSocialInteraction', 'animControl'};
-% [tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
-% animInd = logical(sum(tmp,2));
-
-%Generate the figure directory
-% dirTags = {'without Rewards','fixAligned','Normalized','Pres Threshold'};
-% dirTagSwitch = [params.removeRewardEpoch, params.fixAlign, params.normalize, params.plotTopStim];
-% params.outputDir = [params.outputDir strjoin(dirTags(logical(dirTagSwitch)),' - ')];
-
-% switch params.stimInclude 
-%   case  1
-%   stimPresCounts = stimPresCounts(animInd);
-%   small2BigInd = small2BigInd(animInd,:);
-%   allStimuliVec = allStimuliVec(animInd,:);
-%   params.outputDir = [params.outputDir '- AnimOnly'];
-%   case 2
-%   stimPresCounts = stimPresCounts(~animInd);
-%   small2BigInd = small2BigInd(~animInd,:);
-%   allStimuliVec = allStimuliVec(~animInd,:);
-%   params.outputDir = [params.outputDir '- NoAnim'];
-% end
-
-% [plotMat, briefStimList, params] = plotIndex(allStimuliVec, params);
-
-% Step 1 - Concatonate PSTHs - iterate across stimuli, grab PSTHes from each run, store
+% Concatonate PSTHs - iterate across stimuli, grab PSTHes from each run, store
 groupingType = {'Unsorted', 'Units', 'MUA'};
 dataType = {'PSTH', 'PSTH Err', 'presCount','daysSinceLastPres', 'daysSinceLastRec', 'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
 % {'Run of Day', 'Grid Hole', 'Run of Day', 'Recording Depth'};
@@ -245,6 +202,7 @@ stimPSTHStruct.stimPresCounts = stimPresCounts;
 stimPSTHStruct.IndStructs{1} = allStimuliVec;
 stimPSTHStruct.IndStructs{2} = groupingType;
 stimPSTHStruct.IndStructs{3} = dataType;
+
 %stimPSTH{stim,grouping,dataType}
 stimPSTH = cell([length(allStimuliVec), length(groupingType), length(dataType)]);
 
@@ -318,68 +276,105 @@ for stim_ind = 1:length(allStimuliVec)
 end
 
 stimPSTHStruct.stimPSTH = stimPSTH;
+stimPSTHStruct.runList = runList;
+
+% Modify meanPSTHParams to include accurate info which spans all the runs.
+meanPSTHParams = params;
+meanPSTHParams.psthPre = abs(spikeDataBank.(runList{1}).start);
+meanPSTHParams.psthImDur = spikeDataBank.(runList{1}).stimDur;
+meanPSTHParams.psthPost = spikeDataBank.(runList{1}).end - meanPSTHParams.psthImDur; 
 
 end
 
-function [stimPSTH, meanPSTHStruct] = meanPSTH(spikeDataBank, params, figStruct)
+function [stimPSTH, meanPSTHStruct] = meanPSTH(meanPSTHStruct, params, figStruct)
 % Function which combines stimulus presentations across all runs in the spikeDataBank.
 % Inputs include spikeDataBank and list of parameters.
 disp('Starting mean PSTH Analysis...');
-eventColors = 'kbrg';
-groupIterInd = 3; % An index for which groups to look at. 1 = Unsorted, 2 = Units, 3 = MUA. Combine as fit.
 
-% Rebuild variables
+% Step 1 - Unpack variables, generate those needed for plotting.
+allStimuliVec = meanPSTHStruct.IndStructs{1};
+groupingType = meanPSTHStruct.IndStructs{2};
+dataType = meanPSTHStruct.IndStructs{3};
+stimPSTH = meanPSTHStruct.stimPSTH;
+stimPresCounts = meanPSTHStruct.stimPresCounts;
+runList = meanPSTHStruct.runList;
+
+% Extract eventData and frameMotionData
 % extract the eventIDs field, generate a cell array of unique stimuli
-allStimuliVec = struct2cell(structfun(@(x) x.eventIDs, spikeDataBank,'UniformOutput', 0));
-allStimuliVec = unique(vertcat(allStimuliVec{:}));
 load(params.frameMotionDataPath);
 frameMotionDataNames = {frameMotionData.stimVid};
 
-% subEvent related markers
 load(params.eventData); % Puts eventData into the workspace.
 eventData = eventData(allStimuliVec, :);
 eventList = eventData.Properties.VariableNames;
 
-% Generate grid for indexing into individual runs and extracting relevant
-% PSTHes.
-runList = fields(spikeDataBank);
-small2BigInd = zeros(length(allStimuliVec), length(runList));
-for run_ind = 1:length(runList)
-  [~, small2BigInd(:,run_ind)] = ismember(allStimuliVec, spikeDataBank.(runList{run_ind}).eventIDs);
-end
+% Step 2 - modify PSTHes - rewardEpoch removal, firstXRuns, animations,
+% topStimOnly
 
-stimPresCounts = sum(logical(small2BigInd),2);
-
-% If you only want stim above a certain count, remove here.
 if params.plotTopStim
   keepInd = stimPresCounts >= params.topStimPresThreshold;
   stimPresCounts = stimPresCounts(keepInd);
-  small2BigInd = small2BigInd(keepInd,:);
   allStimuliVec = allStimuliVec(keepInd,:);
+  stimPSTH = stimPSTH(keepInd, :, :);
 end
 
+% Animation related processing - allows for onlyAnim, no Anim, or all.
 animParam.stimParamsFilename = params.stimParamsFilename;
 animParam.plotLabels = {'animSocialInteraction', 'animControl'};
 [tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
 animInd = logical(sum(tmp,2));
 
-%Generate the figure directory
-dirTags = {'without Rewards','fixAligned','Normalized','Pres Threshold'};
-dirTagSwitch = [params.removeRewardEpoch, params.fixAlign, params.normalize, params.plotTopStim];
+switch params.stimInclude
+  case  1
+    stimPresCounts = stimPresCounts(animInd);
+    allStimuliVec = allStimuliVec(animInd,:);
+    stimPSTH = stimPSTH(animInd, :, :);
+  case 2
+    stimPresCounts = stimPresCounts(~animInd);
+    allStimuliVec = allStimuliVec(~animInd,:);
+    stimPSTH = stimPSTH(~animInd, :, :);
+end
+
+% If desired, remove the reward epoch from the base matrix, and preserve
+% the full matrix for where needed.
+rewardStart = params.psthPre + params.psthImDur;
+stimPSTHFull = stimPSTH(:,:, 1:2);
+if params.removeRewardEpoch
+  stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart+1), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
+  params.psthPost = 0;
+end
+
+% If you want to only count the first X runs of a stimulus, 
+if params.firstXRuns
+  keepMat = cellfun(@(x) x <= params.firstXRuns, stimPSTH(:, :, strcmp(meanPSTHStruct.IndStructs{3}, 'presCount')), 'UniformOutput', 0);
+  
+  for ii = 1:size(stimPSTH, 1)
+    for jj = 1:size(stimPSTH, 2)
+      for kk = 1:size(stimPSTH, 3)
+        stimPSTH{ii, jj, kk} = stimPSTH{ii, jj, kk}(keepMat{ii, jj},:);
+        
+        if jj == 3 && kk == 3 %MUA and presCount
+          % Update stimPresCounts according to the new numbers.
+          stimPresCounts(ii) = max(stimPSTH{ii, jj, kk});
+        end
+        
+      end
+    end
+  end
+end
+
+% Generate the figure directory
+dirTags = {' NoReward','fixAligned','Normalized','Pres Threshold', 'AnimOnly', 'NoAnim', sprintf('first%d', params.firstXRuns)};
+dirTagSwitch = [params.removeRewardEpoch, params.fixAlign, params.normalize, params.plotTopStim, params.stimInclude == 1, params.stimInclude == 2, params.firstXRuns];
 params.outputDir = [params.outputDir strjoin(dirTags(logical(dirTagSwitch)),' - ')];
 
-switch params.stimInclude 
-  case  1
-  stimPresCounts = stimPresCounts(animInd);
-  small2BigInd = small2BigInd(animInd,:);
-  allStimuliVec = allStimuliVec(animInd,:);
-  params.outputDir = [params.outputDir '- AnimOnly'];
-  case 2
-  stimPresCounts = stimPresCounts(~animInd);
-  small2BigInd = small2BigInd(~animInd,:);
-  allStimuliVec = allStimuliVec(~animInd,:);
-  params.outputDir = [params.outputDir '- NoAnim'];
+if ~exist(params.outputDir, 'dir')
+  mkdir(params.outputDir)
 end
+
+% Plotting related variables
+eventColors = 'kbrg';
+groupIterInd = 3; % An index for which groups to look at. 1 = Unsorted, 2 = Units, 3 = MUA. Combine as fit.
 
 [plotMat, briefStimList, params] = plotIndex(allStimuliVec, params);
 
@@ -389,132 +384,13 @@ else
   normTag = '';
 end
 
-% Step 1 - Concatonate PSTHs - iterate across stimuli, grab PSTHes from each run, store
-groupingType = {'Unsorted', 'Units', 'MUA'};
-dataType = {'PSTH', 'PSTH Err', 'presCount','daysSinceLastPres', 'daysSinceLastRec', 'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
-% {'Run of Day', 'Grid Hole', 'Run of Day', 'Recording Depth'};
-
-meanPSTHStruct = struct();
-meanPSTHStruct.IndStructs{1} = allStimuliVec;
-meanPSTHStruct.IndStructs{2} = groupingType;
-meanPSTHStruct.IndStructs{3} = dataType;
-%stimPSTH{stim,grouping,dataType}
-stimPSTH = cell([length(allStimuliVec), length(groupingType), length(dataType)]);
-
-for stim_ind = 1:length(allStimuliVec)
-  % Find the runs where the stimulus was present, generate a list of them.
-  stimRunIndex = small2BigInd(stim_ind,:);
-  psthStimIndex = nonzeros(stimRunIndex);
-  psthRunIndex = find(stimRunIndex);
-  subRunList = runList(psthRunIndex);
-  
-  % For all runs containing a particular stimuli, retrieve relevant activity vector in each.
-  for subRun_ind = 1:length(subRunList)
-    tmpRunStruct = spikeDataBank.(subRunList{subRun_ind});
-    for chan_ind = 1:length(tmpRunStruct.psthByImage)
-      for unit_ind = 1:length(tmpRunStruct.psthByImage{chan_ind})
-        % Retrieve correct PSTH from run
-        unitActivity = tmpRunStruct.psthByImage{chan_ind}{unit_ind}(psthStimIndex(subRun_ind),:);
-        unitErr = tmpRunStruct.psthErrByImage{chan_ind}{unit_ind}(psthStimIndex(subRun_ind),:);
-        
-        % Do not include activity which does not meet 1 Hz Threshold.
-        if params.rateThreshold
-          if mean(unitActivity) < params.rateThreshold
-            continue
-          end
-        end
-        
-        presCount = tmpRunStruct.stimPresCount(psthStimIndex(subRun_ind));
-        gridHole = tmpRunStruct.gridHoles;
-        depth = tmpRunStruct.recDepth;
-        assert(length(gridHole) == length(depth), 'F');
-        
-        daysSinceLastPres = tmpRunStruct.daysSinceLastPres(psthStimIndex(subRun_ind));
-        daysSinceLastRec = tmpRunStruct.daysSinceLastRec;
-        % If desired, Z score PSTHs here based on fixation period activity.
-        if params.normalize
-          tmp = tmpRunStruct.psthByImage{chan_ind}{unit_ind}(:,1:abs(tmpRunStruct.start));
-          tmp = reshape(tmp, [size(tmp,1) * size(tmp,2), 1]);
-          fixMean = mean(tmp); %Find activity during fixation across all stim.
-          fixSD = std(tmp);
-          if params.normalize == 1 && fixMean ~= 0 && fixSD ~= 0
-            unitActivity = ((unitActivity - fixMean)/fixSD);
-            unitErr = ((unitErr - fixMean)/fixSD);
-          end
-        end
-        % Store the generated values into a dataArray
-        dataArray = cell(size(dataType));
-        dataArray{strcmp(dataType, 'PSTH')} = unitActivity;
-        dataArray{strcmp(dataType, 'PSTH Err')} = unitErr;
-        dataArray{strcmp(dataType, 'presCount')} = presCount;
-        dataArray{strcmp(dataType, 'daysSinceLastPres')} = daysSinceLastPres;
-        dataArray{strcmp(dataType, 'daysSinceLastRec')} = daysSinceLastRec;
-        dataArray{strcmp(dataType, 'Run of Day')} = str2double(tmpRunStruct.runNum);
-        dataArray{strcmp(dataType, 'Grid Hole')} = {num2str(gridHole{chan_ind})};
-        dataArray{strcmp(dataType, 'Recording Depth')} = depth{chan_ind};
-        dataArray{strcmp(dataType, 'Run Ind')} = psthRunIndex(subRun_ind);
-        
-        % Concatonate to the correct Matrix (index matching phyzzy convention)
-        if unit_ind == 1 % Unsorted
-          groupInd = 1;
-        elseif unit_ind == length(tmpRunStruct.psthByImage{chan_ind}) % MUA
-          groupInd = 3;
-        else % Unit
-          groupInd = 2;
-        end
-        for data_ind = 1:length(dataArray)
-          stimPSTH{stim_ind,groupInd,data_ind} = [stimPSTH{stim_ind,groupInd,data_ind}; dataArray{data_ind}];
-        end
-      end
-    end
-  end
-end
-
-% If desired, remove the reward epoch from the base matrix, and preserve
-% the full matrix for where needed.
-rewardStart = abs(spikeDataBank.(runList{1}).start) + spikeDataBank.(runList{1}).stimDur;
-stimPSTHFull = stimPSTH(:,:, 1:2);
-if params.removeRewardEpoch
-  stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart+1), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
-  params.psthPost = 0;
-  
-  params.outputDir = [params.outputDir '- NoReward'];
-
-end
-
-% If you want to only count the first X runs of a stimulus, 
-if params.firstXRuns
-  keepMat = cellfun(@(x) x <= params.firstXRuns, stimPSTH(:, :, 3), 'UniformOutput', 0);
-  
-  for ii = 1:size(stimPSTH, 1)
-    for jj = 1:size(stimPSTH, 2)
-      for kk = 1:size(stimPSTH, 3)
-        stimPSTH{ii, jj, kk} = stimPSTH{ii, jj, kk}(keepMat{ii, jj},:);
-        
-        if jj == 3 && kk == 3 %MUA and presCount
-          stimPresCounts(ii) = max(stimPSTH{ii, jj, kk});
-        end
-        
-      end
-    end
-  end
-  
-  params.outputDir = [params.outputDir sprintf(' - first%d', params.firstXRuns)];
-  
-end
-
-if ~exist(params.outputDir, 'dir')
-  mkdir(params.outputDir)
-end
-
-% Step 2 - Plots
 allStimuliNames = cellfun(@(x) extractBetween(x, 1, length(x)-4), allStimuliVec);
 allStimuliNames = strrep(allStimuliNames, '_', ' ');
 
 stimPresMat = cellfun(@(x) size(x,1),stimPSTH(:,:,end));
 meanPSTHStruct.stimPresMat = stimPresMat;
 broadLabelInd = plotMat;
-dataInd2Plot = 1:2;
+dataInd2Plot = strcmp(meanPSTHStruct.IndStructs{3}, 'PSTH') | strcmp(meanPSTHStruct.IndStructs{3}, 'PSTH Err');
 
 % Plot 1 - All Stimuli means in the same plot.
 if params.allStimPSTH
@@ -573,7 +449,7 @@ if params.catPSTH
     catMeanMat = cell(1,size(sliceStimPSTH,2),size(sliceStimPSTH,3));
     catErrMat = cell(1,size(sliceStimPSTH,2),size(sliceStimPSTH,3));
     for group_ind = groupIterInd
-      for data_ind = dataInd2Plot
+      for data_ind = find(dataInd2Plot)
         tmp = vertcat(sliceStimPSTH{:,group_ind,data_ind});
         catMeanMat{1,group_ind,data_ind} = mean(tmp,1);
         catErrMat{1,group_ind,data_ind} = std(tmp)/sqrt(size(tmp,1));
