@@ -69,11 +69,18 @@ else
 end
 
 %% Analyses
+% Generate a cell array containing the PSTHes from spikeDataBank, along
+% with additional dimension for identifying information. Expansions in
+% analyses should begin here, if pulling from spikeDataBank.
+if ~exist('stimPSTHStruct', 'var')
+  stimPSTHStruct = pullPSTH(spikeDataBank, meanPSTHParams);
+  saveEnv(0);
+end
+
 % Combine PSTH across all runs for a particular stimulus.
-%This will crash if the PSTHs aren't the same length.
 if plotSwitch.meanPSTH 
   [stimPSTH, meanPSTHStruct] = meanPSTH(spikeDataBank, meanPSTHParams, figStruct);
-  saveEnv()
+  %saveEnv()
 end
 
 % Combine PSTH across all runs for a particular event.
@@ -166,12 +173,160 @@ end
 
 end
 
+function [stimPSTHStruct] = pullPSTH(spikeDataBank, params)
+% Function which combines stimulus presentations across all runs in the spikeDataBank.
+% Inputs include spikeDataBank and list of parameters.
+disp('Compiling PSTH Struct...');
+% eventColors = 'kbrg';
+% groupIterInd = 3; % An index for which groups to look at. 1 = Unsorted, 2 = Units, 3 = MUA. Combine as fit.
+
+% Rebuild variables
+% extract the eventIDs field, generate a cell array of unique stimuli
+allStimuliVec = struct2cell(structfun(@(x) x.eventIDs, spikeDataBank,'UniformOutput', 0));
+allStimuliVec = unique(vertcat(allStimuliVec{:}));
+load(params.frameMotionDataPath);
+% frameMotionDataNames = {frameMotionData.stimVid};
+
+% subEvent related markers
+% load(params.eventData); % Puts eventData into the workspace.
+% eventData = eventData(allStimuliVec, :);
+% eventList = eventData.Properties.VariableNames;
+
+% Generate grid for indexing into individual runs and extracting relevant
+% PSTHes.
+runList = fields(spikeDataBank);
+small2BigInd = zeros(length(allStimuliVec), length(runList));
+for run_ind = 1:length(runList)
+  [~, small2BigInd(:,run_ind)] = ismember(allStimuliVec, spikeDataBank.(runList{run_ind}).eventIDs);
+end
+
+stimPresCounts = sum(logical(small2BigInd),2);
+
+% If you only want stim above a certain count, remove here.
+% if params.plotTopStim
+%   keepInd = stimPresCounts >= params.topStimPresThreshold;
+%   stimPresCounts = stimPresCounts(keepInd);
+%   small2BigInd = small2BigInd(keepInd,:);
+%   allStimuliVec = allStimuliVec(keepInd,:);
+% end
+% 
+% animParam.stimParamsFilename = params.stimParamsFilename;
+% animParam.plotLabels = {'animSocialInteraction', 'animControl'};
+% [tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
+% animInd = logical(sum(tmp,2));
+
+%Generate the figure directory
+% dirTags = {'without Rewards','fixAligned','Normalized','Pres Threshold'};
+% dirTagSwitch = [params.removeRewardEpoch, params.fixAlign, params.normalize, params.plotTopStim];
+% params.outputDir = [params.outputDir strjoin(dirTags(logical(dirTagSwitch)),' - ')];
+
+% switch params.stimInclude 
+%   case  1
+%   stimPresCounts = stimPresCounts(animInd);
+%   small2BigInd = small2BigInd(animInd,:);
+%   allStimuliVec = allStimuliVec(animInd,:);
+%   params.outputDir = [params.outputDir '- AnimOnly'];
+%   case 2
+%   stimPresCounts = stimPresCounts(~animInd);
+%   small2BigInd = small2BigInd(~animInd,:);
+%   allStimuliVec = allStimuliVec(~animInd,:);
+%   params.outputDir = [params.outputDir '- NoAnim'];
+% end
+
+% [plotMat, briefStimList, params] = plotIndex(allStimuliVec, params);
+
+% Step 1 - Concatonate PSTHs - iterate across stimuli, grab PSTHes from each run, store
+groupingType = {'Unsorted', 'Units', 'MUA'};
+dataType = {'PSTH', 'PSTH Err', 'presCount','daysSinceLastPres', 'daysSinceLastRec', 'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
+% {'Run of Day', 'Grid Hole', 'Run of Day', 'Recording Depth'};
+
+stimPSTHStruct = struct();
+stimPSTHStruct.stimPresCounts = stimPresCounts;
+stimPSTHStruct.IndStructs{1} = allStimuliVec;
+stimPSTHStruct.IndStructs{2} = groupingType;
+stimPSTHStruct.IndStructs{3} = dataType;
+%stimPSTH{stim,grouping,dataType}
+stimPSTH = cell([length(allStimuliVec), length(groupingType), length(dataType)]);
+
+for stim_ind = 1:length(allStimuliVec)
+  % Find the runs where the stimulus was present, generate a list of them.
+  stimRunIndex = small2BigInd(stim_ind,:);
+  psthStimIndex = nonzeros(stimRunIndex);
+  psthRunIndex = find(stimRunIndex);
+  subRunList = runList(psthRunIndex);
+  
+  % For all runs containing a particular stimuli, retrieve relevant activity vector in each.
+  for subRun_ind = 1:length(subRunList)
+    tmpRunStruct = spikeDataBank.(subRunList{subRun_ind});
+    for chan_ind = 1:length(tmpRunStruct.psthByImage)
+      for unit_ind = 1:length(tmpRunStruct.psthByImage{chan_ind})
+        % Retrieve correct PSTH from run
+        unitActivity = tmpRunStruct.psthByImage{chan_ind}{unit_ind}(psthStimIndex(subRun_ind),:);
+        unitErr = tmpRunStruct.psthErrByImage{chan_ind}{unit_ind}(psthStimIndex(subRun_ind),:);
+        
+        % Do not include activity which does not meet 1 Hz Threshold.
+        if params.rateThreshold
+          if mean(unitActivity) < params.rateThreshold
+            continue
+          end
+        end
+        
+        presCount = tmpRunStruct.stimPresCount(psthStimIndex(subRun_ind));
+        gridHole = tmpRunStruct.gridHoles;
+        depth = tmpRunStruct.recDepth;
+        assert(length(gridHole) == length(depth), 'F');
+        
+        daysSinceLastPres = tmpRunStruct.daysSinceLastPres(psthStimIndex(subRun_ind));
+        daysSinceLastRec = tmpRunStruct.daysSinceLastRec;
+        % If desired, Z score PSTHs here based on fixation period activity.
+        if params.normalize
+          tmp = tmpRunStruct.psthByImage{chan_ind}{unit_ind}(:,1:abs(tmpRunStruct.start));
+          tmp = reshape(tmp, [size(tmp,1) * size(tmp,2), 1]);
+          fixMean = mean(tmp); %Find activity during fixation across all stim.
+          fixSD = std(tmp);
+          if params.normalize == 1 && fixMean ~= 0 && fixSD ~= 0
+            unitActivity = ((unitActivity - fixMean)/fixSD);
+            unitErr = ((unitErr - fixMean)/fixSD);
+          end
+        end
+        % Store the generated values into a dataArray
+        dataArray = cell(size(dataType));
+        dataArray{strcmp(dataType, 'PSTH')} = unitActivity;
+        dataArray{strcmp(dataType, 'PSTH Err')} = unitErr;
+        dataArray{strcmp(dataType, 'presCount')} = presCount;
+        dataArray{strcmp(dataType, 'daysSinceLastPres')} = daysSinceLastPres;
+        dataArray{strcmp(dataType, 'daysSinceLastRec')} = daysSinceLastRec;
+        dataArray{strcmp(dataType, 'Run of Day')} = str2double(tmpRunStruct.runNum);
+        dataArray{strcmp(dataType, 'Grid Hole')} = {num2str(gridHole{chan_ind})};
+        dataArray{strcmp(dataType, 'Recording Depth')} = depth{chan_ind};
+        dataArray{strcmp(dataType, 'Run Ind')} = psthRunIndex(subRun_ind);
+        
+        % Concatonate to the correct Matrix (index matching phyzzy convention)
+        if unit_ind == 1 % Unsorted
+          groupInd = 1;
+        elseif unit_ind == length(tmpRunStruct.psthByImage{chan_ind}) % MUA
+          groupInd = 3;
+        else % Unit
+          groupInd = 2;
+        end
+        for data_ind = 1:length(dataArray)
+          stimPSTH{stim_ind,groupInd,data_ind} = [stimPSTH{stim_ind,groupInd,data_ind}; dataArray{data_ind}];
+        end
+      end
+    end
+  end
+end
+
+stimPSTHStruct.stimPSTH = stimPSTH;
+
+end
+
 function [stimPSTH, meanPSTHStruct] = meanPSTH(spikeDataBank, params, figStruct)
 % Function which combines stimulus presentations across all runs in the spikeDataBank.
 % Inputs include spikeDataBank and list of parameters.
 disp('Starting mean PSTH Analysis...');
-exportFig = params.exportFig;
 eventColors = 'kbrg';
+groupIterInd = 3; % An index for which groups to look at. 1 = Unsorted, 2 = Units, 3 = MUA. Combine as fit.
 
 % Rebuild variables
 % extract the eventIDs field, generate a cell array of unique stimuli
@@ -232,10 +387,6 @@ if params.normalize
   normTag = ' - normalized';
 else
   normTag = '';
-end
-
-if ~exist(params.outputDir, 'dir')
-  mkdir(params.outputDir)
 end
 
 % Step 1 - Concatonate PSTHs - iterate across stimuli, grab PSTHes from each run, store
@@ -324,7 +475,36 @@ end
 rewardStart = abs(spikeDataBank.(runList{1}).start) + spikeDataBank.(runList{1}).stimDur;
 stimPSTHFull = stimPSTH(:,:, 1:2);
 if params.removeRewardEpoch
-  stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
+  stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart+1), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
+  params.psthPost = 0;
+  
+  params.outputDir = [params.outputDir '- NoReward'];
+
+end
+
+% If you want to only count the first X runs of a stimulus, 
+if params.firstXRuns
+  keepMat = cellfun(@(x) x <= params.firstXRuns, stimPSTH(:, :, 3), 'UniformOutput', 0);
+  
+  for ii = 1:size(stimPSTH, 1)
+    for jj = 1:size(stimPSTH, 2)
+      for kk = 1:size(stimPSTH, 3)
+        stimPSTH{ii, jj, kk} = stimPSTH{ii, jj, kk}(keepMat{ii, jj},:);
+        
+        if jj == 3 && kk == 3 %MUA and presCount
+          stimPresCounts(ii) = max(stimPSTH{ii, jj, kk});
+        end
+        
+      end
+    end
+  end
+  
+  params.outputDir = [params.outputDir sprintf(' - first%d', params.firstXRuns)];
+  
+end
+
+if ~exist(params.outputDir, 'dir')
+  mkdir(params.outputDir)
 end
 
 % Step 2 - Plots
@@ -338,7 +518,7 @@ dataInd2Plot = 1:2;
 
 % Plot 1 - All Stimuli means in the same plot.
 if params.allStimPSTH
-  for group_ind = 1:size(stimPSTH,2)
+  for group_ind = groupIterInd
     stimCounts = stimPresMat(:,group_ind);
     if params.traceCountLabel
       allStimuliLabel = cell(length(allStimuliNames),1);
@@ -371,7 +551,7 @@ if params.allStimPSTH
     end
     title(catPSTHTitle);
     xlabel('Time (ms)');
-    saveFigure(params.outputDir, ['1.' catPSTHTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+    saveFigure(params.outputDir, ['1. ' catPSTHTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
     if figStruct.closeFig
       close(h)
     end
@@ -392,7 +572,7 @@ if params.catPSTH
     meanPSTH = cellfun(@(x) mean(x),sliceStimPSTH,'UniformOutput',0);
     catMeanMat = cell(1,size(sliceStimPSTH,2),size(sliceStimPSTH,3));
     catErrMat = cell(1,size(sliceStimPSTH,2),size(sliceStimPSTH,3));
-    for group_ind = 1:length(groupingType)
+    for group_ind = groupIterInd
       for data_ind = dataInd2Plot
         tmp = vertcat(sliceStimPSTH{:,group_ind,data_ind});
         catMeanMat{1,group_ind,data_ind} = mean(tmp,1);
@@ -409,7 +589,7 @@ if params.catPSTH
       sliceStimLabels = [sliceStimLabels; params.plotLabels{broad_ind}];
     end
     
-    for group_ind = 1:length(groupingType)
+    for group_ind = groupIterInd
       % Prepare labels
       if params.traceCountLabel
         stimLabels = cell(length(sliceStimLabels),1);
@@ -460,7 +640,7 @@ if params.catPSTH
         
       end
       
-      saveFigure(params.outputDir, ['2.' psthTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+      saveFigure(params.outputDir, ['2. ' psthTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
       if figStruct.closeFig
         close(h);
       end
@@ -529,7 +709,7 @@ if params.allRunStimPSTH
     % Get the relevant frameMotion/eventData
     eventDataStim = eventData(allStimuliVec{stim_i},:);
     stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
-    for group_i = 2:size(stimPSTH,2)
+    for group_i = groupIterInd
       stimData = stimPSTH{stim_i,group_i,1};
       
       for sort_i = 4%1:length(sortType)
@@ -603,8 +783,10 @@ if params.allRunStimPSTH
         end
         linkprop(subplotAxes, 'CLim');
         
-        saveFigure(params.outputDir, ['3.' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
-        close(h)
+        saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+        if figStruct.closeFig
+          close(h)
+        end
         
       end
     end   
@@ -613,12 +795,12 @@ end
 
 % Plot 3.1 - subEvent Analysis
 if params.subEventPSTH
-for stim_i = 1:size(stimPSTHFull,1)
-  % Get the relevant frameMotion/eventData
-  eventDataStim = eventData(allStimuliVec{stim_i},:);
-  stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
-  for group_i = 2:size(stimPSTHFull,2)
-    %for sort_i = 4%1:length(sortType)
+  for stim_i = 1:size(stimPSTHFull,1)
+    % Get the relevant frameMotion/eventData
+    eventDataStim = eventData(allStimuliVec{stim_i},:);
+    stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
+    for group_i = groupIterInd
+      %for sort_i = 4%1:length(sortType)
       % Add additional tabs denoting occurance of events
       for event_i = 1:length(eventList)
         if ~isempty(eventDataStim.(eventList{event_i}){1})
@@ -639,15 +821,15 @@ for stim_i = 1:size(stimPSTHFull,1)
             psthAxes = subplot(2,1,1);
             [subplotAxes(plot_i), cbHandle(plot_i)] = plotPSTH(eventPSTHData, [], psthAxes, params.subEventPSTHParams, 'color', [], eventPSTHLabel);
             title(figTitle);
-
+            
             subplot(2,1,2);
             arrayInd = 1:size(eventPSTHData,1);
             meanPostEventPSTH = arrayfun(@(x) mean(eventPSTHData(x, psthTimes(1):end)), arrayInd);
             stdPostEventPSTH = arrayfun(@(x) std(eventPSTHData(x, psthTimes(1):end)), arrayInd);
             mseb(1:length(meanPostEventPSTH), meanPostEventPSTH, stdPostEventPSTH);
-            title('Trial by Trial Mean and STD');
+            title('Trial by Trial Event Mean and STD');
             
-            saveFigure(params.outputDir, ['3.1.' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+            saveFigure(params.outputDir, ['3.1. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
             if figStruct.closeFig
               close(h)
             end
@@ -655,9 +837,9 @@ for stim_i = 1:size(stimPSTHFull,1)
           
         end
       end
-    %end
+      %end
+    end
   end
-end
 end
 
 % Plot 4 - Line plot with Line per Catagory
@@ -688,7 +870,7 @@ if params.lineCatPlot
     plotColors{col_i} = plotColorTmp(col_i,:);
   end
   
-  for group_ind = 1:size(stimPSTH,2)
+  for group_ind = groupIterInd
     catPSTHTitle = sprintf('%s Mean PSTH %s', groupingType{group_ind}, normTag);
     h = figure('NumberTitle', 'off', 'Name', catPSTHTitle,'units','normalized','outerposition',[0 0 params.plotSizeLineCatPlot]);
     hold on
@@ -722,7 +904,7 @@ if params.lineCatPlot
     xlabel('Time (ms)');
     ylabel('Normalized Activity (Baseline Z scored)');
     title(catPSTHTitle);
-    saveFigure(params.outputDir, ['4.' catPSTHTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+    saveFigure(params.outputDir, ['4. ' catPSTHTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
     if figStruct.closeFig
       close(h)
     end
@@ -732,7 +914,6 @@ end
 
 % Plot 5 - Means across broad catagorizations (like Social vs non Social)
 if params.lineBroadCatPlot
-  
   % Generate line plots across different labeling schemes.
   agentInd = plotMat(:,strcmp(params.plotLabels,'agents'));
   socialInd = plotMat(:,strcmp(params.plotLabels,'socialInteraction'));
@@ -744,8 +925,8 @@ if params.lineBroadCatPlot
   agentNHInd = agentInd & ~headTurnInd;
   
   % Social videos 
-  socialHTInd = socialInd & headTurnInd;      %    Head turning vs Not
-  socialNonHTInd = socialInd & ~headTurnInd;
+  socialHTInd = socialInd & headTurnInd;        %   Head turning vs Not
+  socialNonHTInd = socialInd & ~headTurnInd;    %   
   socialTInd = socialInd & allTurnInd;
   socialNonTInd = socialInd & ~allTurnInd;
   
@@ -760,21 +941,26 @@ if params.lineBroadCatPlot
     'Agents engaging in Head Turning Contrast',...
     'Social Interactions with Head turning Contrast',...
     'Agents engaging in Social Interactions Contrast'...
-    'Agents engaging in Social Interactions w/ Turning Contrast'};
+    'Social Interactions with all Turning Contrast'};
   figLegends = {{'Agent containing Stimuli','Non-Agent containing Stimuli'},...
     {'Social Interaction Stimuli','non-Social Interaction Stimuli'},...
     {'Agents with Head Turning','Agents without Head Turning'},...
     {'Socially Interacting Agents with Head Turning','Socially Interacting Agents without Head Turning'},...
     {'Agents engaging in Social Interactions ','Agents not engaging in Social Interactions'}...
-    {'Agents engaging in Social Interactions + Turning','Agents not engaging in Social Interactions w/o Turning'}};
+    {'Socially Interacting Agents with Any Turning','Socially Interacting Agents without Any Turning'}};
   lineprops.col = {params.socialColor, params.nonSocialColor};
   assert(length(figIncInd) == length(figLegends), 'Update figTitInd and figLegends to match figIncInd')
+  
+  % Append counts to the stimuliNames
+  allStimuliLabels = arrayfun(@(x) sprintf('%s (n = %d)', allStimuliNames{x}, stimPresCounts(x)), 1:length(stimPresCounts), 'UniformOutput',0)';
   
   for fig_ind = 1:length(figIncInd)
     line1Array = stimPSTH(figIncInd{fig_ind},:,1);
     line2Array = stimPSTH(figExcInd{fig_ind},:,1);
+    line1Labels = allStimuliLabels(figIncInd{fig_ind});
+    line2Labels = allStimuliLabels(figExcInd{fig_ind});
     if ~isempty(line1Array) && ~isempty(line2Array)
-      for group_ind = 3%:size(line1Array,2)
+      for group_ind = groupIterInd
         % Generate Data
         line1Data = vertcat(line1Array{:,group_ind});
         line2Data = vertcat(line2Array{:,group_ind});
@@ -791,28 +977,45 @@ if params.lineBroadCatPlot
         % Prepare figure
         plotTitle = sprintf('%s - %s, %s', ['mean PSTH of ' figTitInd{fig_ind}], groupingType{group_ind}, normTag);
         h = figure('NumberTitle', 'off', 'Name', plotTitle,'units','normalized','outerposition',[0 0 params.plotSizeLineBroadCatPlot]);
+        params.lineprops = lineprops;
+        [ ~,  ~, ~, legendH] = plotPSTH(lineMean, lineErr, [], params, 'line', plotTitle, figLegends{fig_ind});
+        axesH = findobj(gcf, 'Type', 'Axes');
+        axesH.FontSize = 15;
         hold on
-        h.Children.FontSize = 15;
-        title(plotTitle)
-        mseb((-800:size(lineMean,2)-801),lineMean, lineErr, lineprops, []);
-        legend(figLegends{fig_ind}, 'AutoUpdate','off')
-        xlim([-800 (length(lineMean)-801)])
-        ylim(ylim());
-        line([0 0], ylim(), 'Linewidth',3,'color','k');
-        line([2800 2800], ylim(), 'Linewidth',3,'color','k');
-        xlabel('Time (ms)')
-        ylabel('Normalized Activity')
+        legendH.Location = 'northeast';
+        ylabel('Normalized Activity');
         
-        %       lineMax = max(lineMean,[],1);
-        %       for star_i = 1:length(sigBins)
-        %         text(sigBins(star_i)-799,(lineMax(sigBins(star_i))*1.05),'*','FontSize',20)
-        %       end
-        
-        saveFigure(params.outputDir, ['5.' plotTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+        % Save the figure
+        saveFigure(params.outputDir, ['5. ' plotTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
         if figStruct.closeFig
           close(h)
         end
         
+        % If desired, Generate plots of constituient traces.
+        if params.splitContrib
+          lineData = {line1Array(:, group_ind), line2Array(:, group_ind)};
+          lineLabels = {line1Labels, line2Labels};
+          for line_i = 1:length(lineData)
+            j = figure();
+            figTit = sprintf('%s - %s', figLegends{fig_ind}{line_i}, groupingType{group_ind});
+            meanLines = cellfun(@(x) mean(x), lineData{line_i}, 'UniformOutput', 0);
+            stdLines = cellfun(@(x) std(x)/sqrt(size(x,1)), lineData{line_i}, 'UniformOutput', 0);
+            meanLines = vertcat(meanLines{:});
+            stdLines = vertcat(stdLines{:});
+            
+            % Sort things based on magnitutde of the peak
+            peaks = max(meanLines,[],2);
+            [~, sortOrder] = sort(peaks, 'descend');
+            
+            plotPSTH(meanLines(sortOrder,:), stdLines(sortOrder,:), [], params, 'line', figTit, lineLabels{line_i}(sortOrder,:));
+            % Save the figure
+            saveFigure(params.outputDir, ['5.1. ' figTit], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+            if figStruct.closeFig
+              close(j)
+            end
+            
+          end
+        end
       end
     end
   end
@@ -1033,7 +1236,7 @@ if params.allRunStimPSTH
         end
         linkprop(subplotAxes, 'CLim');
         
-        saveFigure(params.outputDir, ['1.' figTitle], [], params.saveFig, params.exportFig, 0, {''})
+        saveFigure(params.outputDir, ['1. ' figTitle], [], params.saveFig, params.exportFig, 0, {''})
         %close(h)
       end
     end

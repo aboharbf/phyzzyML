@@ -1,6 +1,19 @@
-function [ psthAxes,  colorBarh, vertLineHands] = plotPSTH(psthArray, psthError, psthAxes, psthParams, plotType, psthTitle, ylabels)
-%UNTITLED10 Summary of this function goes here
-%   Detailed explanation goes here
+function [ psthAxes,  colorBarh, vertLineHands, legendH] = plotPSTH(psthArray, psthError, psthAxes, psthParams, plotType, psthTitle, ylabels)
+% Function which accepts data and generate a PSTH. Accepts the following
+% inputs.
+% psthArray: stimuli * bin in size.
+% psthError: used when plotType is 'line' to created shaded region of
+% error.
+% psthAxes: a handle for axes. if not defined, gca are used.
+% psthParams: contains the timing variables below, as well as lineprops for
+% line plot PSTH and the colormap for the standard one.
+% plotType: 'color' or 'line'. line uses mseb().
+% psthTitle: the title above the axes.
+% ylabels: a 'stimuli * 1' cell array, with the name for each stimulus.
+% used for the legend of the line plot, and the y axis labels for the color
+% PSTH.
+% Outputs:
+% handles for the psthAxes, colorBar, or vertical lines.
 
 psthPre = psthParams.psthPre;
 psthImDur = psthParams.psthImDur;
@@ -54,7 +67,7 @@ elseif strcmp(plotType,'line')
   psthAxes = mseb(xrange(1):xrange(2), psthArray, psthError, lineProps);
 
   xlim(xrange);
-  legend(ylabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');
+  legendH = legend(ylabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');
 end
 title(psthTitle);
 

@@ -27,10 +27,10 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 0;                
-figStruct.closeFig = 0;               
-figStruct.exportFig = 0;              
-figStruct.saveFigData = 0;
+figStruct.saveFig = 1;      % save the figure in its output directory.           
+figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
@@ -62,8 +62,10 @@ meanPSTHParams.eventData = eventDataPath;
 meanPSTHParams.frameMotionDataPath = frameMotionDataPath;
 meanPSTHParams.plotHist = 0;
 meanPSTHParams.rateThreshold = 0;               % Include only activity with a mean rate of X Hz. 0 for off, over 0 for threshold.
-meanPSTHParams.plotTopStim = 1;                 % Only plot stimuli which have been present on at least a certain number of runs.
+
+meanPSTHParams.plotTopStim = 0;                 % Only plot stimuli which have been present on at least a certain number of runs.
 meanPSTHParams.topStimPresThreshold = 5;        % At least this many stim presentations to be plotted when plotTopStim is on.
+
 meanPSTHParams.broadLabel = 0;                  % Transitions individual stimuli to broad catagory (e.g. chasing).
 meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 meanPSTHParams.maxStimOnly = 1;                 % The max value and max index taken from the PSTH is only in the area of the stimulus presentation.
@@ -92,18 +94,20 @@ meanPSTHParams.psthColormapFilename = 'cocode2.mat'; % a file with one variable,
 load(meanPSTHParams.psthColormapFilename);
 meanPSTHParams.colormap = map;
 meanPSTHParams.tmpFileName = 'tmpStructPrcSigChange.mat';
-meanPSTHParams.plotSingleUnitTests = 1;         % Avoids running completed plot code.
+
 meanPSTHParams.removeRewardEpoch = 1;           % Removes the reward period activity when generating plots.
+meanPSTHParams.firstXRuns = 100;                 % Removes any runs above this number. 0 = Don't remove any.
 meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, include a additional axis as a line plot.
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
-meanPSTHParams.traceCountLabel = 0;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
+meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
 
 meanPSTHParams.catPSTH = 0;                     % 1.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
 meanPSTHParams.allStimPSTH = 0;                 % 2.0 - All Stimuli means in the same plot.
 meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
-meanPSTHParams.subEventPSTH = 0;                % 3.1 - Makes plot for every instance of an event in each stimulus.
+meanPSTHParams.subEventPSTH = 0;                % 3.1 - Makes plot for every instance of an event in each stimulus. Requires 3.
 meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
+meanPSTHParams.splitContrib = 1;                % 5.1 - Mean line plots, split by stimuli.
 
 meanPSTHParams.exportFig = figStruct.exportFig; % Turns on the 'exportFig' feature of saveFigure, which generates .pngs.
 meanPSTHParams.plotSizeCatPSTH = [.8 .6];       
