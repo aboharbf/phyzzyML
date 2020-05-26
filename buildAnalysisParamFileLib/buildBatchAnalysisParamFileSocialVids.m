@@ -28,7 +28,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
@@ -38,7 +38,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % Seeing whether 10th percentile values in previous analyses line up with 'novel' stimuli
 plotSwitch.slidingWindowANOVA = 0;
@@ -93,7 +93,7 @@ meanPSTHParams.colormap = map;
 meanPSTHParams.tmpFileName = 'tmpStructPrcSigChange.mat';
 
 meanPSTHParams.removeRewardEpoch = 1;           % Removes the reward period activity when generating plots.
-meanPSTHParams.firstXRuns = 100;                 % Removes any runs above this number. 0 = Don't remove any.
+meanPSTHParams.firstXRuns = 0;                % Removes any runs above this number. 0 = Don't remove any.
 meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, include a additional axis as a line plot.
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
@@ -104,7 +104,7 @@ meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chas
 meanPSTHParams.subEventPSTH = 0;                % 3.1 - Makes plot for every instance of an event in each stimulus. Requires 3.
 meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
-meanPSTHParams.splitContrib = 1;                % 5.1 - Mean line plots, split by stimuli.
+meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
 
 meanPSTHParams.exportFig = figStruct.exportFig; % Turns on the 'exportFig' feature of saveFigure, which generates .pngs.
 meanPSTHParams.plotSizeCatPSTH = [.8 .6];       
@@ -124,10 +124,10 @@ subEventPSTHParams.exportFig = figStruct.exportFig;
 subEventPSTHParams.saveFig = figStruct.saveFig;
 subEventPSTHParams.sparseLabels = 1;                              % In the 'sorted' individual runs, sparse labeling only labels the first entry of that kind in the PSTH.
 meanPSTHParams.subEventPSTHParams = subEventPSTHParams; 
-meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];                    % psthPre and psthImDur for grabbing events.
-meanPSTHParams.subEventPSTHParams.psthPre = 200;                    % psthPre and psthImDur for grabbing events.
-meanPSTHParams.subEventPSTHParams.psthImDur = 200;                    % psthPre and psthImDur for grabbing events.
-meanPSTHParams.subEventPSTHParams.psthPost = 0;                    % psthPre and psthImDur for grabbing events.
+meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];      % psthPre and psthImDur for grabbing events.
+meanPSTHParams.subEventPSTHParams.psthPre = 100;                  
+meanPSTHParams.subEventPSTHParams.psthImDur = 400;                
+meanPSTHParams.subEventPSTHParams.psthPost = 200;                    
 
 frameFiringParams.stimParamsFilename = stimParamsFilename;
 frameFiringParams.outputDir = fullfile(outputDir,'frameFiring');

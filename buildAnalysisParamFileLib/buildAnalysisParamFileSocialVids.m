@@ -4,7 +4,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20191001Mo';
+dateSubject = '20181017Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -42,9 +42,9 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct = struct();
 figStruct.saveFig = 1;                
-figStruct.closeFig = 0;               %#ok
-figStruct.exportFig = 0;              %#ok
-figStruct.saveFigData = 0;            %#ok
+figStruct.closeFig = 0;               
+figStruct.exportFig = 0;             
+figStruct.saveFigData = 0;            
 figStruct.figPos = [0 0 .6 0.7];      % Normalized units for figure position
 
 savePreprocessed = 1;       %#ok
@@ -346,13 +346,13 @@ eyeStatsParams.clusterFixLPFilterIn = 25;                 % Filter used for sacc
 genStatsParams.ANOVAParams.target = 'socialInteraction';    % When performing a one way ANOVA, the label from groups which is used. the rest are 'non-' label.
 
 subEventAnalysisParams.preAlign = 300;
-subEventAnalysisParams.postAlign = 300;
+subEventAnalysisParams.postAlign = 800;
 subEventAnalysisParams.nullAllStim = 1;
 subEventAnalysisParams.nullSampleMult = 10;       % For every n stimuli with the event, sample all other stimuli this number of times for the null distribution.
 subEventAnalysisParams.psthParams = psthParams;
-subEventAnalysisParams.psthParams.psthPre = subEventAnalysisParams.preAlign - 100;
-subEventAnalysisParams.psthParams.psthImDur = subEventAnalysisParams.postAlign - 100;
-subEventAnalysisParams.psthParams.psthPost = 0;
+subEventAnalysisParams.psthParams.psthPre = 100;
+subEventAnalysisParams.psthParams.psthImDur = 400;
+subEventAnalysisParams.psthParams.psthPost = 100;
 subEventAnalysisParams.psthParams.smoothingWidth = 10;
 subEventAnalysisParams.testPeriod = [0 200];                            % The period during which spikes are counted and a t-test is performed.
 subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
@@ -360,10 +360,7 @@ subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
-subEventAnalysisParams.saveFig = 1;                
-subEventAnalysisParams.closeFig = 0;               
-subEventAnalysisParams.exportFig = 0;              
-%subEventAnalysisParams.stimPlotParams.lineprops = [];
+              
 subEventAnalysisParams.stimDir = stimDir;
 
 correlParams.maxShift = []; % a number, or empty

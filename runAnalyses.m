@@ -4864,7 +4864,7 @@ if exist('uniqueSubEvents', 'var')
         if specSubEvent
           relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
           newLines = gobjects(length(relevantEventInd),1);
-          psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + -subEventParams.psthParams.psthPost;
+          psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + subEventParams.psthParams.psthPost;
           for ii = 1:length(relevantEventInd)
             newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
           end
@@ -4879,10 +4879,10 @@ if exist('uniqueSubEvents', 'var')
         end
         
       end
-      if subEventParams.closeFig
-        saveFigure(subEventParams.outDir, psthTitle, [], subEventParams.saveFig, subEventParams.exportFig, 0, '', 'close')
+      if figStruct.closeFig
+        saveFigure(figStruct.figDir, psthTitle, [], figStruct.saveFig, figStruct.exportFig, 0, '', 'close')
       else
-        saveFigure(subEventParams.outDir, psthTitle, [], subEventParams.saveFig, subEventParams.exportFig, 0)
+        saveFigure(figStruct.figDir, psthTitle, [], figStruct.saveFig, figStruct.exportFig, 0)
       end
       
     end
@@ -4900,10 +4900,9 @@ if exist('uniqueSubEvents', 'var')
       axesH.XLabel.String = '';
     end
   end
-  if subEventParams.closeFig
-    saveFigure(subEventParams.outDir, plotName, [], subEventParams.saveFig, subEventParams.exportFig, 0, '', 'close')
-  else
-    saveFigure(subEventParams.outDir, plotName, [], subEventParams.saveFig, subEventParams.exportFig, 0)
+  saveFigure(figStruct.figDir, plotName, [], figStruct.saveFig, figStruct.exportFig, 0)
+  if figStruct.closeFig
+    close(h)
   end
 end
 
@@ -5901,7 +5900,7 @@ target = genStatsParams.ANOVAParams.target;
 groupLabelsByImage = genStatsParams.ANOVAParams.groupLabelsByImage;
 
 %a phase 2 trial w/ only social stuff, scrambles w/ only scrambles.
-if length(strcmp(group,target)) == 1
+if length(strcmp(group,target)) == 1 || ~(length(unique(groupLabelsByImage)) > 1)
   target = 0;
 end
 
