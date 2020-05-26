@@ -28,7 +28,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 0;     % close the figure once it is saved
+figStruct.closeFig = 1;     % close the figure once it is saved
 figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
@@ -37,7 +37,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % Seeing whether 10th percentile values in previous analyses line up with 'novel' stimuli
@@ -118,11 +118,24 @@ subEventPSTHParams.eventData = eventDataPath;
 subEventPSTHParams.stimParamsFilename = stimParamsFilename;
 subEventPSTHParams.normalize = 1;                                 % Grab activity from same unit, Z score fixation activity with respect to fixation period activity.
 subEventPSTHParams.fixBuffer = 150;                                % normalization acts on the fixation period. Some effects of the fix dot appearance or stimulus onset may be driving neurons away from the true baseline. this number is the millisecond after true fix start, before fix end.
-subEventPSTHParams.allRunStimPSTH = 1;
 subEventPSTHParams.plotSizeAllRunStimPSTH = [1 1];
 subEventPSTHParams.exportFig = figStruct.exportFig;
 subEventPSTHParams.saveFig = figStruct.saveFig;
 subEventPSTHParams.sparseLabels = 1;                              % In the 'sorted' individual runs, sparse labeling only labels the first entry of that kind in the PSTH.
+subEventPSTHParams.frameMotionDataPath = frameMotionDataPath;
+subEventPSTHParams.psthPre = 100;                  
+subEventPSTHParams.psthImDur = 400;                
+subEventPSTHParams.psthPost = 200;             
+
+subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
+subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
+subEventPSTHParams.allRunStimPSTH_extracted = 1;                % Plot 3 - Individual event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
+subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
+
+subEventPSTHParams.plotSizeAllRunStimPSTH_extracted = [.5 .6];           
+
+
+
 meanPSTHParams.subEventPSTHParams = subEventPSTHParams; 
 meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];      % psthPre and psthImDur for grabbing events.
 meanPSTHParams.subEventPSTHParams.psthPre = 100;                  
