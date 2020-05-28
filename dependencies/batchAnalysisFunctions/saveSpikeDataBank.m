@@ -6,28 +6,42 @@ function output = saveSpikeDataBank(structData, parts, SaveOrLoad, outDir)
 % - SaveOrLoad: whether to 'save' or 'load' the struct.
 switch SaveOrLoad
   case 'save'
-    if ~exist(outDir)
+    if ~exist(outDir, 'dir')
       mkdir(outDir);
     end
+    
+    if isempty(parts)
+      previousSlices = dir(fullfile(outDir, 'spikeDataBank_*.mat'));
+      parts = length(previousSlices);
+    end
+    
     %saves variable in N parts.
     fieldsToStore = fields(structData);
-    fieldCount = length(fields(structData));
+    fieldCount = length(fieldsToStore);
     fieldsPerFile = ceil(fieldCount/parts);
-    output = cell(ceil(fieldCount/fieldsPerFile),1);
-    spikeSliceCount = 1;
-    spikeDataBankSlice = struct();
     
-    for field_i = 1:length(fieldsToStore)
-      spikeDataBankSlice.(fieldsToStore{field_i}) = structData.(fieldsToStore{field_i});
-      if mod(field_i, fieldsPerFile) == 0 || field_i == length(fieldsToStore)
-        output{spikeSliceCount} = fullfile(outDir, sprintf('spikeDataBank_%d.mat', spikeSliceCount));
-        fprintf('Saving %s now... \n', output{spikeSliceCount});
-        assert(logical(exist('spikeDataBankSlice')), "spikeDataBankSlice doesn't exist")
-        save(output{spikeSliceCount},'spikeDataBankSlice')
-        clear spikeDataBankSlice
-        spikeSliceCount = spikeSliceCount + 1;
-      end
+    starts = round(linspace(1, fieldCount, parts+1));
+    ends = [starts(2:end-1)-1 starts(end)];
+    starts = starts(1:end-1);
+    
+    output = cell(ceil(fieldCount/fieldsPerFile),1);
+    
+    for part_i = 1:parts
+      % Remove the data not to be included in this slice
+      fieldInd = zeros(fieldCount, 1);
+      fieldInd(starts(part_i):ends(part_i)) = 1;
+      spikeDataBankSlice = rmfield(structData, fieldsToStore(~fieldInd));
+    
+      % Generate the Path
+      output{part_i} = fullfile(outDir, sprintf('spikeDataBank_%d.mat', part_i));
+
+      % Save the file
+      assert(isvarname('spikeDataBankSlice'), "spikeDataBankSlice doesn't exist")
+      fprintf('Saving %s now... \n', output{part_i});
+      save(output{part_i},'spikeDataBankSlice')
+      clear spikeDataBankSlice
     end
+    
   case 'load'
     fprintf('loading spikeDataBank...\n')
     spikeDataBankTmp = struct();

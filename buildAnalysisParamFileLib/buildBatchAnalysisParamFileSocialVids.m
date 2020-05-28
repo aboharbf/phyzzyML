@@ -21,6 +21,7 @@ switch machine
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
+    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
 end
 
 analysisLabel = 'Basic';
@@ -38,10 +39,11 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % Seeing whether 10th percentile values in previous analyses line up with 'novel' stimuli
 plotSwitch.slidingWindowANOVA = 0;
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding toolbox, with the specs below.
 
 %% Parameters
 preprocessParams.spikeDataFileName = 'spikeDataBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
@@ -134,8 +136,6 @@ subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean 
 
 subEventPSTHParams.plotSizeAllRunStimPSTH_extracted = [.5 .6];           
 
-
-
 meanPSTHParams.subEventPSTHParams = subEventPSTHParams; 
 meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];      % psthPre and psthImDur for grabbing events.
 meanPSTHParams.subEventPSTHParams.psthPre = 100;                  
@@ -163,9 +163,19 @@ slidingTestParams.spikeDataFileName = preprocessParams.spikeDataFileName;
 slidingTestParams.exportFig = figStruct.exportFig;
 slidingTestParams.plotSize = [.8 .6];        
 
+NDTDParams.NDTPath = NDTPath;
+NDTDParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
+NDTDParams.rasterDir =  fullfile(NDTDParams.outputDir, 'rasterData');
+%   - ().stimParamFile - a full path to a phyzzy style stimParamFile.
+
+%parameters for the conversion of spikeDataBank to rasterData
+NDTDParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
+NDTDParams.spikeToRasterParams.plotIndParams.plotLabels = {'socialInteraction'}; % a cell array list of labels for inclusion. each list
+%   should be contained in a cell array. the resulting indicies in plotMat
+%   will match the index in the list.
+
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis');
 assert(length(meanPSTHParams.plotLabels) == length(meanPSTHParams.plotLabelSocialInd), 'These two variables must match in length')
-
 
 analysisParamFilenameStem = 'batchAnalysisParams.mat';
 if ~exist([outputDir '/'])

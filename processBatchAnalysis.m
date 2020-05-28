@@ -59,42 +59,49 @@ else
 %   setdiff(analyzedListTmp, paramList)
   disp(setdiff(paramList, analyzedListTmp));
   
-  
   fprintf('Found %d processed runs.\n', length(analyzedList));
   
   sessionList = cell(length(preprocessedList),1);
   spikeDataBank = struct();
   
   for ii = 1:length(preprocessedList)
+    
     if mod(ii, 10) == 0
       fprintf('processing run %d... \n', ii)      
     end
-    tmp = load([preprocessedList(ii).folder filesep preprocessedList(ii).name],'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign');
-    tmp2 = load([analyzedList(ii).folder filesep analyzedList(ii).name], 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct');
-    tmp3 = load([analyzedList(ii).folder filesep 'AnalysisParams.mat'], 'psthParams');
     
-    sessField = sprintf('S%s%s', tmp2.dateSubject, tmp2.runNum);
-    sessionList{ii} = [tmp2.dateSubject tmp2.runNum];
-    spikeDataBank.(sessField).dateSubject = tmp2.dateSubject;
-    spikeDataBank.(sessField).runNum = tmp2.runNum;
-    spikeDataBank.(sessField).spikesByEvent = tmp.spikesByEvent;
-    spikeDataBank.(sessField).psthByImage = tmp2.psthByImage;
-    spikeDataBank.(sessField).psthErrByImage = tmp2.psthErrByImage;
-    spikeDataBank.(sessField).attendedObjData = tmp2.eyeDataStruct.attendedObjData;
-    spikeDataBank.(sessField).groupLabelsByImage = tmp2.groupLabelsByImage;
-    spikeDataBank.(sessField).tTest = tmp2.stimStatsTable;
-    spikeDataBank.(sessField).subEventSigStruct = tmp2.subEventSigStruct;
+    preprocessedData = load(fullfile(preprocessedList(ii).folder, preprocessedList(ii).name),'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign');
+    analyzedData = load(fullfile(analyzedList(ii).folder, analyzedList(ii).name), 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned');
+    analysisParams = load(fullfile(analyzedList(ii).folder, 'AnalysisParams.mat'), 'psthParams');
     
-    spikeDataBank.(sessField).eventIDs = tmp.eventIDs;
-    spikeDataBank.(sessField).eventCategories = tmp.eventCategories;
-    spikeDataBank.(sessField).start = -tmp3.psthParams.psthPre;
-    spikeDataBank.(sessField).stimDur = tmp3.psthParams.psthImDur;
-    spikeDataBank.(sessField).end = tmp3.psthParams.psthImDur + tmp3.psthParams.psthPost;
+    sessField = sprintf('S%s%s', analyzedData.dateSubject, analyzedData.runNum);
+    sessionList{ii} = [analyzedData.dateSubject analyzedData.runNum];
+    
+    % fields from analysis params
+    spikeDataBank.(sessField).start = -analysisParams.psthParams.psthPre;
+    spikeDataBank.(sessField).stimDur = analysisParams.psthParams.psthImDur;
+    spikeDataBank.(sessField).end = analysisParams.psthParams.psthImDur + analysisParams.psthParams.psthPost;
+    
+    % fields from preprocessedData
+    spikeDataBank.(sessField).spikesByEvent = preprocessedData.spikesByEvent;
+    spikeDataBank.(sessField).eventIDs = preprocessedData.eventIDs;
+    spikeDataBank.(sessField).eventCategories = preprocessedData.eventCategories;
+    spikeDataBank.(sessField).figDir = preprocessedList(ii).folder;
+
+    % fields from analyzedData
+    spikeDataBank.(sessField).dateSubject = analyzedData.dateSubject;
+    spikeDataBank.(sessField).runNum = analyzedData.runNum;
+    spikeDataBank.(sessField).spikesByEventBinned = analyzedData.spikesByEventBinned;
+    spikeDataBank.(sessField).psthByImage = analyzedData.psthByImage;
+    spikeDataBank.(sessField).psthErrByImage = analyzedData.psthErrByImage;
+    spikeDataBank.(sessField).attendedObjData = analyzedData.eyeDataStruct.attendedObjData;
+    spikeDataBank.(sessField).groupLabelsByImage = analyzedData.groupLabelsByImage;
+    spikeDataBank.(sessField).tTest = analyzedData.stimStatsTable;
+    spikeDataBank.(sessField).subEventSigStruct = analyzedData.subEventSigStruct;
     
     %spikeDataBank.(sessField).groupLabel = target; %Now in slidingANOVAparams.
-    spikeDataBank.(sessField).figDir = preprocessedList(ii).folder;
   end
-  spikeDataBankPath = saveSpikeDataBank(spikeDataBank, 2, 'save',outputDir);
+  spikeDataBankPath = saveSpikeDataBank(spikeDataBank, 12, 'save',outputDir);
   clearvars spikeDataBank
   nonSpikeSaveName = fullfile(outputDir, [preprocessParams.spikeDataFileName 'Vars']);
   spikeDataBankPath = [nonSpikeSaveName; spikeDataBankPath];

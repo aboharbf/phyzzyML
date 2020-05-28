@@ -22,6 +22,6 @@ end
   assignin('caller','varNames', varNames)
   evalin('caller', "save(fullfile(outputDir, [preprocessParams.spikeDataFileName 'Vars']), varNames{:})")
   if saveSpikeDB
-    evalin('caller', "saveSpikeDataBank(spikeDataBank, 2, 'save',outputDir)" )
+    evalin('caller', "saveSpikeDataBank(spikeDataBank, [], 'save',outputDir)" )
   end
 end

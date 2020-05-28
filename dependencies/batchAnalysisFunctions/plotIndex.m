@@ -6,7 +6,7 @@ function [plotMat, briefStimList, params]= plotIndex(stimuliList, params)
 % - stimuliList - a cell array of stimuli file names, should line up with a
 %   data structure one wishes to index into.
 % - plotIndexParam - a struct with the following fields
-%   - ().stimParamFile - a full path to a phyzzy style stimParamFile.
+%   - ().stimParamsFilename - a full path to a phyzzy style stimParamFile.
 %   - ().plotLabels - a cell array list of labels for inclusion. each list
 %   should be contained in a cell array. the resulting indicies in plotMat
 %   will match the index in the list. 
