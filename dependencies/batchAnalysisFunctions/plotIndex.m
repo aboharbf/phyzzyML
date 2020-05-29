@@ -9,7 +9,10 @@ function [plotMat, briefStimList, params]= plotIndex(stimuliList, params)
 %   - ().stimParamsFilename - a full path to a phyzzy style stimParamFile.
 %   - ().plotLabels - a cell array list of labels for inclusion. each list
 %   should be contained in a cell array. the resulting indicies in plotMat
-%   will match the index in the list. 
+%   will match the index in the list.
+%   - ().outLogic - a 0 or 1, indexing whether the output should be a
+%   logical array.
+%   - ().removeEmpty - a 0 or 1, deciding whether to remove empty entries.
 % Output
 % - plotMat - a stimuli * length(plotLabel) matrix with 1s for stimuli to
 % include 0, for others. 
@@ -25,7 +28,7 @@ paramArray = tmp.paramArray(paramSortVec);
 briefStimList = tmp.pictureLabels(paramSortVec);
 
 % Iterate across stimuli and identify appropriate indicies
-plotMat = false(length(stimuliList),length(params.plotLabels));
+plotMat = zeros(length(stimuliList),length(params.plotLabels));
 
 for stim_ind = 1:size(plotMat,1)
   paramStimSet = paramArray{stim_ind};
@@ -37,19 +40,26 @@ for stim_ind = 1:size(plotMat,1)
       % If Cell, iterate through values, store the max.
       tmp = zeros(length(params.plotLabels{label_ind}),1);
       for subLabel_ind = 1:length(params.plotLabels{label_ind})
-        tmp(subLabel_ind) = any(ismember(paramStimSet,params.plotLabels{label_ind}{subLabel_ind}))*subLabel_ind;
+        tmp(subLabel_ind) = any(ismember(paramStimSet,params.plotLabels{label_ind}{subLabel_ind}));
       end
-      plotMat(stim_ind, label_ind) = max(tmp);
+      plotMat(stim_ind, label_ind) = find(tmp,1,'last');
     end
   end
 end
 
 % Remove catagories containing 0.
-keepInd = sum(plotMat,1) > 0;
-plotMat = plotMat(:,keepInd);
-params.plotLabels = params.plotLabels(keepInd);
-if isfield(params, 'plotLabelSocialInd')
-  params.plotLabelSocialInd = params.plotLabelSocialInd(keepInd);
+if params.removeEmpty
+  keepInd = sum(plotMat,1) > 0;
+  plotMat = plotMat(:,keepInd);
+  params.plotLabels = params.plotLabels(keepInd);
+  if isfield(params, 'plotLabelSocialInd')
+    params.plotLabelSocialInd = params.plotLabelSocialInd(keepInd);
+  end
+end
+
+% If only logical output desired, convert here
+if params.outLogic
+  plotMat = logical(plotMat);
 end
 
 

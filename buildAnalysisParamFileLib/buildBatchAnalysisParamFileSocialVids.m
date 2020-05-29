@@ -72,7 +72,9 @@ meanPSTHParams.broadLabel = 0;                  % Transitions individual stimuli
 meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 meanPSTHParams.maxStimOnly = 1;                 % The max value and max index taken from the PSTH is only in the area of the stimulus presentation.
 meanPSTHParams.plotLabels = {'chasing','fighting','mounting','grooming','following',...
-    'objects','goalDirected','idle','scramble','scene','socialInteraction','animControl','animSocialInteraction','agents','headTurn','allTurn', 'headTurnClassic'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
+  'objects','goalDirected','idle','scramble','scene','socialInteraction','animControl','animSocialInteraction','agents','headTurn','allTurn', 'headTurnClassic'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
+meanPSTHParams.removeEmpty = 1;         % Used by plotIndex - removes empty columns 
+meanPSTHParams.outLogic = 1;            % Used by plotIndex - turns output into logical array of 0s and 1s.
 meanPSTHParams.plotLabelSocialInd = [1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0]; %Index for single catagory labels which are social.
 meanPSTHParams.socialColor = [240/255 62/255 47/255];
 meanPSTHParams.nonSocialColor = [9/255 217/255 107/255];
@@ -166,13 +168,23 @@ slidingTestParams.plotSize = [.8 .6];
 NDTDParams.NDTPath = NDTPath;
 NDTDParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
 NDTDParams.rasterDir =  fullfile(NDTDParams.outputDir, 'rasterData');
-%   - ().stimParamFile - a full path to a phyzzy style stimParamFile.
 
 %parameters for the conversion of spikeDataBank to rasterData
 NDTDParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
-NDTDParams.spikeToRasterParams.plotIndParams.plotLabels = {'socialInteraction'}; % a cell array list of labels for inclusion. each list
-%   should be contained in a cell array. the resulting indicies in plotMat
-%   will match the index in the list.
+NDTDParams.spikeToRasterParams.plotIndParams.plotLabels = {'socialInteraction', 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
+  'scramble', 'foraging', 'following', 'observing','animControl', 'animSocialInteraction'}}; % a cell array list of labels for inclusion.
+NDTDParams.spikeToRasterParams.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
+NDTDParams.label_names_to_use = {[], [], {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}};   % the stimuli which all sites must have presented. Must match plotLabels and rasterLabels in length
+NDTDParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
+NDTDParams.spikeToRasterParams.plotIndParams.outLogic = 0;
+
+%parameters for the plotting of results
+NDTDParams.plotParams = {'Social Interaction', 'Agent presence', 'Social Catagory'};
+assert(length(NDTDParams.spikeToRasterParams.plotIndParams.plotLabels) == length(NDTDParams.plotParams), 'These 2 parameters must be the same length')
+assert(length(NDTDParams.spikeToRasterParams.plotIndParams.plotLabels) == length(NDTDParams.label_names_to_use), 'These 2 parameters must be the same length')
+
+
+
 
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis');
 assert(length(meanPSTHParams.plotLabels) == length(meanPSTHParams.plotLabelSocialInd), 'These two variables must match in length')
