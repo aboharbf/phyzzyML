@@ -108,7 +108,7 @@ if plotSwitch.slidingWindowANOVA % && ~isfield(spikeDataBank, [Some new field ge
 end
 
 if plotSwitch.neuralDecodingTB
-  NeuralDecodingTB(spikeDataBank, NDTDParams);
+  NeuralDecodingTB(spikeDataBank, NDTParams);
 end
 
 end
@@ -2246,94 +2246,5 @@ end
 % presentations in order, plot them on a single line. Mark dates where long
 % recording dates were taken with vertical lines.
 
-
-end
-
-function NeuralDecodingTB(spikeDataBank, params)
-% Function which implements the Neural Decoding Toolbox (1.0.4). Takes in
-% the spikeDataBank, generates the appropriate structure for the toolbox if
-% not already generated, and runs the analysis specified in the NBTDParams.
-
-% Add the path to the NB
-addpath(genpath(params.NDTPath));
-
-if ~exist(params.outputDir, 'dir')
-  mkdir(params.outputDir)
-end
-
-if ~exist(params.rasterDir, 'dir')
-  spikeDataBank_to_rasterData(spikeDataBank, params.rasterDir, params.spikeToRasterParams);
-end
-
-% Step 1 - generate the appropriate binned data
-binnedFileName = fullfile(params.rasterDir, 'rasterData_binned');
-rasterDataPath = fullfile(params.rasterDir, 'S20*');
-
-binWidth = 100;
-stepSize = 50;
-
-if ~exist(binnedFileName, 'file')
-  binnedFileName = create_binned_data_from_raster_data(rasterDataPath, binnedFileName, binWidth, stepSize);
-end
-
-labelsToDecode = params.spikeToRasterParams.rasterLabels;
-Decoding_results = cell(length(labelsToDecode),1);
-
-for analysis_i = 3%1:length(labelsToDecode)
-  % Step 2 - generate the data source object
-  specific_binned_labels_names = labelsToDecode{analysis_i}; % Which label in the binned data would you like to classify?
-  num_cv_splits = 5; % use 20 cross-validation splits (which means that 19 examples of each object are used for training and 1 example of each object is used for testing)
-  % create the basic datasource object
-  
-  ds = basic_DS(binnedFileName, specific_binned_labels_names,  num_cv_splits);
-  ds.num_times_to_repeat_each_label_per_cv_split = 1;
-  
-  min_repeats = num_cv_splits * ds.num_times_to_repeat_each_label_per_cv_split;
-  
-  % Add in steps to ensure only sites with adequate repeats are used
-  [ds.sites_to_use, ~, ~, ds.label_names_to_use] = find_sites_with_k_label_repetitions(ds.the_labels, min_repeats, params.label_names_to_use{analysis_i});
-  
-  % Step 3 - Generate a classifier and data preprocessor objects compatible with that data source.
-  the_classifier = max_correlation_coefficient_CL;
-  the_feature_preprocessors{1} = zscore_normalize_FP;
-  
-  % Step 4 - Generate a cross validator
-  the_cross_validator = standard_resample_CV(ds, the_classifier, the_feature_preprocessors);
-  
-  % Step 4.1 - define some parameters on newly generated object
-  the_cross_validator.num_resample_runs = 5;
-  
-  % Step 5 - Run decoding analyses
-  DECODING_RESULTS = the_cross_validator.run_cv_decoding;
-  
-  % Plotting
-  % save the results
-  save_file_name = fullfile(params.rasterDir, sprintf('results_%s', labelsToDecode{analysis_i}));
-  save(save_file_name, 'DECODING_RESULTS');
-  
-  % which results should be plotted (only have one result to plot here)
-  result_names{1} = save_file_name;
-  
-  % create an object to plot the results
-  plot_obj = plot_standard_results_object(result_names);
-  
-  % put a line at the time when the stimulus was shown
-  plot_obj.significant_event_times = 0;
-  
-  % optional argument, can plot different types of results
-  %plot_obj.result_type_to_plot = 2;  % for example, setting this to 2 plots the normalized rank results
-  
-  figure()
-  plot_obj.plot_results;   % actually plot the results
-  title(sprintf('Classification of %s', params.plotParams{analysis_i}));
-  
-  
-  plot_obj = plot_standard_results_TCT_object(save_file_name);
-  plot_obj.significant_event_times = 0;   % the time when the stimulus was shown
-  plot_obj.display_TCT_movie = 0;
-  plot_obj.TCT_figure_number = length(findobj('type','figure')) + 1; % Open a new figure.
-  
-  plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information is coded by a dynamic population code
-end
 
 end

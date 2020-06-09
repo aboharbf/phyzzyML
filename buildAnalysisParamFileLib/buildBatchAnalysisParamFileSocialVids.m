@@ -22,6 +22,7 @@ switch machine
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
     NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
 end
 
 analysisLabel = 'Basic';
@@ -165,27 +166,74 @@ slidingTestParams.spikeDataFileName = preprocessParams.spikeDataFileName;
 slidingTestParams.exportFig = figStruct.exportFig;
 slidingTestParams.plotSize = [.8 .6];        
 
-NDTDParams.NDTPath = NDTPath;
-NDTDParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
-NDTDParams.rasterDir =  fullfile(NDTDParams.outputDir, 'rasterData');
 
-%parameters for the conversion of spikeDataBank to rasterData
-NDTDParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
-NDTDParams.spikeToRasterParams.plotIndParams.plotLabels = {'socialInteraction', 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
+% Neural Decoding Toolbox parameters
+% Paths
+NDTParams.NDTPath = NDTPath;
+NDTParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
+NDTParams.rasterDir =  fullfile(NDTParams.outputDir, 'rasterData');
+NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
+
+%  spikeDataBank to rasterData Parameters, should be as inclusive as
+%  possible, as changes require deleting previously generated files.
+NDTParams.spikeToRasterParams.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
+NDTParams.spikeToRasterParams.plotIndParams.plotLabels = {'socialInteraction', 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
   'scramble', 'foraging', 'following', 'observing','animControl', 'animSocialInteraction'}}; % a cell array list of labels for inclusion.
-NDTDParams.spikeToRasterParams.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
-NDTDParams.label_names_to_use = {[], [], {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}};   % the stimuli which all sites must have presented. Must match plotLabels and rasterLabels in length
-NDTDParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
-NDTDParams.spikeToRasterParams.plotIndParams.outLogic = 0;
+NDTParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
+NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 
-%parameters for the plotting of results
-NDTDParams.plotParams = {'Social Interaction', 'Agent presence', 'Social Catagory'};
-assert(length(NDTDParams.spikeToRasterParams.plotIndParams.plotLabels) == length(NDTDParams.plotParams), 'These 2 parameters must be the same length')
-assert(length(NDTDParams.spikeToRasterParams.plotIndParams.plotLabels) == length(NDTDParams.label_names_to_use), 'These 2 parameters must be the same length')
+% Params for binning of rasters for analyses.
+NDTParams.binWidth = 100;
+NDTParams.stepSize = 50;
 
+% The following should be specified per analysis
+NDTParams.Analyses.SocVNonSoc.label = 'social';                   % should match a field in the raster_labels, and be included in currently generated iteration of the rasterData.
+NDTParams.Analyses.SocVNonSoc.num_cv_splits = 100;
+NDTParams.Analyses.SocVNonSoc.repeat_each_label_per_split = 1;
+NDTParams.Analyses.SocVNonSoc.featPre = [1 0 0];                  % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+NDTParams.Analyses.SocVNonSoc.classifier = [1 0 0];               % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.Analyses.SocVNonSoc.pvalue_threshold = 0.05;            % if select_p FP above, feature needs pVal threshold.
+NDTParams.Analyses.SocVNonSoc.k_features = 10;                    % if top_k FP above, feature needs k threshold.
+NDTParams.Analyses.SocVNonSoc.label_names_to_use = [];            % the stimuli which all sites must have presented.
+NDTParams.Analyses.SocVNonSoc.cross_validator_num_resample = 5;   % Number of times to resample runs for cross validator.
+NDTParams.Analyses.SocVNonSoc.plotTitle = 'Social Interaction';   
 
+NDTParams.Analyses.AgentVNonAgent.label = 'agents';
+NDTParams.Analyses.AgentVNonAgent.num_cv_splits = 100;
+NDTParams.Analyses.AgentVNonAgent.repeat_each_label_per_split = 1;
+NDTParams.Analyses.AgentVNonAgent.featPre = [1 0 0];                  % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+NDTParams.Analyses.AgentVNonAgent.classifier = [1 0 0];               % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.Analyses.AgentVNonAgent.pvalue_threshold = 0.05;            % if select_p FP above, feature needs pVal threshold.
+NDTParams.Analyses.AgentVNonAgent.k_features = 10;                    % if top_k FP above, feature needs k threshold.
+NDTParams.Analyses.AgentVNonAgent.label_names_to_use = [];            % the stimuli which all sites must have presented.
+NDTParams.Analyses.AgentVNonAgent.cross_validator_num_resample = 5;   % Number of times to resample runs for cross validator.
+NDTParams.Analyses.AgentVNonAgent.plotTitle = 'Agent presence';       
 
+NDTParams.Analyses.socCat.label = 'socialCat';
+NDTParams.Analyses.socCat.num_cv_splits = 10;
+NDTParams.Analyses.socCat.repeat_each_label_per_split = 1;
+NDTParams.Analyses.socCat.featPre = [1 0 0];                      % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+NDTParams.Analyses.socCat.classifier = [1 0 0];                   % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.Analyses.socCat.pvalue_threshold = 0.05;                % if select_p FP above, feature needs pVal threshold.
+NDTParams.Analyses.socCat.k_features = 10;                        % if top_k FP above, feature needs k threshold.
+NDTParams.Analyses.socCat.label_names_to_use = {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}; % the stimuli which all sites must have presented.
+NDTParams.Analyses.socCat.cross_validator_num_resample = 5;       % Number of times to resample runs for cross validator.
+NDTParams.Analyses.socCat.plotTitle = 'Social Catagory';
 
+NDTParams.AnalysesDefault.label = 'socialCat';
+NDTParams.AnalysesDefault.num_cv_splits = 10;
+NDTParams.AnalysesDefault.repeat_each_label_per_split = 1;
+NDTParams.AnalysesDefault.featPre = [1 0 0];                      % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+NDTParams.AnalysesDefault.classifier = [1 0 0];                   % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.AnalysesDefault.pvalue_threshold = 0.05;                % if select_p FP above, feature needs pVal threshold.
+NDTParams.AnalysesDefault.k_features = 10;                        % if top_k FP above, feature needs k threshold.
+NDTParams.AnalysesDefault.label_names_to_use = {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}; % the stimuli which all sites must have presented.
+NDTParams.AnalysesDefault.cross_validator_num_resample = 5;       % Number of times to resample runs for cross validator.
+NDTParams.AnalysesDefault.plotTitle = '[Analysis File used]'; 
+
+NDTParams.NDTAnalysesPath = NDTAnalysesPath;
+
+% Novelty Analysis
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis');
 assert(length(meanPSTHParams.plotLabels) == length(meanPSTHParams.plotLabelSocialInd), 'These two variables must match in length')
 
