@@ -237,7 +237,8 @@ for stim_ind = 1:length(allStimuliVec)
         presCount = tmpRunStruct.stimPresCount(psthStimIndex(subRun_ind));
         gridHole = tmpRunStruct.gridHoles;
         depth = tmpRunStruct.recDepth;
-        assert(length(gridHole) == length(depth), 'F');
+        assert(length(gridHole) == length(depth), 'Mismatch in variables');
+        assert(~isempty(gridHole), 'gridHole data empty, confirm batchAnalysis excel file contains all relevant runs');
         
         daysSinceLastPres = tmpRunStruct.daysSinceLastPres(psthStimIndex(subRun_ind));
         daysSinceLastRec = tmpRunStruct.daysSinceLastRec;
@@ -331,7 +332,7 @@ animParam.stimParamsFilename = params.stimParamsFilename;
 animParam.plotLabels = {'animSocialInteraction', 'animControl'};
 animParam.outLogic = 1;
 animParam.removeEmpty = 1;
-[tmp, ~, ~] = plotIndex(allStimuliVec, animParam, 1);
+[tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
 animInd = logical(sum(tmp,2));
 
 switch params.stimInclude
@@ -1281,7 +1282,7 @@ psthPost = params.psthPost;
 
 % Create new plot to store things for plot 4 generation during plot 3
 evDataType = {'PSTH', 'stim_i', 'label'};
-evDataExt = cell(length(eventList), length(groupType(groupIterInd)), length(evDataType));
+evDataExt = cell(length(eventList), length(groupType), length(evDataType));
 
 % Plot 3 - all subEvent PSTH from stimuli
 if params.allRunStimPSTH_extracted
@@ -1289,7 +1290,7 @@ if params.allRunStimPSTH_extracted
     % Get the relevant frameMotion/eventData
     eventDataStim = eventData(allStimuliVec{stim_i},:);
     stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
-    for group_i = groupIterInd
+    for group_i = groupIterInd % Can not rely on groupIter here.
       %for sort_i = 4%1:length(sortType)
       for event_i = 1:length(eventList)
         if ~isempty(eventDataStim.(eventList{event_i}){1})
@@ -1308,7 +1309,7 @@ if params.allRunStimPSTH_extracted
             evDataExt{event_i, group_i, strcmp(evDataType, 'label')} = [evDataExt{event_i, group_i, strcmp(evDataType, 'label')}; eventPSTHLabel];
             
             % Plot
-            figTitle = sprintf('%s - %s, %d - %d', extractBefore(allStimuliVec{stim_i}, regexp(allStimuliVec{stim_i}, '.avi')), eventList{event_i}, startT, endT);
+            figTitle = sprintf('%s - %s, %s, %d - %d', extractBefore(allStimuliVec{stim_i}, regexp(allStimuliVec{stim_i}, '.avi')), eventList{event_i}, groupType{group_i}, startT, endT);
             h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted]);
             sortIndex = sortMat{stim_i, group_i, 1};
             

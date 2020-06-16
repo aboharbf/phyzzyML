@@ -4510,6 +4510,10 @@ for calc_i = 1:length(tfCalcSwitches)
     end
   end
 end
+
+errorMsgRun = 'None';
+save(analysisOutFilename, 'errorMsgRun', '-append')
+
 end
 
 %% Individual Analysis Functions

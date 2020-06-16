@@ -30,7 +30,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
@@ -40,11 +40,11 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
-plotSwitch.novelty = 0;               % Seeing whether 10th percentile values in previous analyses line up with 'novel' stimuli
-plotSwitch.slidingWindowANOVA = 0;
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding toolbox, with the specs below.
+plotSwitch.novelty = 0;               % 
+plotSwitch.slidingWindowANOVA = 0;    % 
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 
 %% Parameters
 preprocessParams.spikeDataFileName = 'spikeDataBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
@@ -133,7 +133,7 @@ subEventPSTHParams.psthImDur = 400;
 subEventPSTHParams.psthPost = 200;             
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
-subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
+subEventPSTHParams.meanSubEventPSTH = 1;                        % Plot 2 - Mean event PSTHes, line plots
 subEventPSTHParams.allRunStimPSTH_extracted = 1;                % Plot 3 - Individual event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 

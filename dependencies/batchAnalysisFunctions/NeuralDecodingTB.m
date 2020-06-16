@@ -50,7 +50,7 @@ end
 analysesToRun = fields(params.Analyses);
 analysesStructs = params.Analyses;
 
-for analysis_i = 4:length(analysesToRun)
+for analysis_i = 1:length(analysesToRun)
   % Step 2 - generate the data source object
   analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
   

@@ -12,14 +12,14 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'homeDesktopWork'
-    ephysVolume = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Data');
+    ephysVolume = slashSwap('H:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = 'H:/Analyzed';
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
   case 'Alienware_FA'
-    ephysVolume = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Data');
+    ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('D:\DataAnalysis\March2020');
     stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
