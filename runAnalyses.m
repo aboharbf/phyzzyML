@@ -4549,25 +4549,38 @@ assert(max(taskEventIDInd) == length(eventIDs))
 % Initialize a list of all the events present in the code.
 subEventNames = [];
 
-% Event Type 1 - Find events which take place in the stimuli presented
+% Event Type 1 - Find events which take place in the stimuli presented,
+% defined in the eventData file.
 eventDataFile = dir([subEventParams.stimDir '/**/eventData.mat']);
 if ~isempty(eventDataFile)
+  % If we find a file, load it.
   load(fullfile(eventDataFile(1).folder, eventDataFile(1).name), 'eventData');
   eventDataRun = eventData(eventIDs, :);
-  eventsInEventData = eventDataRun.Properties.VariableNames(logical(sum(cellfun(@(x) ~isempty(x), table2cell(eventDataRun)),1)));
-  subEventNames = [subEventNames; eventsInEventData'];
+  emptyEntryInd = cellfun(@(x) size(x,1) ~= 0, table2cell(eventDataRun));
+  presentEventInd = any(emptyEntryInd);
+  emptyEntryInd = emptyEntryInd(:,presentEventInd);
+  eventsInEventData = eventDataRun.Properties.VariableNames(presentEventInd);
+  
+  eventStimTable = cell2table(cell(0,4), 'VariableNames', {'eventName', 'stimName', 'startFrame', 'endFrame'});
+  
+  % If our run has eventData specific events
   if ~isempty(eventsInEventData)
-    % Cycle through events, generating startTimes.
+    subEventNames = [subEventNames; eventsInEventData'];
+    cell2table(cell(0,4), 'VariableNames', {'eventName', 'stimName', 'startFrame', 'endFrame'})
+    
+    % Cycle through events, generating table to be used as reference for
+    % collecting event specific times (has startTime, endTime, stim name).
     for event_i = 1:length(eventsInEventData)
+      
       subEventRunData = eventDataRun(:, eventsInEventData{event_i});
-      emptyIndTmp = rowfun(@(x) ~isempty(x{1}), subEventRunData);
-      keepInd = emptyIndTmp.Var1;
-      subEventRunData = subEventRunData(keepInd,:);
+      subEventRunData = subEventRunData(emptyEntryInd(:, event_i),:);
       stimSourceArray = subEventRunData.Properties.RowNames;
+      
       for stim_i = 1:length(stimSourceArray)
         
-        %Identify time for each frame, and convert values to them.
+        %Identify time per frame, shift event frames to event times. 
         frameMotionDataInd = strcmp({frameMotionData.stimVid}, stimSourceArray(stim_i));
+        
         if ~any(frameMotionDataInd)
           stimVid = dir([subEventParams.stimDir '/**/' stimSourceArray{stim_i}]);
           vidObj = VideoReader(fullfile(stimVid(1).folder, stimVid(1).name));
@@ -4577,69 +4590,62 @@ if ~isempty(eventDataFile)
           msPerFrame = frameMotionData(frameMotionDataInd).timePerFrame;
         end
         
-        % Add Tables
+        % Add events to larger table
         eventTable = subEventRunData{stimSourceArray(stim_i),:}{1};
         eventTable.startFrame = eventTable.startFrame * msPerFrame;
         eventTable.endFrame = eventTable.endFrame * msPerFrame;
         entryCount = size(eventTable,1);
-        if stim_i == 1 && event_i == 1
-          eventStimTable = [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(stim_i), [entryCount, 1]), eventTable(:,'startFrame'), eventTable(:,'endFrame')];
-        else
-          eventStimTable = [eventStimTable; [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(stim_i), [entryCount, 1]), eventTable(:,'startFrame'), eventTable(:,'endFrame')]];
-        end
+        entryStarts = table2cell(eventTable(:,'startFrame'));
+        entryEnds =  table2cell(eventTable(:,'endFrame'));
+        
+        eventStimTable = [eventStimTable; [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(stim_i), [entryCount, 1]), entryStarts, entryEnds]];
+          
       end
-    end
-    eventStimTable.Properties.VariableNames(1:2) = {'eventName', 'stimName'};
-
+    end 
+    
     % Generate a vector of spikeTimes in the conventional structure.
-    [onsetsByEvent, onsetsByEventNull, stimSourceByEvent] = deal(cell(length(eventsInEventData),1));
-    %[onsetsByEvent, onsetsByEventNull, stimSourceByEvent] = deal([]);
+    [onsetsByEvent, onsetsByEventNull, stimSourceByEvent] = deal(cell(size(eventsInEventData')));
     stimPSTHDur = subEventParams.stimPlotParams.psthPre + subEventParams.stimPlotParams.psthImDur + subEventParams.stimPlotParams.psthPost;
     stimEventMat = initNestedCellArray(length(eventsInEventData), 'zeros', [length(eventIDs) stimPSTHDur]);
+    
     for event_i = 1:length(eventsInEventData)
       % Identify spaces with the events in the presented stimuli.
       eventData = eventStimTable(strcmp(eventStimTable.eventName, eventsInEventData{event_i}),2:end);
       stimWithEvent = unique(eventData.stimName);
       
-      % Identify stimuli without this event, for null sampling
-      stimWOEvent = setdiff(eventIDs, stimWithEvent);
-      tmpList = cellfun(@(x) find(strcmp(eventIDs, x)), stimWOEvent, 'UniformOutput', false);
-      stimWOEventInd = vertcat(tmpList{:});
-      taskEventNullSampling = zeros(length(taskEventIDInd),1);
-      for sti_i = 1:length(stimWOEventInd)
-        taskEventNullSampling = taskEventNullSampling + (taskEventIDInd == stimWOEventInd(sti_i));
+      % Identify trials of stimuli without this event, for null sampling
+      [~, stimWOEventInd] = setdiff(eventIDs, stimWithEvent);
+      [~, stimWEventInd] = intersect(eventIDs, stimWithEvent);
+      taskEventNullSampling = false(size(taskEventIDInd));
+      for sti_i = stimWOEventInd'
+        taskEventNullSampling(taskEventIDInd == sti_i) = true;
       end
-      taskEventNullSampling = logical(taskEventNullSampling);
       
       [eventStartTimes, eventEndTimes, eventStartTimesNull, eventEndTimesNull, eventStimSource] = deal([]);
-      allStimInd = zeros(length(taskData.taskEventIDs),1);
-      for stim_i = 1:length(stimWithEvent)
+      for stim_i = stimWEventInd'
         % Get the appropriate start and end frames, convert to
-        stimInd = strcmp(taskData.taskEventIDs, stimWithEvent{stim_i});
-        stimIndSingle = strcmp(eventIDs, stimWithEvent{stim_i});
-        allStimInd = allStimInd + stimInd;
-        stimMatIndex = strcmp(eventIDs, stimWithEvent{stim_i});
-        stimEventData = eventData(strcmp(eventData.stimName, stimWithEvent{stim_i}), :);
-        %stimWithOutEventInd = find(~logical(sum(stimEventMat,2)));
+        stimTrialInd = (taskEventIDInd == stim_i);
+        stimEventData = eventData(strcmp(eventData.stimName, eventIDs{stim_i}), :);
         
         % Cycle through and find event occurance times
         for tab_i = 1:size(stimEventData,1)
           startTime = round(stimEventData.startFrame(tab_i));
           endTime = round(stimEventData.endFrame(tab_i));
-          eventTitle = {[eventsInEventData{event_i}, '|', extractBefore(stimWithEvent{stim_i}, strfind(stimWithEvent{stim_i}, '.')) '-' num2str(startTime) '-' num2str(endTime)]};
+          eventTitle = {[eventsInEventData{event_i}, '|', extractBefore(eventIDs{stim_i}, strfind(eventIDs{stim_i}, '.')) '-' num2str(startTime) '-' num2str(endTime)]};
 
-          %Label the stimEventMat to highlight sampled region.
+          % Label the stimEventMat to highlight sampled region.
           startEventInd = (startTime + subEventParams.stimPlotParams.psthPre);
           endEventInd = (startEventInd + subEventParams.psthParams.psthImDur);
-          stimEventMat{event_i}(stimIndSingle, startEventInd:endEventInd) = deal(1);
+          stimEventMat{event_i}(stim_i, startEventInd:endEventInd) = deal(1);
+          
           % Label the beginning to make lines easier to see stim.
-          stimEventMat{event_i}(stimIndSingle, 1:100) = deal(1);
+          stimEventMat{event_i}(stim_i, 1:100) = deal(1);
           
           % Find out when the stimulus happens, and add these structures to
           % the larger ones
-          eventStartTimes = [eventStartTimes; taskData.taskEventStartTimes(stimInd) + startTime];
-          eventEndTimes = [eventEndTimes; taskData.taskEventStartTimes(stimInd) + endTime];
-          eventStimSource = [eventStimSource; repmat(eventTitle, [length(taskData.taskEventStartTimes(stimInd)), 1])];
+          eventStartTimes = [eventStartTimes; taskData.taskEventStartTimes(stimTrialInd) + startTime];
+          eventEndTimes = [eventEndTimes; taskData.taskEventStartTimes(stimTrialInd) + endTime];
+          eventStimSource = [eventStimSource; repmat(eventTitle, [length(taskData.taskEventStartTimes(stimTrialInd)), 1])];
           
           % Generate a matrix which can be used to determine a null
           % distribution
@@ -4724,7 +4730,6 @@ if ~isempty(eyeBehStatsByStim)
   maxShift = 500;
   minShift = 100;
   minEventDist = 100;
-  shuffleMult = subEventParams.nullSampleMult;
   
   for eyeEvent_i = 1:length(eyeEventTimes)
     eyeEventsTiled = eyeEventTimes{eyeEvent_i}; %repmat(eyeEventTimes{eyeEvent_i}, [shuffleMult,1]);
@@ -4766,7 +4771,7 @@ end
 
 % Sample the null times, expand each onsertsByEventNull cell by the
 % parameter below (subEventParams.nullSampleMult).
-onsetsByEventNull = cellfun(@(x) repmat(x, [subEventParams.nullSampleMult,1]), onsetsByEventNull, 'UniformOutput', false);
+% onsetsByEventNull = cellfun(@(x) repmat(x, [subEventParams.nullSampleMult,1]), onsetsByEventNull, 'UniformOutput', false);
 subEventParams.refOffset = 0;
 [spikesBySubEvent, spikesEmptyBySubEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ones(length(spikesByChannel),1), subEventParams);
 [spikesBySubEventNull, spikesEmptyBySubEventNull] = alignSpikes(spikesByChannel, onsetsByEventNull, ones(length(spikesByChannel),1), subEventParams);

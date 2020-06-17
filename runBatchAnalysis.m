@@ -956,11 +956,9 @@ baselineSubtract = 1;
 % Identify Events, stimuli
 load(params.eventData);
 eventList = [eventData.Properties.VariableNames 'saccades', 'blinks'];
-stimList = eventData.Properties.RowNames;
 groupIterInd = 3;
 
 % Remove runs with no events from spikeDataBank;
-stimEventList = ~cellfun(@(x) isempty(x), table2cell(eventData));
 subEventInd = logical(structfun(@(x) x.subEventSigStruct.noSubEvent, spikeDataBank));
 spikeDataBankFields = fields(spikeDataBank);
 fields2Remove = spikeDataBankFields(subEventInd);
@@ -1191,10 +1189,10 @@ for event_i = 1:length(eventListPlot)
   for group_i = 1:size(eventDataArray,2)
     subplot(length(groupType), 1, group_i);
     plotData = mean([eventDataArray{event_i, group_i, 1}]);
-    plotErr = std([eventDataArray{event_i, group_i, 1}])/sqrt(size([eventDataArray{event_i, group_i, 1}],1)); % This will not go well. Probably need every individual raw trace.
+    plotErr = std([eventDataArray{event_i, group_i, 1}])/sqrt(size([eventDataArray{event_i, group_i, 1}],1)); 
     
     plotNull = mean([eventDataArray{event_i, group_i, 2}]);
-    plotErrNull = std([eventDataArray{event_i, group_i, 2}])/sqrt(size([eventDataArray{event_i, group_i, 2}],1)); % This will not go well. Probably need every individual raw trace.
+    plotErrNull = std([eventDataArray{event_i, group_i, 2}])/sqrt(size([eventDataArray{event_i, group_i, 2}],1));
     
     if baselineSubtract
       baselinePeriod = (psthParam.psthPre/2):psthParam.psthPre;
@@ -1275,6 +1273,11 @@ end
 stimPSTHFull = stimPSTH;
 allStimuliVec = meanPSTHStruct.IndStructs{1};
 eventList = eventData.Properties.VariableNames; % Removes blinks/saccades
+% Remove non-represented variables
+newEventData = eventData(allStimuliVec, :);
+stimEventLogicArray = ~cellfun(@(x) size(x, 1) == 0, table2cell(newEventData));
+stimEventNames = newEventData.Properties.RowNames;
+
 psthPreData = meanPSTHStruct.psthPre;   % Used to find the correct spot in larger vector.
 psthPre = params.psthPre;  
 psthImDur = params.psthImDur;                
@@ -1282,7 +1285,6 @@ psthPost = params.psthPost;
 
 % Create new plot to store things for plot 4 generation during plot 3
 evDataType = {'PSTH', 'stim_i', 'label'};
-evDataExt = cell(length(eventList), length(groupType), length(evDataType));
 
 % Plot 3 - all subEvent PSTH from stimuli
 if params.allRunStimPSTH_extracted
@@ -1298,15 +1300,10 @@ if params.allRunStimPSTH_extracted
           eventStarts = round(evTable.startFrame * stimTimePerFrame);
           
           for inst_i = 1:length(eventStarts)
-            startT = (eventStarts(inst_i)+psthPreData)-psthPre;
-            endT = (eventStarts(inst_i)+psthPreData)+psthImDur + psthPost;
+            startT = (eventStarts(inst_i) + psthPreData) - psthPre;
+            endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
             eventPSTHData = stimPSTHFull{stim_i,group_i,1}(:, startT:endT);
             eventPSTHLabel = sortLabel{stim_i, group_i, 4};
-            
-            % Store for plot 4 here
-            evDataExt{event_i, group_i, strcmp(evDataType, 'PSTH')} = [evDataExt{event_i, group_i, strcmp(evDataType, 'PSTH')}; eventPSTHData];
-            evDataExt{event_i, group_i, strcmp(evDataType, 'stim_i')} = [evDataExt{event_i, group_i, strcmp(evDataType, 'stim_i')}; repmat(stim_i, size(eventPSTHLabel))];
-            evDataExt{event_i, group_i, strcmp(evDataType, 'label')} = [evDataExt{event_i, group_i, strcmp(evDataType, 'label')}; eventPSTHLabel];
             
             % Plot
             figTitle = sprintf('%s - %s, %s, %d - %d', extractBefore(allStimuliVec{stim_i}, regexp(allStimuliVec{stim_i}, '.avi')), eventList{event_i}, groupType{group_i}, startT, endT);
@@ -1367,16 +1364,64 @@ if params.allRunStimPSTH_extracted
 end
 
 % Plot 4 - mean subEvent PSTH, based on extracted slices
+% Generates Plots for each event by overlaying particular event types and
+% generating null traces by grabbing the same slice of time in other
+% events.
+
+groupIterInd = 1:3;
+
 if params.meanSubEventPSTH_extracted
-  % Problem: Given that the above blocks are collected per stimulus, I
-  % don't have a null distribution readily available which may satisify.
-  % A: Grab the same time slice from all over stimuli. Difficult to ensure
-  % nothing else is happening at those times for other events, will be
-  % tricky.
-  % B: Go back to individual run level, feed in times in a 'per instance'
-  % manner. Sum across these events to generate traditional labels, but
-  % also do the appropriate averages and storing of nulls in the 'per
-  % instance' fashion. write code to account for this.
+  % Initialize structures for holding both traces and their null
+  % equivalents.
+  for group_i = groupIterInd
+    [eventPSTHData, eventPSTHNullData] = deal([]);
+    for event_i = 1:length(eventList)
+
+      stimLogicArrayEvent = stimEventLogicArray(:,event_i);
+      stim2Check = find(stimLogicArrayEvent);
+      
+      for stim_i = stim2Check'
+        eventSpecTable = newEventData{stim_i, event_i}{1};
+        stimTimePerFrame = frameMotionData(strcmp(stimEventNames{stim_i}, frameMotionDataNames)).timePerFrame;
+        eventStarts = round(eventSpecTable.startFrame * stimTimePerFrame);
+        
+        for inst_i = 1:length(eventStarts)
+          startT = (eventStarts(inst_i) + psthPreData) - psthPre;
+          endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
+          eventPSTHData = [eventPSTHData; stimPSTHFull{stim_i,group_i,1}(:, startT:endT)];
+          eventPSTHNullDataTmp = vertcat(stimPSTHFull{~stimLogicArrayEvent,group_i,1});
+          eventPSTHNullData = [eventPSTHNullData; eventPSTHNullDataTmp(:, startT:endT)];
+                    
+        end
+      end
+      
+      % Prepare plot data
+      plotData = mean(eventPSTHData, 1);
+      plotErr = std(eventPSTHData)/sqrt(size(eventPSTHData,1)); 
+      
+      plotNull = mean(eventPSTHNullData, 1);
+      plotErrNull = std(eventPSTHNullData)/sqrt(size(eventPSTHNullData,1));
+      
+      % Subtract baseline if desired
+      baselineSubtract = 1;
+      if baselineSubtract
+        baselinePeriod = (psthParam.psthPre/2):psthParam.psthPre;
+        plotData = plotData - mean(plotData(baselinePeriod));
+        plotNull = plotNull - mean(plotNull(baselinePeriod));
+      end
+      
+      msebData = [plotData; plotNull];
+      msebError = [plotErr; plotErrNull];
+      plotLabels = [eventList(event_i); sprintf('non-%s', eventList{event_i})];
+      
+      figTitle = sprintf('mean Slice extract PSTH for %s - %s', eventList{event_i}, groupType{group_i});
+      h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted]);
+      [subplotAxes, cbHandle] = plotPSTH(msebData, msebError, [], params, 'line', [], plotLabels);
+      title(figTitle);
+      
+    end
+  end
+  
 end
 subEventPSTHStruct = struct();
 

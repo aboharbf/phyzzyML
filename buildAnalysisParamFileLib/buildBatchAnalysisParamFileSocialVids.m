@@ -134,7 +134,7 @@ subEventPSTHParams.psthPost = 200;
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
 subEventPSTHParams.meanSubEventPSTH = 1;                        % Plot 2 - Mean event PSTHes, line plots
-subEventPSTHParams.allRunStimPSTH_extracted = 1;                % Plot 3 - Individual event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
+subEventPSTHParams.allRunStimPSTH_extracted = 0;                % Plot 3 - Individual event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 
 subEventPSTHParams.plotSizeAllRunStimPSTH_extracted = [.5 .6];           
