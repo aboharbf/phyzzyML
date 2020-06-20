@@ -242,6 +242,7 @@ for stim_ind = 1:length(allStimuliVec)
         
         daysSinceLastPres = tmpRunStruct.daysSinceLastPres(psthStimIndex(subRun_ind));
         daysSinceLastRec = tmpRunStruct.daysSinceLastRec;
+        
         % If desired, Z score PSTHs here based on fixation period activity.
         if params.normalize
           tmp = tmpRunStruct.psthByImage{chan_ind}{unit_ind}(:,1:abs(tmpRunStruct.start));
@@ -253,6 +254,7 @@ for stim_ind = 1:length(allStimuliVec)
             unitErr = ((unitErr - fixMean)/fixSD);
           end
         end
+        
         % Store the generated values into a dataArray
         dataArray = cell(size(dataType));
         dataArray{strcmp(dataType, 'PSTH')} = unitActivity;
@@ -335,15 +337,28 @@ animParam.removeEmpty = 1;
 [tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
 animInd = logical(sum(tmp,2));
 
+% If excluding or only including animations, update the meanPSTHStruct
+% accordingly to allow for unity between this function and those which rely
+% on its outputs.
 switch params.stimInclude
   case  1
     stimPresCounts = stimPresCounts(animInd);
     allStimuliVec = allStimuliVec(animInd,:);
     stimPSTH = stimPSTH(animInd, :, :);
+    
+    % Update the meanPSTHStruct
+    meanPSTHStruct.stimPresCounts = meanPSTHStruct.stimPresCounts(animInd);
+    meanPSTHStruct.IndStructs{1} = allStimuliVec;
+    meanPSTHStruct.stimPSTH = stimPSTH;
   case 2
     stimPresCounts = stimPresCounts(~animInd);
     allStimuliVec = allStimuliVec(~animInd,:);
     stimPSTH = stimPSTH(~animInd, :, :);
+    
+    % Update the meanPSTHStruct
+    meanPSTHStruct.stimPresCounts = meanPSTHStruct.stimPresCounts(~animInd);
+    meanPSTHStruct.IndStructs{1} = allStimuliVec;
+    meanPSTHStruct.stimPSTH = stimPSTH;
 end
 
 % If desired, remove the reward epoch from the base matrix, and preserve
@@ -354,7 +369,6 @@ if params.removeRewardEpoch
   stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart+1), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
   params.psthPost = 0;
 end
-
   
 % If you want to only count the first X runs of a stimulus, 
 if params.firstXRuns
@@ -538,7 +552,7 @@ if params.catPSTH
 end
 
 % Plot 3 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
-if params.allRunStimPSTH || params.subEventPSTH
+if params.allRunStimPSTH 
   % Make a PSTH of each stimulus across all its repetitions.
   sortType = {'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
   % {'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
@@ -682,87 +696,6 @@ if params.allRunStimPSTH || params.subEventPSTH
   end
 end
 
-% Plot 3.1 - subEvent Analysis
-if params.subEventPSTH
-  for stim_i = 1:size(stimPSTHFull,1)
-    % Get the relevant frameMotion/eventData
-    eventDataStim = eventData(allStimuliVec{stim_i},:);
-    stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
-    for group_i = groupIterInd
-      %for sort_i = 4%1:length(sortType)
-      % Add additional tabs denoting occurance of events
-      for event_i = 1:length(eventList)
-        if ~isempty(eventDataStim.(eventList{event_i}){1})
-          evTable = eventDataStim.(eventList{event_i}){1};
-          eventStarts = round(evTable.startFrame * stimTimePerFrame);
-          psthTimes = params.subEventPSTHParams.subEventTimes';
-          psthPre = meanPSTHStruct.psthPre;
-          
-          for inst_i = 1:length(eventStarts)
-            startT = eventStarts(inst_i)-psthTimes(1)+psthPre;
-            endT = eventStarts(inst_i)+psthTimes(2)+psthPre;
-            eventPSTHData = stimPSTHFull{stim_i,group_i,1}(:, startT:endT);
-            eventPSTHLabel = sortLabel{stim_i, group_i, 4};
-            
-            % Plot
-            figTitle = sprintf('%s - %s, %d - %d', extractBefore(allStimuliVec{stim_i}, regexp(allStimuliVec{stim_i}, '.avi')), eventList{event_i}, startT, endT);
-            h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeLineCatPlot]);
-            sortIndex = sortMat{stim_i, group_i, 1};
-            
-            % Break up PSTHes with many lines into subplots.
-            TracesPerPlot = ceil(length(sortIndex)/3);
-            if TracesPerPlot < 20
-              subplot2Plot = 1;
-            elseif TracesPerPlot < 45
-              subplot2Plot = 2;
-            else
-              subplot2Plot = 3;
-            end
-            TracesPerPlot = ceil(length(sortIndex)/subplot2Plot);
-            
-            plotStarts = 1:TracesPerPlot:length(sortIndex);
-            plotEnds = [plotStarts(2:end)-1, length(sortIndex)];
-            
-            subplotAxes = gobjects(subplot2Plot,1);
-            cbHandle = gobjects(subplot2Plot,1);
-            for plot_i = 1:subplot2Plot
-              plotLabels = eventPSTHLabel(plotStarts(plot_i):plotEnds(plot_i));
-              plotData = eventPSTHData(plotStarts(plot_i):plotEnds(plot_i), :);
-              %sortIndex = sortMat{stim_i, group_i, sort_i}(plotStarts(plot_i):plotEnds(plot_i));
-              psthAxes = subplot(1,subplot2Plot,plot_i);
-              [subplotAxes(plot_i), cbHandle(plot_i)] = plotPSTH(plotData, [], psthAxes, params.subEventPSTHParams, 'color', [], plotLabels); %(sortIndex,:)
-              cbHandle(plot_i).Label.FontSize = 10;
-              
-              title(figTitle);
-              if plot_i == subplot2Plot
-                % Label the Y
-                if params.normalize == 1
-                  cbHandle(plot_i).Label.String = 'Signal Change relative to Baseline (%)';
-                elseif params.normalize == 2
-                  cbHandle(plot_i).Label.String = 'Z score relative to fixation';
-                end
-              else
-                delete(cbHandle(plot_i))
-              end
-              
-              set(gca,'FontSize',10,'TickLength',[.01 .01],'LineWidth',.25);
-            end
-            
-            title(figTitle);
-            
-            saveFigure(params.outputDir, ['3.1. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
-            if figStruct.closeFig
-              close(h)
-            end
-          end
-          
-        end
-      end
-      %end
-    end
-  end
-end
-
 % Plot 4 - Line plot with Line per Catagory
 if params.lineCatPlot
   % Find the end of the 'stimuli catagory' count.
@@ -871,6 +804,12 @@ if params.lineBroadCatPlot
     {'Socially Interacting Agents with Any Turning','Socially Interacting Agents without Any Turning'}};
   lineprops.col = {params.socialColor, params.nonSocialColor};
   assert(length(figIncInd) == length(figLegends), 'Update figTitInd and figLegends to match figIncInd')
+  
+  meanPSTHStruct.lineBroadCatPlot.figIncInd = figIncInd;
+  meanPSTHStruct.lineBroadCatPlot.figExcInd = figExcInd;
+  meanPSTHStruct.lineBroadCatPlot.figTitInd = figTitInd;
+  meanPSTHStruct.lineBroadCatPlot.figLegends = figLegends;
+  meanPSTHStruct.lineBroadCatPlot.lineprops = lineprops;
   
   % Append counts to the stimuliNames
   allStimuliLabels = arrayfun(@(x) sprintf('%s (n = %d)', allStimuliNames{x}, stimPresCounts(x)), 1:length(stimPresCounts), 'UniformOutput',0)';
@@ -1014,9 +953,10 @@ for run_i = 1:length(runList)
           fixMean = mean(fixActivity);
           fixSD = std(fixActivity);
           
-          PSTHData = (PSTHData - fixMean)/fixSD;
-          PSTHNull = (PSTHNull - fixMean)/fixSD;
-          
+          if fixMean ~= 0 && fixSD ~= 0
+            PSTHData = (PSTHData - fixMean)/fixSD;
+            PSTHNull = (PSTHNull - fixMean)/fixSD;
+          end
         end
         
         newEntry = cell(size(dataType));
@@ -1057,8 +997,8 @@ if ~exist(params.outputDir, 'dir')
   mkdir(params.outputDir)
 end
 
-% Plot 1 - event PSTHs, sorted by X
-% Make a PSTH of each stimulus across all its repetitions.
+% Plot 1 - subEvent PSTHs, sorted by X
+% Make a PSTH of each event across all its repetitions.
 % {'Run of Day', 'Grid Hole', 'Recording Depth', 'Run Ind'};
 % Must be the same order as the final parts of stimPSTH
 sortType = {'Run of the Day', 'Grid Hole', 'Recording Depth', 'Run Index'};
@@ -1270,9 +1210,9 @@ for stim_i = 1:size(stimPSTH,1)
   end
 end
 
-stimPSTHFull = stimPSTH;
 allStimuliVec = meanPSTHStruct.IndStructs{1};
 eventList = eventData.Properties.VariableNames; % Removes blinks/saccades
+eventList = strrep(eventList, '_', ' ');
 % Remove non-represented variables
 newEventData = eventData(allStimuliVec, :);
 stimEventLogicArray = ~cellfun(@(x) size(x, 1) == 0, table2cell(newEventData));
@@ -1283,12 +1223,9 @@ psthPre = params.psthPre;
 psthImDur = params.psthImDur;                
 psthPost = params.psthPost;
 
-% Create new plot to store things for plot 4 generation during plot 3
-evDataType = {'PSTH', 'stim_i', 'label'};
-
 % Plot 3 - all subEvent PSTH from stimuli
 if params.allRunStimPSTH_extracted
-  for stim_i = 1:size(stimPSTHFull,1)
+  for stim_i = 1:size(stimPSTH,1)
     % Get the relevant frameMotion/eventData
     eventDataStim = eventData(allStimuliVec{stim_i},:);
     stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
@@ -1302,7 +1239,7 @@ if params.allRunStimPSTH_extracted
           for inst_i = 1:length(eventStarts)
             startT = (eventStarts(inst_i) + psthPreData) - psthPre;
             endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
-            eventPSTHData = stimPSTHFull{stim_i,group_i,1}(:, startT:endT);
+            eventPSTHData = stimPSTH{stim_i,group_i,1}(:, startT:endT);
             eventPSTHLabel = sortLabel{stim_i, group_i, 4};
             
             % Plot
@@ -1350,7 +1287,7 @@ if params.allRunStimPSTH_extracted
             
             sgtitle(figTitle);
             
-            saveFigure(params.outputDir, ['3.1. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+            saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
             if figStruct.closeFig
               close(h)
             end
@@ -1371,36 +1308,59 @@ end
 groupIterInd = 1:3;
 
 if params.meanSubEventPSTH_extracted
+  % For combination type events, I need to compile things before.
+  [eventPSTHData, eventPSTHNullData] = deal(cell(length(eventList), length(groupIterInd)));
+  
+  comboEvents = {'headTurn All', 'all Turns'};
+  comboInd = [false(1, length(eventList)), true(1, length(comboEvents))];
+  eventList = [eventList,  comboEvents];
+  
+  comboGroups = cell(1, length(eventList));
+  comboGroups{strcmp(eventList, 'headTurn All')} = [find(strcmp(eventList, 'headTurn right')),  find(strcmp(eventList, 'headTurn left'))];
+  comboGroups{strcmp(eventList, 'all Turns')} = [comboGroups{strcmp(eventList, 'headTurn All')}, find(strcmp(eventList, 'bodyTurn'))];
+  
   % Initialize structures for holding both traces and their null
   % equivalents.
-  for group_i = groupIterInd
-    [eventPSTHData, eventPSTHNullData] = deal([]);
-    for event_i = 1:length(eventList)
-
-      stimLogicArrayEvent = stimEventLogicArray(:,event_i);
-      stim2Check = find(stimLogicArrayEvent);
+  for event_i = 1:length(eventList)
+    
+    figTitle = sprintf('mean Slice extract PSTH for %s', eventList{event_i});
+    h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeMeanSubEventPSTH_extracted]);
+    sgtitle(figTitle);
+    
+    for group_i = groupIterInd
+      subplot(length(groupIterInd), 1, group_i)
       
-      for stim_i = stim2Check'
-        eventSpecTable = newEventData{stim_i, event_i}{1};
-        stimTimePerFrame = frameMotionData(strcmp(stimEventNames{stim_i}, frameMotionDataNames)).timePerFrame;
-        eventStarts = round(eventSpecTable.startFrame * stimTimePerFrame);
-        
-        for inst_i = 1:length(eventStarts)
-          startT = (eventStarts(inst_i) + psthPreData) - psthPre;
-          endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
-          eventPSTHData = [eventPSTHData; stimPSTHFull{stim_i,group_i,1}(:, startT:endT)];
-          eventPSTHNullDataTmp = vertcat(stimPSTHFull{~stimLogicArrayEvent,group_i,1});
-          eventPSTHNullData = [eventPSTHNullData; eventPSTHNullDataTmp(:, startT:endT)];
-                    
+      % Collect plot data
+      if ~comboInd(event_i)
+        % Simple events, defined by eventData.
+        stimLogicArrayEvent = stimEventLogicArray(:,event_i);
+        stim2Check = find(stimLogicArrayEvent);
+      
+        for stim_i = stim2Check'
+          eventSpecTable = newEventData{stim_i, event_i}{1};
+          stimTimePerFrame = frameMotionData(strcmp(stimEventNames{stim_i}, frameMotionDataNames)).timePerFrame;
+          eventStarts = round(eventSpecTable.startFrame * stimTimePerFrame);
+          
+          for inst_i = 1:length(eventStarts)
+            startT = (eventStarts(inst_i) + psthPreData) - psthPre;
+            endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
+            [eventPSTHData{event_i, group_i}, plotTraceData] = deal([eventPSTHData{event_i, group_i}; stimPSTH{stim_i,group_i,1}(:, startT:endT)]);
+            eventPSTHNullDataTmp = vertcat(stimPSTH{~stimLogicArrayEvent,group_i,1});
+            [eventPSTHNullData{event_i, group_i}, plotTraceNull] = deal([eventPSTHNullData{event_i, group_i}; eventPSTHNullDataTmp(:, startT:endT)]);
+          end
         end
+      else
+        %comboInd means the set is a combination of previous entries.
+        plotTraceData = vertcat(eventPSTHData{comboGroups{event_i}, group_i});
+        plotTraceNull = vertcat(eventPSTHNullData{comboGroups{event_i}, group_i});
       end
       
       % Prepare plot data
-      plotData = mean(eventPSTHData, 1);
-      plotErr = std(eventPSTHData)/sqrt(size(eventPSTHData,1)); 
+      plotData = mean(plotTraceData, 1);
+      plotErr = std(plotTraceData)/sqrt(size(plotTraceData,1));
       
-      plotNull = mean(eventPSTHNullData, 1);
-      plotErrNull = std(eventPSTHNullData)/sqrt(size(eventPSTHNullData,1));
+      plotNull = mean(plotTraceNull, 1);
+      plotErrNull = std(plotTraceNull)/sqrt(size(plotTraceNull,1));
       
       % Subtract baseline if desired
       baselineSubtract = 1;
@@ -1414,14 +1374,14 @@ if params.meanSubEventPSTH_extracted
       msebError = [plotErr; plotErrNull];
       plotLabels = [eventList(event_i); sprintf('non-%s', eventList{event_i})];
       
-      figTitle = sprintf('mean Slice extract PSTH for %s - %s', eventList{event_i}, groupType{group_i});
-      h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted]);
-      [subplotAxes, cbHandle] = plotPSTH(msebData, msebError, [], params, 'line', [], plotLabels);
-      title(figTitle);
+      [~, ~, ~, legendH] = plotPSTH(msebData, msebError, [], params, 'line', [], plotLabels);
+      legendH.Location = 'northwest';
+      title(groupType{group_i})
       
     end
+    saveFigure(params.outputDir, ['4. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
   end
-  
+    
 end
 subEventPSTHStruct = struct();
 

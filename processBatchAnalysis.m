@@ -55,8 +55,6 @@ else
   
   analyzedListTmp = {analyzedList.folder}';
   paramList = {analysisParamList.folder}';
-%   disp('folders without analyzed files:')
-%   setdiff(analyzedListTmp, paramList)
   disp(setdiff(paramList, analyzedListTmp));
   
   fprintf('Found %d processed runs.\n', length(analyzedList));

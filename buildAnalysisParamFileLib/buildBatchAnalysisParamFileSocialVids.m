@@ -40,11 +40,11 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
 plotSwitch.slidingWindowANOVA = 0;    % 
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 
 %% Parameters
 preprocessParams.spikeDataFileName = 'spikeDataBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
@@ -87,7 +87,7 @@ meanPSTHParams.latency = 0;
 meanPSTHParams.movingWin = [200 5];
 meanPSTHParams.smoothingWidth = 25;     % psth smoothing width, in ms
 meanPSTHParams.Zscore = 1;              % 0: raw PSTH, 1: pre-trial baseline subtraction Z Scored PSTH
-meanPSTHParams.errorType = 2;           % chronux convention: 1 is poisfStimson, 2 is trialwise bootstrap, 3 is across trial std for binned spikes, bootstrap for spike times 
+meanPSTHParams.errorType = 2;           % chronux convention: 1 is poisson, 2 is trialwise bootstrap, 3 is across trial std for binned spikes, bootstrap for spike times 
 meanPSTHParams.errorRangeZ = 1;         % how many standard errors to show
 meanPSTHParams.bootstrapSamples = 100;
 meanPSTHParams.sortStim = 1;
@@ -106,7 +106,6 @@ meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specifi
 meanPSTHParams.catPSTH = 0;                     % 1.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
 meanPSTHParams.allStimPSTH = 0;                 % 2.0 - All Stimuli means in the same plot.
 meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
-meanPSTHParams.subEventPSTH = 0;                % 3.1 - Makes plot for every instance of an event in each stimulus. Requires 3.
 meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
 meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
@@ -138,6 +137,7 @@ subEventPSTHParams.allRunStimPSTH_extracted = 0;                % Plot 3 - Indiv
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 
 subEventPSTHParams.plotSizeAllRunStimPSTH_extracted = [.5 .6];           
+subEventPSTHParams.plotSizeMeanSubEventPSTH_extracted = [.25 .9];               
 
 meanPSTHParams.subEventPSTHParams = subEventPSTHParams; 
 meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];      % psthPre and psthImDur for grabbing events.

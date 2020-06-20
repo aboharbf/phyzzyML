@@ -72,13 +72,6 @@ save(analysisOutFilename,'dateSubject','runNum','analysisParamFilename','taskDat
 colors = {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5]};
 chColors = [{'b'}, {[0 .6 0]} , {'m'}];
 
-% trialDB = trialDatabaseInit(dateSubject, runNum, length(taskData.taskEventStartTimes));
-% for event_i = 1:length(eventLabels)
-%   for trial_i = 1:length(trialIDsByEvent{event_i})
-%     trialDB = trialDatabaseSetField('eventLabel',eventLabels{event_i},trialDB,trialIDsByEvent{event_i}(trial_i),'dateSubj',dateSubject,'runNum',runNum);
-%   end
-% end
-
 %% check calcSwitch definitions, set defaults, and apply field name updates as needed
 calcSwitchFields = fields(calcSwitch);
 % update deprecated fieldnames: syntax is:
@@ -311,8 +304,6 @@ elseif calcSwitch.imagePSTH
   [psthByImage, psthErrByImage] = calcStimPSTH(spikesByEventBinned, psthEmptyByEvent, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
   save(analysisOutFilename,'psthByImage','psthErrByImage', '-append');
 end
-
-
 
 % Spike, Task data, Eye Data Analysis
 
@@ -6384,22 +6375,24 @@ for channel_i = 1:length(spikesByStim{1})
   for unit_i = 1:length(spikesByStim{1}{channel_i})
     [unitItemPsth, unitItemPsthErr] = deal(zeros(numItems,length(times)));
     for item_i = 1:numItems
+      spikeData = spikesByItem{item_i}{channel_i}{unit_i};
       if ~psthEmptyByItem{item_i}{channel_i}{unit_i}
         if spikeTimes
-          [paddedPsth,~,paddedPsthErr] = psth(spikesByItem{item_i}{channel_i}{unit_i},smoothingWidth, 'n', [-preAlign postAlign], min(psthErrorType,2), -preAlign:postAlign);
+          [paddedPsth,~,paddedPsthErr] = psth(spikeData,smoothingWidth, 'n', [-preAlign postAlign], min(psthErrorType,2), -preAlign:postAlign);
           paddedPsth = 1000*paddedPsth;
           paddedPsthErr = 1000*paddedPsthErr;
           unitItemPsth(item_i,:) = paddedPsth(3*smoothingWidth+1:end-3*smoothingWidth);
           unitItemPsthErr(item_i,:) = paddedPsthErr(3*smoothingWidth+1:end-3*smoothingWidth)*psthErrorRangeZ/2; %note: psth returns +/- 2 stderr; thus the factor of 0.5
         else % use spike bins
-          paddedPsth = 1000*conv(mean(spikesByItem{item_i}{channel_i}{unit_i},1),smoothingFilter,'same');
-          if psthErrorType == 1 || size(spikesByItem{item_i}{channel_i}{unit_i},1) == 1  % if only one trial, can't use bootstrap
+          paddedPsth = 1000*conv(mean(spikeData, 1),smoothingFilter,'same');
+          % chronux convention: 1 is poisson, 2 is trialwise bootstrap, 3 is across trial std for binned spikes, bootstrap for spike times 
+          if psthErrorType == 1 || size(spikeData, 1) == 1  % if only one trial, can't use bootstrap
             %note: the factor of sqrt(1000) appears because we need to convert to spks/ms to get poisson error, then back to Hz
-            paddedPsthErr = sqrt(paddedPsth)*(sqrt(1000)*psthErrorRangeZ/sqrt(size(spikesByItem{item_i}{channel_i}{unit_i},1)));
+            paddedPsthErr = sqrt(paddedPsth)*(sqrt(1000)*psthErrorRangeZ/sqrt(size(spikeData, 1)));
           elseif psthErrorType == 2
-            paddedPsthErr = std(bootstrp(psthBootstrapSamples,@(x) mean(x,1),convn(spikesByItem{item_i}{channel_i}{unit_i},smoothingFilter,'same')),[],1)*psthErrorRangeZ*1000;
+            paddedPsthErr = std(bootstrp(psthBootstrapSamples, @(x) mean(x,1), convn(spikeData, smoothingFilter,'same')), [], 1) * psthErrorRangeZ * 1000;
           elseif psthErrorType == 3
-            paddedPsthErr = std(convn(spikesByItem{item_i}{channel_i}{unit_i},smoothingFilter,'same'),[],1)*psthErrorRangeZ*1000/sqrt(size(spikesByItem{item_i}{channel_i}{unit_i},1));
+            paddedPsthErr = std(convn(spikeData, smoothingFilter,'same'),[],1) * psthErrorRangeZ * 1000/sqrt(size(spikeData,1));
           else
             error('psthErrorType parameter, when using spike bins, must be between 1 and 3')
           end
