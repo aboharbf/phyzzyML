@@ -14,13 +14,13 @@ switch machine
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
   case 'homeDesktopWork'
-    analysisDirectory = 'H:/Analyzed';
+    analysisDirectory = 'H:\Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];
     stimParamsFilename = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
-    recordingLogxls = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
+    recordingLogxls = 'H:\EphysData\Data\RecordingsMoUpdated.xlsx';
     NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
     NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
 end
@@ -32,7 +32,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 0;    % export figure using export_fig.
-figStruct.saveFigData = 0;  % save data with the figure.
+figStruct.saveData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
@@ -103,10 +103,10 @@ meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, inclu
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
 
-meanPSTHParams.catPSTH = 0;                     % 1.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
-meanPSTHParams.allStimPSTH = 0;                 % 2.0 - All Stimuli means in the same plot.
-meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
-meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
+meanPSTHParams.catPSTH = 1;                     % 1.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
+meanPSTHParams.allStimPSTH = 1;                 % 2.0 - All Stimuli means in the same plot.
+meanPSTHParams.allRunStimPSTH = 1;              % 3.0 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
+meanPSTHParams.lineCatPlot = 1;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
 meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
 
@@ -172,7 +172,8 @@ slidingTestParams.plotSize = [.8 .6];
 NDTParams.NDTPath = NDTPath;
 NDTParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
 NDTParams.rasterDir =  fullfile(NDTParams.outputDir, 'rasterData');
-NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
+NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.]
+NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
 %  spikeDataBank to rasterData Parameters, should be as inclusive as
 %  possible, as changes require deleting previously generated files.
@@ -190,48 +191,52 @@ NDTParams.stepSize = 50;
 NDTParams.Analyses.SocVNonSoc.label = 'social';                   % should match a field in the raster_labels, and be included in currently generated iteration of the rasterData.
 NDTParams.Analyses.SocVNonSoc.num_cv_splits = 100;
 NDTParams.Analyses.SocVNonSoc.repeat_each_label_per_split = 1;
-NDTParams.Analyses.SocVNonSoc.featPre = [1 0 0];                  % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
-NDTParams.Analyses.SocVNonSoc.classifier = [1 0 0];               % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.Analyses.SocVNonSoc.preProc = {'zscore_normalize_FP'};                  % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+NDTParams.Analyses.SocVNonSoc.classifier = 'max_correlation_coefficient_CL';      % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.Analyses.SocVNonSoc.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.Analyses.SocVNonSoc.pvalue_threshold = 0.05;            % if select_p FP above, feature needs pVal threshold.
 NDTParams.Analyses.SocVNonSoc.k_features = 10;                    % if top_k FP above, feature needs k threshold.
 NDTParams.Analyses.SocVNonSoc.label_names_to_use = [];            % the stimuli which all sites must have presented.
-NDTParams.Analyses.SocVNonSoc.cross_validator_num_resample = 5;   % Number of times to resample runs for cross validator.
+NDTParams.Analyses.SocVNonSoc.cross_validator_num_resample = 10;   % Number of times to resample runs for cross validator.
 NDTParams.Analyses.SocVNonSoc.plotTitle = 'Social Interaction';   
 
-NDTParams.Analyses.AgentVNonAgent.label = 'agents';
-NDTParams.Analyses.AgentVNonAgent.num_cv_splits = 100;
-NDTParams.Analyses.AgentVNonAgent.repeat_each_label_per_split = 1;
-NDTParams.Analyses.AgentVNonAgent.featPre = [1 0 0];                  % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
-NDTParams.Analyses.AgentVNonAgent.classifier = [1 0 0];               % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
-NDTParams.Analyses.AgentVNonAgent.pvalue_threshold = 0.05;            % if select_p FP above, feature needs pVal threshold.
-NDTParams.Analyses.AgentVNonAgent.k_features = 10;                    % if top_k FP above, feature needs k threshold.
-NDTParams.Analyses.AgentVNonAgent.label_names_to_use = [];            % the stimuli which all sites must have presented.
-NDTParams.Analyses.AgentVNonAgent.cross_validator_num_resample = 5;   % Number of times to resample runs for cross validator.
-NDTParams.Analyses.AgentVNonAgent.plotTitle = 'Agent presence';       
-
-NDTParams.Analyses.socCat.label = 'socialCat';
-NDTParams.Analyses.socCat.num_cv_splits = 10;
-NDTParams.Analyses.socCat.repeat_each_label_per_split = 1;
-NDTParams.Analyses.socCat.featPre = [1 0 0];                      % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
-NDTParams.Analyses.socCat.classifier = [1 0 0];                   % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
-NDTParams.Analyses.socCat.pvalue_threshold = 0.05;                % if select_p FP above, feature needs pVal threshold.
-NDTParams.Analyses.socCat.k_features = 10;                        % if top_k FP above, feature needs k threshold.
-NDTParams.Analyses.socCat.label_names_to_use = {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}; % the stimuli which all sites must have presented.
-NDTParams.Analyses.socCat.cross_validator_num_resample = 5;       % Number of times to resample runs for cross validator.
-NDTParams.Analyses.socCat.plotTitle = 'Social Catagory';
+% NDTParams.Analyses.AgentVNonAgent.label = 'agents';
+% NDTParams.Analyses.AgentVNonAgent.num_cv_splits = 100;
+% NDTParams.Analyses.AgentVNonAgent.repeat_each_label_per_split = 1;
+% NDTParams.Analyses.AgentVNonAgent.featPre = [1 0 0];                  % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+% NDTParams.Analyses.AgentVNonAgent.classifier = [1 0 0];               % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+% NDTParams.Analyses.AgentVNonAgent.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
+% NDTParams.Analyses.AgentVNonAgent.pvalue_threshold = 0.05;            % if select_p FP above, feature needs pVal threshold.
+% NDTParams.Analyses.AgentVNonAgent.k_features = 10;                    % if top_k FP above, feature needs k threshold.
+% NDTParams.Analyses.AgentVNonAgent.label_names_to_use = [];            % the stimuli which all sites must have presented.
+% NDTParams.Analyses.AgentVNonAgent.cross_validator_num_resample = 1;   % Number of times to resample runs for cross validator.
+% NDTParams.Analyses.AgentVNonAgent.plotTitle = 'Agent presence';       
+% 
+% NDTParams.Analyses.socCat.label = 'socialCat';
+% NDTParams.Analyses.socCat.num_cv_splits = 10;
+% NDTParams.Analyses.socCat.repeat_each_label_per_split = 1;
+% NDTParams.Analyses.socCat.featPre = [0 0 0];                      % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
+% NDTParams.Analyses.socCat.classifier = [1 0 0];                   % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+% NDTParams.Analyses.socCat.load_data_as_spike_counts = 0;          % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
+% NDTParams.Analyses.socCat.pvalue_threshold = 0.05;                % if select_p FP above, feature needs pVal threshold.
+% NDTParams.Analyses.socCat.k_features = 10;                        % if top_k FP above, feature needs k threshold.
+% NDTParams.Analyses.socCat.label_names_to_use = {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}; % the stimuli which all sites must have presented.
+% NDTParams.Analyses.socCat.cross_validator_num_resample = 3;       % Number of times to resample runs for cross validator.
+% NDTParams.Analyses.socCat.plotTitle = 'Social Catagory';
 
 NDTParams.AnalysesDefault.label = 'socialCat';
 NDTParams.AnalysesDefault.num_cv_splits = 10;
 NDTParams.AnalysesDefault.repeat_each_label_per_split = 1;
 NDTParams.AnalysesDefault.featPre = [1 0 0];                      % [zscore_nroamlize_FP, select_pvalue_significant_features_FP, select_or_exclude_top_k_features_FP]
 NDTParams.AnalysesDefault.classifier = [1 0 0];                   % [max_correlation_coefficient_CL, poisson_naive_bayes_CL, libsvm_CL], select 1
+NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;          % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.AnalysesDefault.pvalue_threshold = 0.05;                % if select_p FP above, feature needs pVal threshold.
 NDTParams.AnalysesDefault.k_features = 10;                        % if top_k FP above, feature needs k threshold.
 NDTParams.AnalysesDefault.label_names_to_use = {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle'}; % the stimuli which all sites must have presented.
-NDTParams.AnalysesDefault.cross_validator_num_resample = 5;       % Number of times to resample runs for cross validator.
+NDTParams.AnalysesDefault.cross_validator_num_resample = 10;       % Number of times to resample runs for cross validator.
 NDTParams.AnalysesDefault.plotTitle = '[Analysis File used]'; 
 
-NDTParams.NDTAnalysesPath = NDTAnalysesPath;
+NDTParams.figStruct = figStruct;
 
 % Novelty Analysis
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis');

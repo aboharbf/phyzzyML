@@ -11,8 +11,8 @@ function [] = processRunBatch(varargin)
 %       parameters defined in the analysisParamFile and the paramTable.
 
 replaceAnalysisOut = 1;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-outputVolume = 'H:\Analyzed';                                                 % Only used for the excel doc. change in analysisParamFile to change destination.
-dataLog = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Data\analysisParamTable.xlsx';    % Only used to find recording log, used to overwrite params.
+outputVolumeBatch = 'H:\Analyzed_noWaveClus';                                     
+dataLog = 'H:\EphysData\Data\analysisParamTable_noWaveClus.xlsx';             % Only used to find recording log, used to overwrite params.
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
@@ -71,14 +71,14 @@ if ~replaceAnalysisOut
       end
       
       % Generate appropriate Paths
+      outputVolume = outputVolumeBatch;
       analogInFilename = sprintf('%s/%s/%s%s.ns2',ephysVolume,dateSubject,dateSubject,runNum);   %#ok
       [lfpFilename, photodiodeFilename, lineNoiseTriggerFilename] = deal(sprintf('%s/%s/%s%s.ns5',ephysVolume,dateSubject,dateSubject,runNum));
       spikeFilename = sprintf('%s/%s/%s%s.nev',ephysVolume,dateSubject,dateSubject,runNum); %note that this file also contains blackrock digital in events
       taskFilename = sprintf('%s/%s/%s%s.bhv2',stimulusLogVolume,dateSubject,dateSubject,runNum); %information on stimuli and performance
-      [outDir, stimSyncParams.outDir, stimSyncParams.outDir]  = deal(sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum));
+      [outDir, stimSyncParams.outDir, stimSyncParams.outDir, ephysParams.outDir]  = deal(sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum));
       analysisParamFilename = strcat(outDir,analysisParamFilenameStem);
-      preprocessedDataFilename = strcat(outDir,preprocessedDataFilenameStem);                     %#ok
-      ephysParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
+      preprocessedDataFilename = strcat(outDir,preprocessedDataFilenameStem);                     %#ok      
       
       % Generate Directories
       if ~exist(outDir,'dir')
@@ -116,6 +116,7 @@ if ~replaceAnalysisOut
   
   %% Process the runs
   [errorMsg, startTimes, endTimes, analysisOutFilename] = deal(cell(size(analysisParamFileList)));
+  [errorMsg{:}] = deal('None');
   
   tmp  = load(analysisParamFileList{1}, 'outputVolume');
   outputVolume = tmp.outputVolume;
@@ -131,26 +132,17 @@ if ~replaceAnalysisOut
     parfor run_ind = 1:length(analysisParamFileList)
       fprintf('run_ind reads %d... \n', run_ind);
       fprintf('Processing %s... \n', analysisParamFileList{run_ind});
-      startTimes{run_ind} = datetime('now');
       try
         if usePreprocessed
           [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids','preprocessed',analysisParamFileList{run_ind});
         else
           [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
         end
-        errorMsg{run_ind} = 'None';
       catch MyErr
         errorMsg{run_ind} = MyErr.message;
       end
-      endTimes{run_ind} = datetime('now');
       close all;
       fprintf('Done! \n');
-    end
-    
-    %Since save can't be called in a parfor loop.
-    for run_ind = 1:length(analysisParamFileList)
-      errorMsgRun = errorMsg{run_ind};
-      save(analysisParamFileList{run_ind}, 'errorMsgRun', '-append');
     end
     
   else
@@ -159,33 +151,48 @@ if ~replaceAnalysisOut
       fprintf('Processing %s... \n', analysisParamFileList{run_ind});
       startTimes{run_ind} = datetime('now');
       if ~debugNoTry
+        
         try
           if usePreprocessed
             [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids','preprocessed',analysisParamFileList{run_ind});
           else
             [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
           end
-          [errorMsg{run_ind}, errorMsgRun] = deal('None');
         catch MyErr
-          [errorMsg{run_ind}, errorMsgRun] = deal(MyErr.message);
+          errorMsg{run_ind} = MyErr.message;
         end
         
       else
+        
         % This loop is identical to the one above, without the try clause.
+        % Should be used for testing problems in batch non-parallel run.
         if usePreprocessed
           [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids','preprocessed',analysisParamFileList{run_ind});
         else
           [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
         end
-        [errorMsg{run_ind}, errorMsgRun] = deal('None');
       end
-      save(analysisParamFileList{run_ind}, 'errorMsgRun', '-append');
+      
       endTimes{run_ind} = datetime('now');
       close all;
       fprintf('Done! \n');
     end
   end
-end  
+  
+  % Append the error messages generated to the 'analyzedData' files
+  % produced.
+  for run_ind = 1:length(analysisParamFileList)
+    analysisFile = [fileparts(analysisParamFileList{run_i}) '/analyzedData.mat'];
+    errorMsgRun = errorMsg{run_i};
+    if exist(dataLog, 'file')
+      save(analysisFile, 'errorMsgRun', '-append');
+    else
+      save(analysisFile, 'errorMsgRun');
+    end
+  end
+  
+end
+  
 if replaceAnalysisOut
   %% If generating excel...  
   if nargin >= 1
@@ -199,27 +206,21 @@ if replaceAnalysisOut
   disp('Recompiling structures for excel output')
   
   % Find all the param files and the analyzedData files.
-  analyzedDataList = dir(fullfile(outputVolume, '**', analysisLabel,'**','analyzedData.mat'));
-  analysisParamList = dir(fullfile(outputVolume, '**', analysisLabel,'**','AnalysisParams.mat'));
-  
-  analyzedDataListDir = {analyzedDataList.folder}';
+  analyzedDataList = dir(fullfile(outputVolumeBatch, '**', analysisLabel,'**','analyzedData.mat'));
+  analysisParamList = dir(fullfile(outputVolumeBatch, '**', analysisLabel,'**','AnalysisParams.mat'));
   analysisParamFilename = {analysisParamList.folder}';
+  analysisOutFilename = fullfile(analysisParamFilename, 'analyzedData.mat');
+
+  analyzedDataListDir = {analyzedDataList.folder}';
   [~, B] = setdiff(analysisParamFilename, analyzedDataListDir);
   
-  
   errorMsg = cell(length(analysisParamFilename),1);
-  % If preprocessing was used, the error message is in a different spot.
-  if usePreprocessed
-    analysisList = fullfile(analyzedDataListDir, 'preprocessedData.mat');
-  else
-    analysisList = fullfile(analyzedDataListDir, 'AnalysisParams.mat');
-  end
-  
+
   % Iterate through the files, sometimes error message is missing for some
   % unknown reason. To avoid crashes, loop below. 
   errorCount = 0;
-  for analysis_i = 1:length(analysisList)
-    tmp = load(analysisList{analysis_i}, 'errorMsgRun');
+  for analysis_i = 1:length(analysisOutFilename)
+    tmp = load(analysisOutFilename{analysis_i}, 'errorMsgRun');
     if isfield(tmp, 'errorMsgRun')
       errorMsg{analysis_i} = tmp.errorMsgRun;
     else
@@ -229,19 +230,17 @@ if replaceAnalysisOut
   end
   fprintf('Missing Error Count %d \n', errorCount)
   
-  [startTimes, endTimes] = deal(cell(length(analyzedDataList),1));
-  [startTimes{:}, endTimes{:}] = deal(datetime(now,'ConvertFrom','datenum'));
-  
-  % Process the strings to generate the run labels and the paths to
-  % analyzedData.mat
+  % Geneates run name lists
   breakString = @(x) strsplit(x, filesep);
   joinStrings = @(x) strjoin([x(length(x)-2), x(length(x))],'');
   
   tmpAnalysisParamFileName = cellfun(breakString, analysisParamFilename, 'UniformOutput',0);
   analysisParamFileName = cellfun(joinStrings, tmpAnalysisParamFileName, 'UniformOutput',0);
-  analysisOutFilename = fullfile(analysisParamFilename, 'analyzedData.mat');
-  analysisOutFilename(B) = deal(cell(1,1));
-  errorMsg(B) = deal({'No analyzedData.mat'});
+  
+  if ~isempty(B)
+    analysisOutFilename(B) = deal(cell(1,1));
+    errorMsg(B) = deal({'No analyzedData.mat'});
+  end
 end
 
 %% Compose Excel sheet output
@@ -404,7 +403,7 @@ else
   %Save Batch Run Results
   for table_ind = 1:length(dataArray)
     dataArray{table_ind}.("Other Info"){3} = sprintf('%d - %d ms', tmp.frEpochs(table_ind,1), tmp.frEpochs(table_ind,2));
-    writetable(dataArray{table_ind},sprintf('%s/BatchRunResults.xlsx',outputVolume),'Sheet', sprintf('%s Epoch', epochType{table_ind}))
+    writetable(dataArray{table_ind},sprintf('%s/BatchRunResults.xlsx',outputVolumeBatch),'Sheet', sprintf('%s Epoch', epochType{table_ind}))
   end
   
 end

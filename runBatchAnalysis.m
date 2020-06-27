@@ -453,7 +453,7 @@ if params.allStimPSTH
     end
     title(catPSTHTitle);
     xlabel('Time (ms)');
-    saveFigure(params.outputDir, ['1. ' catPSTHTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+    saveFigure(params.outputDir, ['1. ' catPSTHTitle], [], figStruct, [])
     if figStruct.closeFig
       close(h)
     end
@@ -542,7 +542,7 @@ if params.catPSTH
         
       end
       
-      saveFigure(params.outputDir, ['2. ' psthTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+      saveFigure(params.outputDir, ['2. ' psthTitle], [], figStruct, []);
       if figStruct.closeFig
         close(h);
       end
@@ -685,7 +685,7 @@ if params.allRunStimPSTH
           end
           linkprop(subplotAxes, 'CLim');
           
-          saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+          saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct, []);
           if figStruct.closeFig
             close(h)
           end
@@ -758,7 +758,7 @@ if params.lineCatPlot
     xlabel('Time (ms)');
     ylabel('Normalized Activity (Baseline Z scored)');
     title(catPSTHTitle);
-    saveFigure(params.outputDir, ['4. ' catPSTHTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+    saveFigure(params.outputDir, ['4. ' catPSTHTitle], [], figStruct, []);
     if figStruct.closeFig
       close(h)
     end
@@ -846,7 +846,7 @@ if params.lineBroadCatPlot
         ylabel('Normalized Activity');
         
         % Save the figure
-        saveFigure(params.outputDir, ['5. ' plotTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+        saveFigure(params.outputDir, ['5. ' plotTitle], [], figStruct, []);
         if figStruct.closeFig
           close(h)
         end
@@ -869,7 +869,7 @@ if params.lineBroadCatPlot
             
             plotPSTH(meanLines(sortOrder,:), stdLines(sortOrder,:), [], params, 'line', figTit, lineLabels{line_i}(sortOrder,:));
             % Save the figure
-            saveFigure(params.outputDir, ['5.1. ' figTit], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+            saveFigure(params.outputDir, ['5.1. ' figTit], [], figStruct, [])
             if figStruct.closeFig
               close(j)
             end
@@ -1106,7 +1106,7 @@ if params.allRunStimPSTH
         end
         linkprop(subplotAxes, 'CLim');
         
-        saveFigure(params.outputDir, ['1. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, 0, {''})
+        saveFigure(params.outputDir, ['1. ' figTitle], [], figStruct, []);
         if figStruct.closeFig
           close(h)
         end
@@ -1146,10 +1146,7 @@ for event_i = 1:length(eventListPlot)
     [~] = plotPSTH(traceData, errData, [], psthParam, 'line', groupType{group_i}, {'Event', 'Null'});
   end
   
-  saveFigure(params.outputDir, ['2. ' figTitle], [], params.saveFig, params.exportFig, 0, {''})
-  if figStruct.closeFig
-    close(h)
-  end
+  saveFigure(params.outputDir, ['2. ' figTitle], [], figStruct, []);
   
 end
 end
@@ -1287,10 +1284,7 @@ if params.allRunStimPSTH_extracted
             
             sgtitle(figTitle);
             
-            saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
-            if figStruct.closeFig
-              close(h)
-            end
+            saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct, []);
           end
           
         end
@@ -1379,7 +1373,7 @@ if params.meanSubEventPSTH_extracted
       title(groupType{group_i})
       
     end
-    saveFigure(params.outputDir, ['4. ' figTitle], [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, {''})
+    saveFigure(params.outputDir, ['4. ' figTitle], [], figStruct, []);
   end
     
 end
@@ -1646,7 +1640,7 @@ if params.plotTest
             end
             % Save and close
             % (outDir, filename, figData, saveFig, exportFig, saveData, varargin )
-            saveFigure(spikeDataBank.(runList{run_i}).figDir, [titleString], 1, 1, params.exportFig, 0, {''});
+            saveFigure(spikeDataBank.(runList{run_i}).figDir, titleString, [], figStruct, []);
             close(h)
           end
         end
@@ -1817,7 +1811,7 @@ for targ_i = 1:length(target)
         title(plotTitle);
       end
     end
-    saveFigure(params.outputDir, ['1.' figTitle], [], 1, params.exportFig, 0, {''})
+    saveFigure(params.outputDir, ['1.' figTitle], [], figStruct);
     close(h)
   end
 end
@@ -1865,7 +1859,7 @@ for targ_i = 1:length(target)
       plot([stimOnInd, stimOnInd], ylim(),'k','linewidth',4);
       plot([stimEndInd, stimEndInd], ylim(),'k','linewidth',4);
     end
-    saveFigure(params.outputDir, ['2.' figTitle], [], 1, params.exportFig, 0, {''})
+    saveFigure(params.outputDir, ['2.' figTitle], [], figStruct, []);
     close(h)
 end
 
@@ -1890,7 +1884,7 @@ for targ_i = 1:length(target)
       title(plotTitle);
     end
   end
-  saveFigure(params.outputDir, strjoin(["2.", figTitle]), [], 1, params.exportFig, 0, {''})
+  saveFigure(params.outputDir, strjoin(["2.", figTitle]), [], figStruct, []);
   close(h)
 end
 

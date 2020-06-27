@@ -45,7 +45,7 @@ listCheck.Max = length(theList);
 selectButton = uicontrol(listCheckFig,'style','pushbutton','String','Select','Units','Normalized','Position',[.055 .9 0.3 0.1]);
 selectButton.Callback = @(src,event)uiresume();
 %Wait for the select button to be hit
-uiwait(listCheckFig, 30)
+uiwait(listCheckFig, 120)
 
 try
   filesOfInterestUpdated = filesOfInterest(listCheck.Value);

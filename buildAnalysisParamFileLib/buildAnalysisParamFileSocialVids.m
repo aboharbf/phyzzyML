@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '001';
-dateSubject = '20181017Mo';
+runNum = '004';
+dateSubject = '20191005Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -113,9 +113,7 @@ plotSwitch.couplingPhasesPolar = 0;
 plotSwitch.tfSpectraByCategory = 1; %Do I want this?
 plotSwitch.tfErrs = 0;           %#ok
 
-
 %% Calc switches
-
 calcSwitch.categoryPSTH = 1;
 calcSwitch.imagePSTH = 1;
 calcSwitch.faceSelectIndex = 0;
