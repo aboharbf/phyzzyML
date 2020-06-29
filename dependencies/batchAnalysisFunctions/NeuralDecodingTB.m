@@ -25,10 +25,7 @@ else
   binnedFileName = binnedFileNameOut;
 end
 
-groupingType = {{'U', 'US'}, {'M'}};
-groupingLabel = {'Unsorted and Units', 'Multiunit Activity'};
-
-% Additional analyses specified by App.
+% Analyses specified by k_aid app in NDTB, stored in phyzzy folder.
 analysesFiles = dir([params.NDTAnalysesPath, filesep, '*.mat']);
 
 for ii = 1:length(analysesFiles)
@@ -43,8 +40,13 @@ for ii = 1:length(analysesFiles)
     templateAnalysisParams.(fieldsToReplace{field_i}) = tmp.(fieldsToReplace{field_i});    % Load in fields
   end
   
+  % Adding k to all for the sake of seeing p values for features.
+  templateAnalysisParams.preProc = [templateAnalysisParams.preProc, {'select_or_exclude_top_k_features_FP'}];
+  templateAnalysisParams.num_features_to_exclude = 0;
+  templateAnalysisParams.num_features_to_use = length(templateAnalysisParams.sites);
+  
   [~, fileName, ~] = fileparts(analysesFiles(ii).name);
-  templateAnalysisParams.plotTitle = fileName;
+  templateAnalysisParams.plotTitle = tmp.plotTitle;
   templateAnalysisParams.load_data_as_spike_counts = strcmp(templateAnalysisParams.classifier, 'poisson_naive_bayes_CL');
   params.Analyses.(fileName) = templateAnalysisParams;
   
@@ -59,26 +61,31 @@ for analysis_i = 1:length(analysesToRun)
   
   % create the basic datasource object
   ds = basic_DS(binnedFileName, analysisStruct.label,  analysisStruct.num_cv_splits, analysisStruct.load_data_as_spike_counts);
-  ds.num_times_to_repeat_each_label_per_cv_split = analysisStruct.repeat_each_label_per_split;
+  ds.num_times_to_repeat_each_label_per_cv_split = 1;
   
   % Add in steps to ensure only sites with adequate repeats are used
-  if isfield(analysisStruct, 'sites') % Specified by app.
-    ds.label_names_to_use = analysisStruct.label_names_to_use;
-    ds.sites_to_use = analysisStruct.sites;
-  else
-    [available_sites, ~, ~, ds.label_names_to_use] = find_sites_with_k_label_repetitions(ds.the_labels, analysisStruct.num_cv_splits, analysisStruct.label_names_to_use);
-    ds.sites_to_use = available_sites;    % Step helps with iterating across loops.
-    ds.sites_to_use = find_sites_meeting_label(ds, {'UnitType', groupingType{1}});
-  end
-  
+  ds.label_names_to_use = analysisStruct.label_names_to_use;
+  ds.sites_to_use = analysisStruct.sites;
+
   % Step 3 - Generate a classifier and data preprocessor objects compatible with that data source.
+  the_classifier = eval(analysisStruct.classifier);
+
   the_feature_preprocessors = cell(length(analysisStruct.preProc), 1);
   for pp_i = 1:length(analysisStruct.preProc)
     the_feature_preprocessors{pp_i} = eval(analysisStruct.preProc{pp_i});
+    
+    switch analysisStruct.preProc{pp_i}
+      case 'select_or_exclude_top_k_features_FP'
+        the_feature_preprocessors{pp_i}.num_features_to_use = analysisStruct.num_features_to_use;
+        the_feature_preprocessors{pp_i}.num_features_to_exclude = analysisStruct.num_features_to_exclude;
+        the_feature_preprocessors{pp_i}.save_extra_info = analysisStruct.save_extra_preprocessing_info;
+      case 'select_pvalue_significant_features_FP'
+        the_feature_preprocessors{pp_i}.pvalue_threshold = analysisStruct.pvalue_threshold;
+        the_feature_preprocessors{pp_i}.save_extra_info = analysisStruct.save_extra_preprocessing_info;
+    end
+    
   end
-  
-  the_classifier = eval(analysisStruct.classifier);
-  
+    
   % Step 4 - Generate a cross validator, define some parameters on newly generated object
   the_cross_validator = standard_resample_CV(ds, the_classifier, the_feature_preprocessors);
   the_cross_validator.num_resample_runs = analysisStruct.cross_validator_num_resample;
