@@ -12,7 +12,7 @@ end
 if figStruct.exportFig
   export_fig(fullfile(outDir, strcat(filename, '.png')),'-m1.2','-transparent','-opengl');
 end
-if figStruct.saveData
+if figStruct.saveFigData
   save(fullfile(outDir,[filename,'_data.mat']),'figData');
 end
 if figStruct.closeFig

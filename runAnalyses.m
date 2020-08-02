@@ -14,6 +14,8 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %% unpack inputs
 %List of inputs to be unpacked
 % if 0
+if 0
+
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
 for input_ind = 1:length(inputFields)
@@ -325,9 +327,13 @@ elseif calcSwitch.categoryPSTH
   save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
 end
 
-% save('spikePupilCorrPre')
-% end
-% load('spikePupilCorrPre')
+save('neuroGLMpre')
+end
+load('neuroGLMpre')
+
+if isfield(plotSwitch, 'neuroGLM') && plotSwitch.neuroGLM
+  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, catIndStruct, eyeDataStruct, eyeInByEvent, neuroGLMParams);
+end
 
 if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
   if calcSwitch.spikeTimes
@@ -4561,7 +4567,7 @@ if ~isempty(eyeBehStatsByStim)
   if isempty(subEventNames)
     subEventNames = {'saccades'; 'blinks'};
   else
-    subEventNames = {subEventNames; 'saccades'; 'blinks'};
+    subEventNames = [subEventNames; 'saccades'; 'blinks'];
   end
   [saccadeTimes, nullSaccTimes, blinkTimes, nullBlinkTimes] = deal([]);
   for stim_i = 1:length(eyeBehStatsByStim)
@@ -4757,12 +4763,7 @@ if exist('uniqueSubEvents', 'var')
         end
         
       end
-      if figStruct.closeFig
-        saveFigure(figStruct.figDir, psthTitle, [], figStruct.saveFig, figStruct.exportFig, 0, '', 'close')
-      else
-        saveFigure(figStruct.figDir, psthTitle, [], figStruct.saveFig, figStruct.exportFig, 0)
-      end
-      
+      saveFigure(figStruct.figDir, psthTitle, [], figStruct, [])
     end
   end
   
@@ -4778,7 +4779,7 @@ if exist('uniqueSubEvents', 'var')
       axesH.XLabel.String = '';
     end
   end
-  saveFigure(figStruct.figDir, plotName, [], figStruct.saveFig, figStruct.exportFig, 0)
+  saveFigure(figStruct.figDir, plotName, [], figStruct, [])
   if figStruct.closeFig
     close(h)
   end
@@ -4924,7 +4925,7 @@ for stim_i = 1:length(spikesByEvent)
 end
 
 % Save figure
-saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
 
 
 % Plot 2 - for all stimulus together, check Unit-Pupil coupling
@@ -4991,7 +4992,7 @@ for chan_i = 1:length(spikesByEvent{1})
       dVec(unit_i) = cohensD;
       
       % Save figure
-      saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+      saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
     else
       [pVec(unit_i), dVec(unit_i)] = deal(NaN);
     end
@@ -5007,6 +5008,118 @@ spikePupilCorrStruct.spikePupilUnitStim.pVals = spikePupilSigArray(:,1);
 spikePupilCorrStruct.spikePupilUnitStim.dVals = spikePupilSigArray(:,2);
 spikePupilCorrStruct.spikePupilUnitAllStim.pVals = spikePupilAllStim(:,1);
 spikePupilCorrStruct.spikePupilUnitAllStim.dVals = spikePupilAllStim(:,2);
+
+end
+
+function  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, catIndStruct, eyeDataStruct, eyeInByEvent, neuroGLMParams)
+% Function which implements neuroGLM package from jpillow github, Park
+% 2014.
+% Inputs spikesByEvent{event}{channel}{unit}(trial).times
+% taskData struct with 
+% .taskEventIDs - trial*1 cell array with stim name per trial.
+% .taskEventStartTimes - trial*1 double array with trial starts.
+% eyeDataStruct struct with
+% .pupilByStim - stim*1 array,
+
+% add the toolbox to path
+addpath(genpath(neuroGLMParams.neuroGLMPath))
+
+% Initialize neuroGLM object
+neuroGLMParams.unitOfTime = 'ms';
+neuroGLMParams.binSize = 1;
+neuroGLMParams.uniqueID = [];
+neuroGLMParams.expParam = 'Random Note I want to store';
+
+expt = buildGLM.initExperiment(neuroGLMParams.unitOfTime, neuroGLMParams.binSize, neuroGLMParams.uniqueID, 'Random Data I want to store');
+
+% Reshape variables into a 1*trial struct with field for each variable.
+trialDur = size(eyeInByEvent{1}, 3);
+
+trialTmp = struct();
+trialTmp.expt = expt;
+trialTmp.duration = trialDur;
+trialTmp.stimOn = 800; % shouldn't be hard coded.
+
+% Variables unique to each trial
+for event_i = 1:length(catIndStruct.eventIDs)
+  
+  trialTmp2 = trialTmp;
+  
+  % Value Variables - don't change trial to trial, not timing based.
+  trialTmp2.stimID = catIndStruct.eventIDs{event_i};
+  trialTmp2.social = catIndStruct.catIndMat(event_i, strcmp(catIndStruct.categoryList, 'socialInteraction'));
+  trialTmp2.agent = catIndStruct.catIndMat(event_i, strcmp(catIndStruct.categoryList, 'agents'));
+  trialTmp2.agent = catIndStruct.catIndMat(event_i, strcmp(catIndStruct.categoryList, 'agents'));
+  % 'catagory' - figure out some sort of parsimonious way to get to
+  % 'chasing', 'fighting' etc.
+  
+  for trial_i = 1:size(eyeInByEvent{event_i},2)
+    
+    trial = trialTmp2; 
+    
+    % Timing Variables
+    % reward - get from taskData, or generate new struct in processRun
+    % trialStruct.saccades = saccadeTimes;
+    % trialStruct.events = eventData file may need to be put here, or output
+    % from subEventAnalysis
+    
+    % Continous variables
+    trial.eyepos = squeeze(eyeInByEvent{event_i}(:,trial_i,:));
+    % 'eyeVel', 
+    trial.pupilD = eyeDataStruct.pupilByStim{event_i}(trial_i,:);
+    % 'LFP'
+    
+    % spikeTrains
+    % 'otherNeurons'
+    
+  end
+  
+  % Add the trial to the expt, checking for size.
+  expt = buildGLM.addTrial(expt, trialStruct, trial_i);
+  
+end
+
+% Variables to shift into neuroGLM appropriate shape below.
+
+% First variables which don't vary across units.
+% timing: stim Onset/Offest (taskData.taskEventStartTime/EndTime)
+% timing: Reward time (taskData.juiceOnTimes)
+% timing: Saccades (eyeDataStruct.saccadeByStim)
+% timing: Saccades to faces/agents? (above + eyeDataStruct.saccadeByStim).
+% timing: Events in the stim (subEventAnalysis needs new output).
+expt = buildGLM.registerTiming(expt, 'stimOn', 'Stimulus Onset');     % events that happen 0 or more times per trial (sparse)
+expt = buildGLM.registerTiming(expt, 'reward', 'Reward');             % events that happen 0 or more times per trial (sparse)
+expt = buildGLM.registerTiming(expt, 'sacc',   'Saccades');           % events that happen 0 or more times per trial (sparse)
+expt = buildGLM.registerTiming(expt, 'event_X', 'X event'); % events that happen 0 or more times per trial (sparse)
+
+% Values: EventID - catIndStruct.eventIDs
+% Values: catagoryLabel - catIndStruct.catagoryList and eventIDs. (social,
+% Agent Containing)
+% Values: Failed or succeed trial, possibly.
+expt = buildGLM.registerValue(expt, 'stimID', 'stimulus ID'); % information on the trial, but not associated with time
+expt = buildGLM.registerValue(expt, 'social', 'Social stim'); % information on the trial, but not associated with time
+expt = buildGLM.registerValue(expt, 'agent', 'Agent containing stim'); % information on the trial, but not associated with time
+expt = buildGLM.registerValue(expt, 'catagory', 'Catagory stim'); % information on the trial, but not associated with time
+
+% Continous: eyeX, eyeY, eye Velocity, eyeD, LFP
+expt = buildGLM.registerContinuous(expt, 'eyepos', 'Eye Position', 2); % 2 dimensional observation
+expt = buildGLM.registerContinuous(expt, 'eyeVel', 'Eye Velocity', 1); % 1 dimensional observation
+expt = buildGLM.registerContinuous(expt, 'pupilD', 'Pupil diameter', 1); % 1 dimensional observation
+expt = buildGLM.registerContinuous(expt, 'LFP', 'Local Field Potential', 1); % 1 dimensional observation
+
+% Loop through every unit and add each spike trian to the experiment
+% spikeTrain - spikesByEvent
+expt = buildGLM.registerSpikeTrain(expt, 'sptrain', 'Our Neuron'); % Spike train!!!
+expt = buildGLM.registerSpikeTrain(expt, 'sptrain2', 'Neighbor Neuron');
+
+% Build 'designSpec' which specifies how to generate the design matrix
+% Each covariate to include in the model and analysis is specified.
+dspec = buildGLM.initDesignSpec(expt);
+binfun = expt.binfun;
+bs = basisFactory.makeSmoothTemporalBasis('boxcar', 100, 10, binfun);
+bs.B = 0.1 * bs.B;
+
+neuroGLMStruct = struct();
 
 end
 
@@ -6458,7 +6571,7 @@ for cat_i = 1:length(catagoryPlot)
     % Save the figure
     if figStruct.saveFig
       % saveFigure( outDir, filename, figData, saveFig, exportFig, saveData, varargin )
-      saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag );
+      saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag );
     end
     
     % Save to Output Struct
@@ -6539,7 +6652,7 @@ end
 % Once done, Save the figure
 if figStruct.saveFig
   % saveFigure( outDir, filename, figData, saveFig, exportFig, saveData, varargin )
-  saveFigure(figStruct.figDir, figTitle, [], figStruct.saveFig, figStruct.exportFig, figStruct.saveFigData, figStruct.figTag);
+  saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
 end
 
 eyeDataStruct.pupilByStim = pupilImg;

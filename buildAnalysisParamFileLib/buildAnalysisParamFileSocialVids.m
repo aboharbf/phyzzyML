@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '004';
-dateSubject = '20191005Mo';
+runNum = '003';
+dateSubject = '20180628Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -18,6 +18,7 @@ switch machine
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
+    neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case 'Alienware_FA'
     ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
@@ -57,6 +58,8 @@ plotSwitch.imageEyeMap = 0;
 plotSwitch.eyeCorralogram = 0;              % Eye Gram
 plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements.
 plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
+plotSwitch.neuroGLM = 1;                    % implements neuroGLM package from jpillow lab/github.
+
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli.
 plotSwitch.spikePupilCorr = 1;              % see the correlation between single trial PSTHes and pupil size.
 
@@ -358,8 +361,9 @@ subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
-              
 subEventAnalysisParams.stimDir = stimDir;
+
+neuroGLMParams.neuroGLMPath = neuroGLMPath;
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
