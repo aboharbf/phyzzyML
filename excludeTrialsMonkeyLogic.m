@@ -105,6 +105,7 @@ taskDataValid.taskEventEndTimes = taskData.taskEventEndTimes(trialValid);
 taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);
 taskDataValid.juiceOnTimes = taskData.juiceOnTimes(trialValid);
 taskDataValid.juiceOffTimes = taskData.juiceOffTimes(trialValid);
+taskDataValid.taskEventFixDur = taskData.taskEventFixDur(trialValid);
 taskDataValid.RFmap = taskData.RFmap;
 taskDataValid.eyeCal = taskData.eyeCal;
 

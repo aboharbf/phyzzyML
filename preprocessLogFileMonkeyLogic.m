@@ -46,12 +46,12 @@ stimTiming.longest = 2800; %setting this to 2800 for now, but maybe save as an e
 stimTiming.ISI = MLConfig.InterTrialInterval;
 
 %Construct the translation table from the logfile
-%Find the Conditions that need to be connected to codes
+%Find the Conditions that need to be connected to codes, and loop through
+%the trials until each of those numbers has a stim attached.
 allConditions = unique(TrialRecord.ConditionsPlayed); %Pull unique members of this list
 translationTable = cell(length(allConditions),1); %Initialize translation table
 trial_ind = 1;
 
-%Check for empty members of the translation table.
 while sum(find(cellfun('isempty', translationTable))) ~= 0
   trialHolder = data(trial_ind);
   stimName = trialHolder.TaskObject.Attribute(2).Name; %Pull the string containing the stimulus name.
@@ -59,10 +59,7 @@ while sum(find(cellfun('isempty', translationTable))) ~= 0
   trial_ind = trial_ind + 1;
 end
 
-%Clean up the stim table in the logfile. 
-for ii = 1:length(TrialRecord.TaskInfo.Stimuli)
-  logFileStimTable{ii,1} = TrialRecord.TaskInfo.Stimuli{ii}(~isspace(TrialRecord.TaskInfo.Stimuli{ii}));
-end
+logFileStimTable = strtrim((TrialRecord.TaskInfo.Stimuli)); %Clean up the stim table in the logfile.
 
 %Check to see if what you collected by cycling through the stim matches
 %this table.
@@ -93,7 +90,7 @@ tmpStruct = [data.BehavioralCodes];
 rwdTimes = [data.RewardRecord];
 
 %initialize everything
-[taskEventStartTimesLog, taskEventEndTimesLog, juiceOnTimesLog, juiceOffTimesLog, stimFramesLost] = deal(zeros(sum(correctTrialArray), 1));
+[taskEventStartTimesLog, taskEventEndTimesLog, juiceOnTimesLog, juiceOffTimesLog, stimFramesLost] = deal(zeros(length(correctTrialArray), 1));
 
 %Collect trialEventIDs.
 taskEventIDsLog = TrialRecord.ConditionsPlayed';
@@ -148,49 +145,30 @@ disp('parsing serisal IO packets');
 packetTimes = double(taskTriggers.TimeStampSec)*1000; %convert seconds to milliseconds
 packetData = double(taskTriggers.UnparsedData);
 
-if ~isempty(packetData) % Means Blackrock/MKL Communication was intact, correct
+if isempty(packetData) % Means Blackrock/MKL Communication was not correctly connected.
+  error('The Blackrock Digital inputs are empty. Digital inputs may have not been plugged in.');
+else % Means Blackrock/MKL Communication was intact, correct
   %Code to get rid of any markers prior to the first trial beginning, or after the final trial end.
   %a defense against double 9's
   trueStart = find(packetData == trialStartMarker);
-  trueStartTrials = (diff(trueStart) > 1);
-  trueStart = trueStart(trueStartTrials);
+  if length(trueStart) > 1
+    trueStartTrials = (diff(trueStart) > 1);
+    trueStart = trueStart(trueStartTrials);
+  end
   trueStart = trueStart(1);
   trueEnd = find(packetData == trialEndMarker,1,'last');
   
   packetData = packetData(trueStart:trueEnd);
   packetTimes = packetTimes(trueStart:trueEnd);
   
-%   if trueEnd ~= length(packetData) || trueStart ~= 1
-%       %This happens if Blackrock is on less time than Monkeylogic -
-%       %fragments of complete trial marker sets arrive at Blackrock. to keep
-%       %things complete, we need to see which trials are cut, assuming
-%       %Blackrock 
-%       origStartInd = find(packetData == trialStartMarker);
-%       origEndInd = find(packetData == trialEndMarker);
-%       
-%       packetData = packetData(trueStart:trueEnd);
-%       packetTimes = packetTimes(trueStart:trueEnd);
-%       
-%       cutStartInd = find(packetData == trialStartMarker);
-%       cutEndInd = find(packetData == trialEndMarker);
-% 
-%       indStartCutTrial = setdiff(origStartInd, cutStartInd);
-%       indEndCutTrial = setdiff(origEndInd, cutEndInd);
-%       indCutTrial = [indStartCutTrial indEndCutTrial];
-%       %Use this index to modify relevant vectors from Monkeylogic.
-%       keptTrialInd = ones(length(origStartInd),1);
-%       for ii = 1:length(indCutTrial)
-%         keptTrialInd(origStartInd == indCutTrial(ii)) = 0;
-%       end
-%   end
-  
   %to later figure out how to shape data, we need to know what we saw and
   %got rid of.
   
   %Below are things which should happen every trial  
   trialStartInds = find(packetData == trialStartMarker); 
-  trialEndInds = find(packetData == trialEndMarker); 
-  condNumbers = packetData(packetData > 100)-100; 
+  trialEndInds = find(packetData == trialEndMarker);
+  stimStartInds = packetData == stimStartMarker;
+  condNumbers = packetData(packetData > 100)-100;
   fixStartInds = find(packetData == fixCueMarker);
   stimFixEndInds = find(packetData == stimEndMarker);
   
@@ -198,7 +176,7 @@ if ~isempty(packetData) % Means Blackrock/MKL Communication was intact, correct
   
   %Now, use the correct trial array from MKL to pick out only the correct
   %trials from the whole array. Assign them them to the correct vectors. 
-  [taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, taskEventIDsBlk] = deal(nan(length(trialStartInds), 1));
+  [taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, trialStartTimesBlk] = deal(nan(size(trialStartInds)));
   
   %Construct Error array from Blackrock files only, useful in the case that
   %incomplete trials lead to unpaired start and stop triggers.
@@ -228,6 +206,8 @@ if ~isempty(packetData) % Means Blackrock/MKL Communication was intact, correct
   %packetData is directly referenced for events which only happen
   %sometimes.
   taskEventIDsBlk = condNumbers;
+  trialStartTimesAll = packetTimes(packetData == trialStartMarker);
+  trialStartTimesBlk(errorArray ~= 4) = trialStartTimesAll(errorArray ~= 4);
   taskEventStartTimesBlk(errorArray ~= 4) = packetTimes(packetData == stimStartMarker); %Stores every trial where stim started (no fail during fix);
   taskEventEndTimesBlk(errorArray ~= 4) = packetTimes(stimFixEndInds(errorArray ~= 4));
   juiceOnTimesBlk(errorArray == 0) = packetTimes(packetData == rewardMarker);
@@ -236,49 +216,6 @@ if ~isempty(packetData) % Means Blackrock/MKL Communication was intact, correct
   %use the condition number to fill out the taskEventsIDs using the
   %translation table.
   taskEventIDs = translationTable(condNumbers);
-  
-else % Means Blackrock/MKL Communication was not correctly connected.
-  error('The Blackrock Digital inputs are empty. Digital inputs may have not been plugged in.');
-  %disp('The Blackrock Digital inputs are empty. Digital inputs may have not been plugged in. Using MKL Time stamps.');
-  [taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, taskEventIDsBlk] = deal(zeros(sum(TrialRecord.TrialErrors == 0), 1));
-  
-  %Since there are no behavioral timestamps, you need to line these codes
-  %up with something. The strobe is the only non-digital signal which is directed and
-  %simply "lined up" to MonkeyLogic's control of trials. Assumptions must
-  %be made. as of Oct '18, the grey background is "mid", the strobe in
-  %white is high, and the task has the strobe @ low, or black. Every
-  %trial has the fixation period, most proceed past it, few don't. Proper
-  %indexing of the strobe will rely on capturing the fixation period.
-  
-  %Grab the array of start times from the data structure.
-  %[dataConcat, ~, ~] = mlconcatenate(logfile);
-  
-  %Find the time stamp of the first trial's start time.
-  firstTrialFix = data(1).BehavioralCodes.CodeTimes(find(data(1).BehavioralCodes.CodeNumbers == fixCueMarker));
-  
-  % This value should line up with the first switching on of the strobe,
-  % and if recording of the strobe began after the MKL Exp was started
-  % (but not initiated, before Trial 1), screen is grey, strobe is white
-  % for fix, so 'midtoHigh' first marker is what we want to match this
-  % to.
-  strobeToMKLOffset = diodeTriggers.midToHigh - firstTrialFix;
-  
-  %Add this offset to all the startTimes.
-  %taskEventStartTimesBlk = vertcat(dataConcat.AbsoluteTrialStartTime);
-  
-  
-  %taskEventStartTimesBlk = vertcat(data(1:end).AbsoluteTrialStartTime) + strobeToMKLOffset;
-  
-  %Shift all of those start times by the amount between the start of the
-  %blackrock (First transition from mid/high). This may not work in
-  %scenarios where the Blackrock was turned on well before the trial
-  %began (and if anything came on the screen to mess with it). (Assuming
-  %these timestamps are in the same units).
-  
-  
-  %Idea 1 - use the transition from Grey to White (Before task to First
-  %Fix window) as a source of Lag, and add it to every time stamp once it
-  %is collected.
 end
 
 %% Run some checks comparing data collected from Blackrock, MonkeyLogic.
@@ -355,44 +292,42 @@ assert(sum(taskEventIDsLog == taskEventIDsBlk) == length(taskEventIDsLog), 'Blac
 offsets = zeros(sum(packetData == rewardMarker),1);
 taskEventStartTimesBlkPreStrobe = taskEventStartTimesBlk; %Saving these for Eye signal related processing.
 
-%Using Photodiode to define true start times.
-
+%Using Photodiode to redefine start times of trials and stimulus.
 if params.usePhotodiode
+  % Identify which transitions represent the trial starts.
   if length(diodeTriggers.low) < length(diodeTriggers.mid)
-    % For each of the event start times, find the closest transition in
-    % the photodiode and overwrite the time stamp with this time.
-    for ii = 1:length(taskEventStartTimesBlk)
-      if ~isnan(taskEventStartTimesBlk(ii))
-        [offsets(ii), ind_truestart] = min(abs(diodeTriggers.highToMid-taskEventStartTimesBlk(ii)));
-        taskEventStartTimesBlk(ii) = diodeTriggers.highToMid(ind_truestart);
-      end
-    end
-    %do the same for the end times, except referencing the nearest Low to high
-    %transition.
-    for ii = 1:length(taskEventEndTimesBlk)
-      if ~isnan(taskEventStartTimesBlk(ii))
-        [offsets(ii), ind_truestart] = min(abs(diodeTriggers.midToHigh-taskEventEndTimesBlk(ii)));
-        taskEventEndTimesBlk(ii) = diodeTriggers.midToHigh(ind_truestart);
-      end
-    end
+    startTimeTrans = diodeTriggers.highToMid;
+    endTimeTrans = diodeTriggers.midToHigh;
   else
-    for ii = 1:length(taskEventStartTimesBlk)
-      if ~isnan(taskEventStartTimesBlk(ii))
-        [offsets(ii), ind_truestart] = min(abs(diodeTriggers.highToLow-taskEventStartTimesBlk(ii)));
-        taskEventStartTimesBlk(ii) = diodeTriggers.highToLow(ind_truestart);
-      end
+    startTimeTrans = diodeTriggers.highToLow;
+    endTimeTrans = diodeTriggers.lowToHigh;
+  end
+  
+  % for every time, grab the closest and replace the recorded time w/ the
+  % closest transition of the correct kind.
+  for ii = 1:length(taskEventStartTimesBlk)
+    
+    % Trial Start times
+%     if ~isnan(trialEventStartTimesBlk(ii))
+%       [offsets(ii), ind_trueStart(ii)] = min(abs(endTimeTrans-trialEventStartTimesBlk(ii)));
+%       taskEventStartTimesBlk(ii) = endTimeTrans(ind_trueStart(ii));
+%     end
+    % Seems Trial start times don't line up w/ transitions as well, mean 20 ms discrepencies.
+  
+    % Stim Start times
+    if ~isnan(taskEventStartTimesBlk(ii))
+      [offsets(ii), ind_trueStart] = min(abs(startTimeTrans-taskEventStartTimesBlk(ii)));
+      taskEventStartTimesBlk(ii) = startTimeTrans(ind_trueStart);
     end
-    %do the same for the end times, except referencing the nearest Low to high
-    %transition.
-    for ii = 1:length(taskEventEndTimesBlk)
-      if ~isnan(taskEventStartTimesBlk(ii))
-        [offsets(ii), ind_truestart] = min(abs(diodeTriggers.lowToHigh-taskEventEndTimesBlk(ii)));
-        taskEventEndTimesBlk(ii) = diodeTriggers.lowToHigh(ind_truestart);
-      end
+    
+    % Stim End Times
+    if ~isnan(taskEventStartTimesBlk(ii))
+      [offsets(ii), ind_trueEnd] = min(abs(endTimeTrans-taskEventEndTimesBlk(ii)));
+      taskEventEndTimesBlk(ii) = endTimeTrans(ind_trueEnd);
     end
+    
   end
 end
-
 
 %% In cases where the stimuli are .avi's, we should check for the appropriate frameMotion data (representing)
 if any(strfind(translationTable{1},'.avi'))
@@ -421,17 +356,16 @@ end
 %% Now, calculate stimulation log to ephys clock conversion
 %Make the Model by comparing Blackrock event start times to monkeylogic.
 logVsBlkModel = fitlm(taskEventStartTimesLog, taskEventStartTimesBlkPreStrobe);
-disp(logVsBlkModel)
+taskEventStartTimesFit = predict(logVsBlkModel, taskEventStartTimesLog); %Shift over all the events, using the calculated line.
 
-  taskEventStartTimesFit = predict(logVsBlkModel, taskEventStartTimesLog);
+% Gauge the quality of the fit, check if its too much adjustment.
+eventTimeAdjustments = taskEventStartTimesFit-taskEventStartTimesBlkPreStrobe;
+assert(max(eventTimeAdjustments) < 10, 'over 10 ms adjustment for strobe, check')
+disp(strcat('Max magnitude fit residual, msec: ',num2str(max(abs(eventTimeAdjustments)))));
 
-  %Shift over all the events, using the calculated line.
-  eventTimeAdjustments = taskEventStartTimesFit-taskEventStartTimesBlkPreStrobe;
-  assert(max(eventTimeAdjustments) < 50, 'over 50 ms adjustment for strobe, check')
-  disp(strcat('Max magnitude fit residual, msec: ',num2str(max(abs(eventTimeAdjustments)))));
-  
+if params.plotFitShifts
   figure('Name','Sync adjustments from model fitting','NumberTitle','off')
-  hist(eventTimeAdjustments,40);
+  histogram(eventTimeAdjustments,40);
   title('Sync adjustments from model fitting');
   xlabel('offset (adjusted - original) (ms)');
   ylabel('count');
@@ -443,20 +377,22 @@ disp(logVsBlkModel)
   disp(taskEventStartTimesBlk(adjSortInds(1:min(5,length(adjSortInds)))));
   disp('worst alignments, adjustment values (ms)');
   disp(eventTimeAdjustments(adjSortInds(1:min(5,length(adjSortInds)))));
-  
-  %Assuming you're happy with this model, shift values only in the log to
-  %Blackrock time.
-  juiceOnTimesBlk = predict(logVsBlkModel, juiceOnTimesLog);
-  juiceOffTimesBlk = predict(logVsBlkModel, juiceOffTimesLog);
-  %Not doing this for event start times, since I trust the photodiode more
-  %than the eventmarker as a metric of true stim start time.
-  
-  fprintf('average offset %s ms\n', num2str(mean(offsets)));
-  fprintf('range of offset %d ms - %d ms \n', [min(offsets), max(offsets)])
+end
+
+%Assuming you're happy with this model, shift values only in the log to
+%Blackrock time.
+juiceOnTimesBlk = predict(logVsBlkModel, juiceOnTimesLog);
+juiceOffTimesBlk = predict(logVsBlkModel, juiceOffTimesLog);
+%Not doing this for event start times, since I trust the photodiode more
+%than the eventmarker as a metric of true stim start time.
+
+fprintf('average offset %s ms\n', num2str(mean(offsets)));
+fprintf('range of offset %d ms - %d ms \n', [min(offsets), max(offsets)])
   
 %% If en eventData file is present, search it, and generate composite subEvents.
-% this structure will generate elements to insert into 
-eventDataFile = dir([params.stimDir '/**/eventData.mat']);
+% Code below was part of attempt to encorperate eventData into processRun
+% code. Decision was made to move it all to runAnalyses section.
+% eventDataFile = dir([params.stimDir '/**/eventData.mat']);
 if 0%~isempty(eventDataFile)
   load(fullfile(eventDataFile(1).folder, eventDataFile(1).name), 'eventData');
   [eventDataRun, taskData.eventDataRun] = deal(eventData(translationTable, :));
@@ -528,6 +464,23 @@ if 0%~isempty(eventDataFile)
   juiceOffTimesBlk = [juiceOffTimesBlk; nan(length(eventNames),1)];
 end
 
+%% Addtion in Aug 2020 - Realization of diversity of fixation times due to 'punishment' dynamic (failed trial = +50 msec on subsuquent fix time to initiate next trial)
+  % Cycle through trials and collect pre-stimulus fixation duration
+  tmp = [data.ObjectStatusRecord];
+  taskEventFixDur = zeros(length(tmp),1);
+  for ii = 1:length(tmp)
+    taskEventFixDur(ii) = tmp(ii).SceneParam(1).AdapterArgs{3}{2,2};
+  end
+  
+  % Establish a metric for the duration of the trial pre stimulus. Will be
+  % useful for shifting things to a trial aligned, instead of stimulus
+  % aligned, analysis.
+  taskEventFixDur = taskEventStartTimesBlk - trialStartTimesBlk;
+  assert(length(taskEventFixDur) == length(taskEventIDs), 'Problem w/ fixation times')
+  
+  % Generate a vector of reward times relative to stimulus onset.
+  rewardTimePerTrial = juiceOnTimesBlk - taskEventStartTimesBlk;
+
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.
@@ -537,17 +490,22 @@ fixSpotFlashEndTimesBlk = taskEventEndTimesBlk(firstNonNaN);
 fixationInTimesBlk = taskEventStartTimesBlk(firstNonNaN);
 fixationOutTimesBlk = taskEventEndTimesBlk(firstNonNaN);
 
-% finally, build the output structure - This Structure is rebuilt
-% selectively in the 
+% finally, build the output structure:
+% Note: **If something is missing in RunAnalyses** - likely due to taskData
+% being overwritten following excludeTrial function.
+
 taskData.taskDataSummary.TrialRecord = TrialRecord;
 taskData.errorArray = errorArray;
 taskData.taskEventIDs = taskEventIDs;
 taskData.taskEventList = translationTable;
 taskData.frameMotionData = tmpFrameMotionData';
 taskData.stimFramesLost = stimFramesLost;
+
+% Timing variables
 taskData.taskEventStartTimes = taskEventStartTimesBlk;
-%taskData.taskEventStartTimesFit = taskEventStartTimesFit;
 taskData.taskEventEndTimes = taskEventEndTimesBlk;
+taskData.taskEventFixDur = taskEventFixDur;
+taskData.rewardTimePerTrial = rewardTimePerTrial;
 taskData.trialStartTimesMkl = mklTrialStarts';
 taskData.logVsBlkModel = logVsBlkModel;
 taskData.fixationInTimes = fixationInTimesBlk;

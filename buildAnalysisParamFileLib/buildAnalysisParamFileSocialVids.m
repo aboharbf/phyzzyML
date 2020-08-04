@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '003';
-dateSubject = '20180628Mo';
+runNum = '001';
+dateSubject = '20181217Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -264,6 +264,7 @@ stimSyncParams.tryPreparsedLogFile = 1;
 stimSyncParams.keepTriggersAndSubTriggers = 0;
 stimSyncParams.subTriggerArrayFilenames = {'socialSceneConcatSubTriggers.mat'};
 stimSyncParams.usePhotodiode = 1;
+stimSyncParams.plotFitShifts = 0;   % Plots a histogram of differences b/t trial start times on Blackrock vs on MonkeyLogic, following a shift to the Blackrock clock.
 stimSyncParams.stimDir = stimDir;
 stimSyncParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum); %#ok
 %
@@ -363,8 +364,6 @@ subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
 
-neuroGLMParams.neuroGLMPath = neuroGLMPath;
-
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
 correlParams.timeDifferenceBound = [0,200];
@@ -396,7 +395,7 @@ if useDCSUB
   %lfpAlignParams.DCSUB_SAM = [lfpAlignParams.msPreAlign, lfpAlignParams.msPreAlign+10; 0, 0 ]; % 0-th order 
   lfpAlignParams.DCSUB_SAM = [lfpAlignParams.msPreAlign, lfpAlignParams.msPreAlign+10;lfpAlignParams.msPreAlign, lfpAlignParams.msPreAlign+10 ]; % 1st order 
 else
-  lfpAlignParams.DCSUB_SAM = 0;   %#ok
+  lfpAlignParams.DCSUB_SAM = 0;
 end
 % firing rate calculation epochs. Can provide either time (ms from stim onset),
 % or function handle, which will receive the minimum stimulus duration in
@@ -410,6 +409,11 @@ frEpochsCell = {{60, @(stimDur) stimDur+60}};...
 %                 {@(stimDur) stimDur+60, @(stimDur) stimDur+460}}; %#ok
               
 epochLabels = {'Presentation'};%,'Fixation','Reward'};
+
+neuroGLMParams.neuroGLMPath = neuroGLMPath;
+neuroGLMParams.spikeAlignParams = lfpAlignParams;
+
+%% Plotting Params
             
 assert(length(frEpochsCell) == length(epochLabels), 'Epoch time bins and epochLabel lengths must match')
 %%%% note: all analysisGroups cell arrays are nx1, NOT 1xn
