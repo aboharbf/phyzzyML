@@ -95,9 +95,16 @@ fprintf('Number of trials kept: %d\n', sum(trialValid))
 trialValid = logical(trialValid);
 
 taskDataValid = struct;
+
+% Not per trial, can be passed as is.
 taskDataValid.taskDataSummary = taskData.taskDataSummary;
 taskDataValid.taskEventList = taskData.taskEventList;
 taskDataValid.frameMotionData = taskData.frameMotionData;
+taskDataValid.eventData = taskData.eventData;
+taskDataValid.RFmap = taskData.RFmap;
+taskDataValid.eyeCal = taskData.eyeCal;
+
+% Per trial values, which need to be changed
 taskDataValid.taskEventIDs = taskData.taskEventIDs(trialValid);
 taskDataValid.stimFramesLost = taskData.stimFramesLost(trialValid);
 taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);
@@ -106,9 +113,7 @@ taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);
 taskDataValid.juiceOnTimes = taskData.juiceOnTimes(trialValid);
 taskDataValid.juiceOffTimes = taskData.juiceOffTimes(trialValid);
 taskDataValid.taskEventFixDur = taskData.taskEventFixDur(trialValid);
-taskDataValid.RFmap = taskData.RFmap;
-taskDataValid.eyeCal = taskData.eyeCal;
-
+taskDataValid.rewardTimePerTrial = taskData.rewardTimePerTrial(trialValid);
 
 if params.DEBUG
   figure();

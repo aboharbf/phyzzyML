@@ -13,7 +13,7 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %     specified in the stim param file
 %% unpack inputs
 %List of inputs to be unpacked
-if 0
+if ~logical(exist('neuroGLMpre.mat','file'))
 
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
@@ -326,14 +326,13 @@ elseif calcSwitch.categoryPSTH
   save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
 end
 
-save('neuroGLMpre')
+save('neuroGLMpre.mat')
+else
+  load('neuroGLMpre.mat')
 end
-load('neuroGLMpre')
-
-neuroGLMParams.preAlign = lfpPreAlign;
 
 if isfield(plotSwitch, 'neuroGLM') && plotSwitch.neuroGLM
-  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeInByEvent, neuroGLMParams);
+  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
 end
 
 if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
@@ -5012,7 +5011,7 @@ spikePupilCorrStruct.spikePupilUnitAllStim.dVals = spikePupilAllStim(:,2);
 
 end
 
-function  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeInByEvent, neuroGLMParams)
+function  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, params)
 % Function which implements neuroGLM package from jpillow github, Park
 % 2014.
 % Inputs spikesByEvent{event}{channel}{unit}(trial).times
@@ -5023,15 +5022,15 @@ function  neuroGLMStruct = runNeuroGLM(spikesByEvent, taskData, trialIDsByEvent,
 % .pupilByStim - stim*1 array,
 
 % add the toolbox to path
-addpath(genpath(neuroGLMParams.neuroGLMPath))
+addpath(genpath(params.neuroGLMPath))
 
 % Initialize neuroGLM object
-neuroGLMParams.unitOfTime = 'ms';
-neuroGLMParams.binSize = 1;
-neuroGLMParams.uniqueID = [];
-neuroGLMParams.expParam = 'Random Note I want to store';
+params.unitOfTime = 'ms';
+params.binSize = 1;
+params.uniqueID = [];
+params.expParam = 'Random Note I want to store';
 
-expt = buildGLM.initExperiment(neuroGLMParams.unitOfTime, neuroGLMParams.binSize, neuroGLMParams.uniqueID, 'Random Data I want to store');
+expt = buildGLM.initExperiment(params.unitOfTime, params.binSize, params.uniqueID, 'Random Data I want to store');
 
 % Add all the expected variables
 
@@ -5042,10 +5041,14 @@ expt = buildGLM.initExperiment(neuroGLMParams.unitOfTime, neuroGLMParams.binSize
 % timing: Saccades to faces/agents? (above + eyeDataStruct.saccadeByStim).
 % timing: Events in the stim (subEventAnalysis needs new output).
 expt = buildGLM.registerTiming(expt, 'stimOn', 'Stimulus Onset');     % events that happen 0 or more times per trial (sparse)
+expt = buildGLM.registerTiming(expt, 'stimOff', 'Stimulus Off');     % events that happen 0 or more times per trial (sparse)
 expt = buildGLM.registerTiming(expt, 'reward', 'Reward');             % events that happen 0 or more times per trial (sparse)
-expt = buildGLM.registerTiming(expt, 'sacc',   'Saccades');           % events that happen 0 or more times per trial (sparse)
-expt = buildGLM.registerTiming(expt, 'event_X', 'X event'); % events that happen 0 or more times per trial (sparse)
-
+expt = buildGLM.registerTiming(expt, 'sacc',   'Saccades');           % events that happen 0 or more times per trial (sparse
+expt = buildGLM.registerTiming(expt, 'blink',   'Blinks');
+expt = buildGLM.registerTiming(expt, 'fix',   'Fixations');
+for event_i = 1:length(taskData.eventData.events)
+  expt = buildGLM.registerTiming(expt, taskData.eventData.events{event_i}, taskData.eventData.events{event_i}); % events that happen 0 or more times per trial (sparse)
+end
 % Values: EventID - catIndStruct.eventIDs
 % Values: catagoryLabel - catIndStruct.catagoryList and eventIDs. (social,
 % Agent Containing)
@@ -5053,61 +5056,99 @@ expt = buildGLM.registerTiming(expt, 'event_X', 'X event'); % events that happen
 expt = buildGLM.registerValue(expt, 'stimID', 'stimulus ID'); % information on the trial, but not associated with time
 expt = buildGLM.registerValue(expt, 'social', 'Social stim'); % information on the trial, but not associated with time
 expt = buildGLM.registerValue(expt, 'agent', 'Agent containing stim'); % information on the trial, but not associated with time
-expt = buildGLM.registerValue(expt, 'catagory', 'Catagory stim'); % information on the trial, but not associated with time
+% expt = buildGLM.registerValue(expt, 'catagory', 'Catagory stim'); % information on the trial, but not associated with time
 
 % Continous: eyeX, eyeY, eye Velocity, eyeD, LFP
 expt = buildGLM.registerContinuous(expt, 'eyePos', 'Eye Position', 2); % 2 dimensional observation
-expt = buildGLM.registerContinuous(expt, 'eyeVel', 'Eye Velocity', 1); % 1 dimensional observation
+% expt = buildGLM.registerContinuous(expt, 'eyeVel', 'Eye Velocity', 1); % 1 dimensional observation
 expt = buildGLM.registerContinuous(expt, 'pupilD', 'Pupil diameter', 1); % 1 dimensional observation
-expt = buildGLM.registerContinuous(expt, 'LFP', 'Local Field Potential', 1); % 1 dimensional observation
+% expt = buildGLM.registerContinuous(expt, 'LFP', 'Local Field Potential', 1); % 1 dimensional observation
 
 % Loop through every unit and add each spike trian to the experiment
 % spikeTrain - spikesByEvent
-expt = buildGLM.registerSpikeTrain(expt, 'spTrain', 'Our Neuron'); % Spike train!!!
-expt = buildGLM.registerSpikeTrain(expt, 'spTrain2', 'Neighbor Neuron');
+expt = buildGLM.registerSpikeTrain(expt, 'spikeTrain', 'Our Neuron'); % Spike train!!!
+% expt = buildGLM.registerSpikeTrain(expt, 'spTrain2', 'Neighbor Neuron');
 
 % Cycle through each of the variables and retrieve their structures.
 trialDur = size(eyeInByEvent{1}, 3);
 
-trialTmp = struct(); % A template trial.
+% A template trial, with all vars initialized.
+trialTmp = struct(); 
+vars2Add = fields(expt.type);
+for var_i = 1:length(vars2Add)
+  trialTmp.(vars2Add{var_i}) = [];
+end
+
 trialTmp.expt = expt;
 trialTmp.duration = trialDur;
-trialTmp.stimOn = 800; % shouldn't be hard coded.
+trialTmp.stimOn = params.psthPre;
+trialTmp.stimOff = params.psthPre + params.psthImDur;
+trueTrialCount = 1;
 
-for event_i = 1:length(catIndStruct.eventIDs)
+for stim_i = 1:length(catIndStruct.eventIDs)
   
   trialTmp2 = trialTmp; % An event specific template, for values which don't change between presentations of an event.
   
   % 1. Value variables
-  trialTmp2.stimID = catIndStruct.eventIDs{event_i};
-  trialTmp2.social = catIndStruct.catIndMat(event_i, strcmp(catIndStruct.categoryList, 'socialInteraction'));
-  trialTmp2.agent = catIndStruct.catIndMat(event_i, strcmp(catIndStruct.categoryList, 'agents'));
+  trialTmp2.stimID = catIndStruct.eventIDs{stim_i};
+  trialTmp2.social = catIndStruct.catIndMat(stim_i, strcmp(catIndStruct.categoryList, 'socialInteraction'));
+  trialTmp2.agent = catIndStruct.catIndMat(stim_i, strcmp(catIndStruct.categoryList, 'agents'));
+  
+  % Timing variables that don't change per stim
+  for event_i = 1:length(taskData.eventData.events)
+    specEventData = taskData.eventData.eventDataStarts{catIndStruct.eventIDs{stim_i}, taskData.eventData.events{event_i}}{1};
+    if ~isempty(specEventData)
+      trialTmp2.(taskData.eventData.events{event_i}) = specEventData';
+    end
+  end
+  
+  eventEyeBeh = eyeBehStatsByStim{stim_i};
 %   trialTmp2.agent = catIndStruct.catIndMat(event_i, strcmp(catIndStruct.categoryList, 'agents'));
   % 'catagory' - figure out some sort of parsimonious way to get to
   % 'chasing', 'fighting' etc.
   
-  for trial_i = 1:size(eyeInByEvent{event_i},2)
+  for trial_i = 1:size(eyeInByEvent{stim_i},2)
     
     trial = trialTmp2; % Copy the template
+    trialEyeBeh = eventEyeBeh{trial_i};
     
     % 2. spikeTrains
-    trial.spTrain = spikesByEvent{event_i}{1}{4}(trial_i).times' + taskData.taskEventFixDur(trialIDsByEvent{event_i}(trial_i)); % JUST EXAMINE 1 NEURON, CHANGE LATER
-        
+    trial.spikeTrain = spikesByEvent{stim_i}{1}{4}(trial_i).times' + params.psthPre; % JUST EXAMINE 1 NEURON, CHANGE LATER
+    trial.spikeTrain = trial.spikeTrain(trial.spikeTrain > 0); % since spikeTimes come from lfpAlignParams, which is pstPre + buffer.
+    trial.spikeTrain = trial.spikeTrain(trial.spikeTrain < trial.duration); % since spikeTimes come from lfpAlignParams, which is pstPre + buffer.
+
     % 3. Timing Variables
-    % reward - get from taskData, or generate new struct in processRun
-    % trialStruct.saccades = saccadeTimes;
+    % May cause problems if nan.
+    rewardTimeTrial = taskData.rewardTimePerTrial(trialIDsByEvent{stim_i}(trial_i));
+    if ~isnan(rewardTimeTrial)
+      trial.reward = params.psthPre + rewardTimeTrial;
+    end
+    
+    if ~isempty(trialEyeBeh.saccadetimes)
+      trial.sacc = trialEyeBeh.saccadetimes(1,:) + params.psthPre;
+    end
+    
+    if ~isempty(trialEyeBeh.fixationtimes)
+      trial.fix = trialEyeBeh.fixationtimes(1,:) + params.psthPre;
+    end
+    
+    if ~isempty(trialEyeBeh.blinktimes)
+      trial.blink = trialEyeBeh.blinktimes(1,:) + params.psthPre;
+    else
+      
+    end
     % trialStruct.events = eventData file may need to be put here, or output
     % from subEventAnalysis
     
     % 4. Continous variables
-    trial.eyepos = squeeze(eyeInByEvent{event_i}(:,trial_i,:));
+    trial.eyePos = squeeze(eyeInByEvent{stim_i}(:,trial_i,:))';
     % 'eyeVel', 
-    trial.pupilD = eyeDataStruct.pupilByStim{event_i}(trial_i,:);
+    trial.pupilD = eyeDataStruct.pupilByStim{stim_i}(trial_i,:)';
     % 'LFP'
     
-    
     % Add to expt
-    expt = buildGLM.addTrial(expt, trial, trial_i);
+    expt = buildGLM.addTrial(expt, trial, trueTrialCount);
+    trueTrialCount = trueTrialCount + 1;
 
   end  
 end
@@ -5116,8 +5157,69 @@ end
 % Each covariate to include in the model and analysis is specified.
 dspec = buildGLM.initDesignSpec(expt);
 binfun = expt.binfun;
-bs = basisFactory.makeSmoothTemporalBasis('boxcar', 100, 10, binfun);
-bs.B = 0.1 * bs.B;
+
+% Add filters for each variable.
+
+% Spiking History filter - consider excluding and comparing.
+% dspec = buildGLM.addCovariateSpiketrain(dspec, 'hist', 'spikeTrain', 'History filter');
+
+% boxcar for stimulus presentation period
+% dspec = buildGLM.addCovariateBoxcar(dspec, 'stimPres', 'stimOn', 'stimOff', 'stimuls presentation period');
+
+% Smooth basis functions for saccades. Offset for possible pre-saccade activity.
+bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 400, 50, binfun);
+offset = -100;
+dspec = buildGLM.addCovariateTiming(dspec, 'sacc', 'sacc', [], bs, offset);
+
+% Smooth basis functions for blinks.
+bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 200, 50, binfun);
+dspec = buildGLM.addCovariateTiming(dspec, 'blink', 'blink', [], bs);
+
+% Reward activity
+bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 200, 25, binfun);
+dspec = buildGLM.addCovariateTiming(dspec, 'reward', [], [], bs);
+
+% Pupil and eye position, Raw
+% dspec = buildGLM.addCovariateRaw(dspec, 'eyePos', 'Eye position effect');
+% dspec = buildGLM.addCovariateRaw(dspec, 'pupilD', 'Pupil dilation effect');
+
+% subEvents, smooth.
+bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 200, 50, binfun);
+for event_i = 1:length(taskData.eventData.events)
+  dspec = buildGLM.addCovariateTiming(dspec, taskData.eventData.events{event_i}, taskData.eventData.events{event_i}, [], bs);
+end
+
+dm = buildGLM.compileSparseDesignMatrix(dspec, 1:(trueTrialCount-1));
+dm.X = full(dm.X)
+
+% Visualize Design matrix for first 5 trials
+params.visualizeDesignMat = 1;
+if params.visualizeDesignMat
+  trialIndices = randi(trueTrialCount-1,1,5);
+  endTrialIndices = cumsum(binfun([expt.trial(trialIndices).duration]));
+  X = dm.X(1:endTrialIndices(end),:);
+
+  % normalize all the values to 1
+  max_val = max(abs(X), [], 1);
+  max_val(isnan(max_val)) = 1;
+  X = bsxfun(@times, X, 1 ./ max_val);
+
+  % Draw image
+  figure(2); 
+  clf; 
+  imagesc(X);
+end
+
+% Time for the magic
+y = buildGLM.getBinnedSpikeTrain(expt, 'spikeTrain', dm.trialIndices);
+w = dm.X' * dm.X \ dm.X' * y;
+
+
+[w, dev, stats] = glmfit(dm.X, y, 'poisson', 'link', 'log');
+ws = buildGLM.combineWeights(dm, w);
+
+
+
 
 neuroGLMStruct = struct();
 

@@ -411,8 +411,10 @@ frEpochsCell = {{60, @(stimDur) stimDur+60}};...
 epochLabels = {'Presentation'};%,'Fixation','Reward'};
 
 neuroGLMParams.neuroGLMPath = neuroGLMPath;
-neuroGLMParams.spikeAlignParams = lfpAlignParams;
-
+neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 
+neuroGLMParams.psthImDur = psthParams.psthImDur;  % only need to set this for variable length stim runs; else, comes from log file
+neuroGLMParams.psthPost = psthParams.psthPost;
+neuroGLMParams.visualizeDesignMat = 1;        % Visualizes a random set of 5 trials from the design matrix.
 %% Plotting Params
             
 assert(length(frEpochsCell) == length(epochLabels), 'Epoch time bins and epochLabel lengths must match')

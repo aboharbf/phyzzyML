@@ -389,79 +389,38 @@ juiceOffTimesBlk = predict(logVsBlkModel, juiceOffTimesLog);
 fprintf('average offset %s ms\n', num2str(mean(offsets)));
 fprintf('range of offset %d ms - %d ms \n', [min(offsets), max(offsets)])
   
-%% If en eventData file is present, search it, and generate composite subEvents.
-% Code below was part of attempt to encorperate eventData into processRun
-% code. Decision was made to move it all to runAnalyses section.
-% eventDataFile = dir([params.stimDir '/**/eventData.mat']);
-if 0%~isempty(eventDataFile)
+%% If eventData file is present, search it, and generate composite subEvents.
+% Code below generates a table used by neuroGLM function.
+eventDataFile = dir([params.stimDir '/**/eventData.mat']);
+if ~isempty(eventDataFile)  
   load(fullfile(eventDataFile(1).folder, eventDataFile(1).name), 'eventData');
-  [eventDataRun, taskData.eventDataRun] = deal(eventData(translationTable, :));
+  eventDataRun = eventData(translationTable, :);
   eventsInEventData = eventDataRun.Properties.VariableNames;
-  % Cycle through events, generating startTimes.
-  for event_i = 1:length(eventsInEventData)
-    subEventRunData = eventDataRun(:, eventsInEventData{event_i});
-    emptyIndTmp = rowfun(@(x) isempty(x{1}), subEventRunData);
-    emptyInd = ~emptyIndTmp.Var1;
-    subEventRunData = subEventRunData(emptyInd,:);
-    stimSourceArray = subEventRunData.Properties.RowNames;
-    for subEvent_i = 1:length(stimSourceArray)
-      eventTable = subEventRunData{stimSourceArray(subEvent_i),:}{1};
-      entryCount = size(eventTable,1);
-      if subEvent_i == 1 && event_i == 1
-        eventStimTable = [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(subEvent_i), [entryCount, 1]), eventTable(:,'startFrame'), eventTable(:,'endFrame')];
-      else
-        eventStimTable = [eventStimTable; [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(subEvent_i), [entryCount, 1]), eventTable(:,'startFrame'), eventTable(:,'endFrame')]];
+  
+  % Initialize output struct
+  taskData.eventData = struct();
+  taskData.eventData.events = eventsInEventData;
+  
+  % Generate an output table
+  eventDataStarts = cell2table(cell(size(eventDataRun)));
+  eventDataStarts.Properties.RowNames = translationTable;
+  eventDataStarts.Properties.VariableNames = eventsInEventData;
+  
+  for stim_i = 1:length(translationTable)
+    % Converting frames to times.
+    timePerFrame = tmpFrameMotionData(stim_i).timePerFrame;
+    
+    for event_i = 1:length(eventsInEventData)
+      events2pull = eventDataRun{translationTable{stim_i}, eventsInEventData{event_i}}{1};
+      if ~isempty(events2pull)
+        eventDataStarts{translationTable{stim_i}, eventsInEventData{event_i}} = {events2pull.startFrame*timePerFrame}; 
       end
     end
+    
   end
   
-  % After Event compilation, begin generating the necessary output structures
-  for event_i = 1:length(eventsInEventData)
-    eventData = eventStimTable(strcmp(eventStimTable.Var1, eventsInEventData{event_i}),2:end);
-    stimWithEvent = unique(eventData.Var2);
-    for stim_i = 1:length(stimWithEvent)
-      % Get the appropriate start and end frames, convert to 
-      eventsInStim = table2array(eventData(strcmp(eventData.Var2, stimWithEvent(stim_i)), 2:3));
-      frameMotionDataInd = strcmp({frameMotionData.stimVid}, stimWithEvent(stim_i));
-      if ~any(frameMotionDataInd)
-        stimVid = dir([params.stimDir '/**/' stimWithEvent{stim_i}]);
-        vidObj = VideoReader(fullfile(stimVid(1).folder, stimVid(1).name));
-        msPerFrame = (vidObj.Duration/vidObj.NumFrames) * 1000;
-        clear vidObj
-      else
-        msPerFrame = frameMotionData(frameMotionDataInd).timePerFrame;
-      end
-      eventsInStimTimes = eventsInStim .* msPerFrame;
+  taskData.eventData.eventDataStarts = eventDataStarts;
       
-      % Find out when the stimulus happens
-      stimInd = strcmp(taskEventIDs, stimWithEvent(stim_i));
-      eventErrorArray = errorArray(stimInd);
-      eventStartTimesTmp = taskEventStartTimesBlk(stimInd) + eventsInStimTimes(1);
-      eventStartTimesTmp = eventStartTimesTmp(eventErrorArray == 0);
-      eventEndTimesTmp = taskEventEndTimesBlk(stimInd) + eventsInStimTimes(2);
-      eventEndTimesTmp = eventEndTimesTmp(eventErrorArray == 0);
-      eventArrayTmp = repmat(eventsInEventData(event_i),[length(eventStartTimesTmp),1]);
-      
-      if stim_i == 1 && event_i == 1
-        eventStartTimes = eventStartTimesTmp;
-        eventEndTimes = eventEndTimesTmp;
-        eventNames = eventArrayTmp;
-      else
-        eventStartTimes = [eventStartTimes; eventStartTimesTmp];
-        eventEndTimes = [eventEndTimes; eventEndTimesTmp];
-        eventNames = [eventNames; eventArrayTmp];
-      end
-    end
-  end
-  
-  % Combine and sort output structures
-  taskEventStartTimesBlk = [taskEventStartTimesBlk; eventStartTimes];
-  taskEventEndTimesBlk = [taskEventEndTimesBlk; eventEndTimes];
-  taskEventIDs = [taskEventIDs; eventNames];
-  errorArray = [errorArray; zeros(length(eventNames),1)];
-  stimFramesLost = [stimFramesLost; zeros(length(eventNames),1)];
-  juiceOnTimesBlk = [juiceOnTimesBlk; nan(length(eventNames),1)];
-  juiceOffTimesBlk = [juiceOffTimesBlk; nan(length(eventNames),1)];
 end
 
 %% Addtion in Aug 2020 - Realization of diversity of fixation times due to 'punishment' dynamic (failed trial = +50 msec on subsuquent fix time to initiate next trial)
