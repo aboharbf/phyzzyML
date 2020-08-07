@@ -9,7 +9,7 @@ switch outputType
     elseif unitNumber == 1
       stringName = 'Unsorted';
     else
-      stringName = sprintf('U%d', unitNumber');
+      stringName = sprintf('U%d', unitNumber'-1);
     end
   case 2
     if unitNumber == totalUnitCount

@@ -397,10 +397,6 @@ if ~isempty(eventDataFile)
   eventDataRun = eventData(translationTable, :);
   eventsInEventData = eventDataRun.Properties.VariableNames;
   
-  % Initialize output struct
-  taskData.eventData = struct();
-  taskData.eventData.events = eventsInEventData;
-  
   % Generate an output table
   eventDataStarts = cell2table(cell(size(eventDataRun)));
   eventDataStarts.Properties.RowNames = translationTable;
@@ -419,7 +415,11 @@ if ~isempty(eventDataFile)
     
   end
   
-  taskData.eventData.eventDataStarts = eventDataStarts;
+  % Initialize output struct, remove empty columns, load variables
+  taskData.eventData = struct();
+  column2keepInd = logical(sum(~cellfun('isempty', table2cell(eventDataStarts))));
+  taskData.eventData.events = eventsInEventData(column2keepInd);
+  taskData.eventData.eventDataStarts = eventDataStarts(:,column2keepInd);
       
 end
 

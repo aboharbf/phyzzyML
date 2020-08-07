@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '001';
-dateSubject = '20181217Mo';
+runNum = '002';
+dateSubject = '20180712Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -415,6 +415,7 @@ neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200
 neuroGLMParams.psthImDur = psthParams.psthImDur;  % only need to set this for variable length stim runs; else, comes from log file
 neuroGLMParams.psthPost = psthParams.psthPost;
 neuroGLMParams.visualizeDesignMat = 1;        % Visualizes a random set of 5 trials from the design matrix.
+
 %% Plotting Params
             
 assert(length(frEpochsCell) == length(epochLabels), 'Epoch time bins and epochLabel lengths must match')
