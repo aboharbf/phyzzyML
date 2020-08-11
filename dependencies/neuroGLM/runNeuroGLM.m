@@ -13,7 +13,7 @@ disp('Running neuroGLM...');
 % add the toolbox to path
 addpath(genpath(params.neuroGLMPath))
 
-% Initialize neuroGLM object
+%% Initialize neuroGLM expt, add variables
 params.unitOfTime = 'ms';
 params.binSize = 1;
 params.uniqueID = [];
@@ -66,6 +66,7 @@ expt = buildGLM.registerSpikeTrain(expt, 'spikeTrain', 'Our Neuron'); % Spike tr
 % Cycle through each of the variables and retrieve their structures.
 trialDur = size(eyeInByEvent{1}, 3);
 
+%% Add Trials 
 % A template trial, with all vars initialized.
 trialTmp = struct(); 
 vars2Add = fields(expt.type);
@@ -77,7 +78,6 @@ trialTmp.expt = expt;
 trialTmp.duration = trialDur;
 trialTmp.stimOn = params.psthPre;
 trialTmp.stimOff = params.psthPre + params.psthImDur;
-trueTrialCount = 1;
 
 for stim_i = 1:length(catIndStruct.eventIDs)
   
@@ -148,111 +148,179 @@ for stim_i = 1:length(catIndStruct.eventIDs)
     trial.LFP = squeeze(lfpByEvent{stim_i}(:, :, trial_i, params.lfpBuffer:end-params.lfpBuffer));
     
     % Add to expt
-    expt = buildGLM.addTrial(expt, trial, trueTrialCount);
-    trueTrialCount = trueTrialCount + 1;
+    expt = buildGLM.addTrial(expt, trial, trialIDsByEvent{stim_i}(trial_i));
 
   end  
 end
 
-% Build 'designSpec' which specifies how to generate the design matrix
+%% Build Design Matrix 
+% which specifies how to generate the design matrix
 % Each covariate to include in the model and analysis is specified.
 dspec = buildGLM.initDesignSpec(expt);
 binfun = expt.binfun;
 
+% covariates to include
+params.covar.unitHist = 0;
+params.covar.stimOnOff = 0;
+params.covar.saccade = 0;
+params.covar.blink = 0;
+params.covar.reward = 1;
+params.covar.eyePos = 0;
+params.covar.LFP = 0;
+params.covar.subEvents = 1;
+
 % Add filters for each variable.
+if params.covar.unitHist
 for chan_i = 1:length(unitNames)
-  for unit_i = 1:length(unitNames{chan_i})-1 % Last unit is MUA
+  for unit_i = [1,3] %1:length(unitNames{chan_i})-1 % Last unit is MUA
     unitLab = unitNames{chan_i}{unit_i};
-    dspec = buildGLM.addCovariateSpiketrain(dspec, sprintf('%sCov', unitLab), unitLab, sprintf('%s history', unitLab));
+%     if length([expt.trial.(unitLab)]) > 50
+      dspec = buildGLM.addCovariateSpiketrain(dspec, sprintf('%sCov', unitLab), unitLab, sprintf('%s history', unitLab));
+%     end
   end
+end
 end
 
 % boxcar for stimulus presentation period
-dspec = buildGLM.addCovariateBoxcar(dspec, 'stimPres', 'stimOn', 'stimOff', 'stimuls presentation period');
+if params.covar.stimOnOff
+  dspec = buildGLM.addCovariateBoxcar(dspec, 'stimPres', 'stimOn', 'stimOff', 'stimuls presentation period');
+end
 
 % Smooth basis functions for saccades. Offset for possible pre-saccade activity.
-bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 400, 50, binfun);
-offset = -100;
-dspec = buildGLM.addCovariateTiming(dspec, 'sacc', 'sacc', [], bs, offset);
-
+if params.covar.saccade
+  bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 400, 8, binfun);
+  offset = -200;
+  dspec = buildGLM.addCovariateTiming(dspec, 'sacc', 'sacc', [], bs, offset);
+end
 % Smooth basis functions for blinks.
-bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 200, 50, binfun);
-dspec = buildGLM.addCovariateTiming(dspec, 'blink', 'blink', [], bs);
-
+if params.covar.blink
+  bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 400, 8, binfun);
+  offset = -200;
+  dspec = buildGLM.addCovariateTiming(dspec, 'blink', 'blink', [], bs, offset);
+end
 % Reward activity
-bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 200, 25, binfun);
-dspec = buildGLM.addCovariateTiming(dspec, 'reward', [], [], bs);
-
+if params.covar.reward
+  bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 200, 8, binfun);
+  dspec = buildGLM.addCovariateTiming(dspec, 'reward', [], [], bs);
+end
 % Pupil and eye position, Raw
-dspec = buildGLM.addCovariateRaw(dspec, 'eyePos', 'Eye position effect');
-dspec = buildGLM.addCovariateRaw(dspec, 'LFP', 'LFP effect');
+if params.covar.eyePos
+  bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 40, 4, binfun);
+  dspec = buildGLM.addCovariateRaw(dspec, 'eyePos', 'Eye position effect', bs);
+end
+if params.covar.LFP
+  dspec = buildGLM.addCovariateRaw(dspec, 'LFP', 'LFP effect');
+end
+
 % dspec = buildGLM.addCovariateRaw(dspec, 'pupilD', 'Pupil dilation effect');
 
 % subEvents, smooth.
-bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 300, 50, binfun);
-for event_i = 1:length(taskData.eventData.events)
-  dspec = buildGLM.addCovariateTiming(dspec, taskData.eventData.events{event_i}, taskData.eventData.events{event_i}, [], bs);
+if params.covar.subEvents
+  bs = basisFactory.makeSmoothTemporalBasis('raised cosine', 300, 8, binfun);
+  for event_i = 1:length(taskData.eventData.events)
+    eventLab = taskData.eventData.events{event_i};
+    if length([expt.trial.(eventLab)]) > 65
+      dspec = buildGLM.addCovariateTiming(dspec, eventLab, eventLab, [], bs);
+    end
+  end
 end
 
-dm = buildGLM.compileSparseDesignMatrix(dspec, 1:(trueTrialCount-1));
-% dm.X = full(dm.X);
+%% Compile the Design matrix
+
+socialTrials = find(~[dspec.expt.trial.social]);
+% trialsToRegress = 1:length(dspec.expt.trial);
+trialsToRegress = socialTrials;
+
+dm = buildGLM.compileSparseDesignMatrix(dspec, trialsToRegress);
 
 nanCount = full(sum(sum(isnan(dm.X))));
 assert(nanCount == 0, sprintf('NaNs present - %d ', nanCount))
 
+% Remove constant columns
 dm = buildGLM.removeConstantCols(dm);
-% colIndices = buildGLM.getDesignMatrixColIndices(dspec, 'LFP');
-% dm = buildGLM.zscoreDesignMatrix(dm, [colIndices{:}]);
-
-dm = buildGLM.addBiasColumn(dm); % DO NOT ADD THE BIAS TERM IF USING GLMFIT
+dm = buildGLM.zscoreDesignMatrix(dm);
 
 % Visualize Design matrix for first 5 trials
 if params.visualizeDesignMat
-  trialIndices = randi(trueTrialCount-1,1,5);
+  trialIndices = randi(length(expt.trial),1,5);
   endTrialIndices = cumsum(binfun([expt.trial(trialIndices).duration]));
   X = dm.X(1:endTrialIndices(end),:);
 
   % normalize all the values to 1
   max_val = max(abs(X), [], 1);
-%   max_val(isnan(max_val)) = 1;
+  max_val(isnan(max_val)) = 1;
   X = bsxfun(@times, X, 1 ./ max_val);
 
   % Draw image
   figure(2); 
   clf; 
   imagesc(X);
+  title('Design Matrix')
 end
 
+useGLMFit = 0;
+dm = buildGLM.addBiasColumn(dm);
+
+figure()
+imagesc(dm.X' * dm.X)
+condest(dm.X' * dm.X)
+
+
+%% Perform Regression
 % Time for the magic
 for chan_i = 1:length(unitNames)
-  for unit_i = 1:length(unitNames{chan_i})-1 % Last unit is MUA
+  for unit_i = 2%1:length(unitNames{chan_i})-1 % Last unit is MUA
 
-    y = buildGLM.getBinnedSpikeTrain(expt, unitNames{chan_i}{unit_i}, dm.trialIndices);
-    w = dm.X' * dm.X \ dm.X' * y;
-    % Seems to generally not work
-    % [w, dev, stats] = glmfit(dm.X, y, 'poisson', 'link', 'log');
+    y = buildGLM.getBinnedSpikeTrain(expt, unitNames{chan_i}{unit_i}, trialsToRegress);
     
+    if useGLMFit
+      % Seems to generally not work
+      [w, ~, ~] = glmfit(dm.X, y, 'poisson', 'link', 'log', 'Constant', 'off');
+    else
+      w = dm.X' * dm.X \ dm.X' * y;
+    end
     assert(~full(any(isnan(w))), 'NaN city')
 
     ws = buildGLM.combineWeights(dm, w);
     
     % Plot the loadings onto the basis functions
     figure()
-    title(sprintf('Weights Matrix for %s', unitNames{chan_i}{unit_i}));
+    title(sprintf('Weights Matrix for %s (%d spikes)', unitNames{chan_i}{unit_i}, full(sum(y))));
     hold on
-    cov2plot = fields(ws);
+    [cov2plot, covLegend] = deal(fields(ws));
     for cov_i = 1:length(cov2plot)
       covData = full(ws.(cov2plot{cov_i}).data);
-      plot(covData)
+      
+      % If it a short cov, add the number to the label
       if length(covData) < 10
-        cov2plot{cov_i} = sprintf('%s (%d)', cov2plot{cov_i}, covData);
+        covLegend{cov_i} = sprintf('%s (%d)', covLegend{cov_i}, covData);
       end
+      
+      % Plot the data
+      plot(covData)
+      
     end
+    legend(covLegend)
+
+    % Quick predict
+    figure()
+    subplot(3,1,1)
+    plot(y)
+    title('spikeTrain')
     
-    % If it is a single cov, add the number to the label
-    legend(cov2plot)
+    subplot(3,1,2)
+    plot(w)
+    title('Weights for basis functions')
+    
+    subplot(3,1,3)
+    pred = dm.X * w;
+    plot(pred)
+    title('Predicted spike rates')
+
   end
 end
+
+%% Use results of regression to look at prediction/fit
 
 neuroGLMStruct = struct();
 

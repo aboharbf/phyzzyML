@@ -40,11 +40,12 @@ for ii = 1:length(analysesFiles)
     templateAnalysisParams.(fieldsToReplace{field_i}) = tmp.(fieldsToReplace{field_i});    % Load in fields
   end
   
-  % Adding k to all for the sake of seeing p values for features.
-  templateAnalysisParams.preProc = [templateAnalysisParams.preProc, {'select_or_exclude_top_k_features_FP'}];
-  templateAnalysisParams.num_features_to_exclude = 0;
-  templateAnalysisParams.num_features_to_use = length(templateAnalysisParams.sites);
-  
+  if ~isfield(templateAnalysisParams, 'num_features_to_use')
+    % Adding k to all for the sake of seeing p values for features.
+    templateAnalysisParams.preProc = [templateAnalysisParams.preProc, {'select_or_exclude_top_k_features_FP'}];
+    templateAnalysisParams.num_features_to_exclude = 0;
+    templateAnalysisParams.num_features_to_use = length(templateAnalysisParams.sites);
+  end
   [~, fileName, ~] = fileparts(analysesFiles(ii).name);
   templateAnalysisParams.plotTitle = tmp.plotTitle;
   templateAnalysisParams.load_data_as_spike_counts = strcmp(templateAnalysisParams.classifier, 'poisson_naive_bayes_CL');
@@ -85,19 +86,44 @@ for analysis_i = 1:length(analysesToRun)
     end
     
   end
+  
+  % Change
+%   the_feature_preprocessors{pp_i}.num_features_to_use = 100;
     
   % Step 4 - Generate a cross validator, define some parameters on newly generated object
   the_cross_validator = standard_resample_CV(ds, the_classifier, the_feature_preprocessors);
-  the_cross_validator.num_resample_runs = analysisStruct.cross_validator_num_resample;
-  
+%   the_cross_validator.num_resample_runs = analysisStruct.cross_validator_num_resample;
+  the_cross_validator.num_resample_runs = 10;
+
   % Step 5 - Run decoding analyses
   DECODING_RESULTS = the_cross_validator.run_cv_decoding;
   
   % Plotting
+  
+  % Per label Correct
+  figure()
+  figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
+  title(figTitle)
+  hold on
+  labels = ds.label_names_to_label_numbers_mapping(ds.label_names_to_use);
+  confusionMat = DECODING_RESULTS.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix;
+  confusionMat = confusionMat ./ sum(confusionMat, 1);
+  correctLineStack = zeros(length(labels), size(confusionMat,3));
+  for jj = 1:length(labels)
+    correctTrace = squeeze(confusionMat(jj,jj,:))';
+    correctLineStack(jj,:) = correctTrace;
+    plot(correctTrace, 'linewidth', 3)
+  end
+  plot(mean(correctLineStack), 'linewidth', 5, 'color', 'k')
+  legend([labels; {'All Label Mean'}], 'AutoUpdate', 'off')
+
+  plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b')
+  saveFigure(params.outputDir, ['3. ' figTitle], analysisStruct, params.figStruct, [])
+
   % save the results
   save_file_name = fullfile(params.outputDir, sprintf('results_%s', analysesToRun{analysis_i}));
   save(save_file_name, 'DECODING_RESULTS');
-  
+
   % which results should be plotted (only have one result to plot here)
   result_names{1} = save_file_name;
   

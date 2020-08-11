@@ -10,3 +10,4 @@ analysisDonePreExcel.mat
 spikePupilCorrPre.mat
 postBatchRun.mat
 neuroGLMpre.mat
+predictSpikeTrainData.mat

@@ -339,6 +339,8 @@ if isfield(plotSwitch, 'neuroGLM') && plotSwitch.neuroGLM
   neuroGLMStruct = runNeuroGLM(spikesByEvent, lfpByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
 end
 
+error('Done neuroGLM')
+
 if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
   if calcSwitch.spikeTimes
     spikePupilCorrStruct = spikePupilCorr(spikesByEvent, eyeDataStruct, taskData, calcSwitch.spikeTimes, psthParams, eventIDs, spikeAlignParams, figStruct);
