@@ -25,6 +25,12 @@ else
   binnedFileName = binnedFileNameOut;
 end
 
+% Grab a variable which will be useful later
+tmp = dir(rasterDataPath);
+tmp = tmp(1);
+tmp = load(fullfile(tmp.folder, tmp.name));
+params.end_time = size(tmp.raster_data, 2);
+
 % Analyses specified by k_aid app in NDTB, stored in phyzzy folder.
 analysesFiles = dir([params.NDTAnalysesPath, filesep, '*.mat']);
 
@@ -56,7 +62,7 @@ end
 analysesToRun = fields(params.Analyses);
 analysesStructs = params.Analyses;
 
-for analysis_i = 1:length(analysesToRun)
+for analysis_i = 4:length(analysesToRun)
   % Step 2 - generate the data source object
   analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
   
@@ -86,68 +92,38 @@ for analysis_i = 1:length(analysesToRun)
     end
     
   end
-  
-  % Change
-%   the_feature_preprocessors{pp_i}.num_features_to_use = 100;
     
   % Step 4 - Generate a cross validator, define some parameters on newly generated object
   the_cross_validator = standard_resample_CV(ds, the_classifier, the_feature_preprocessors);
-%   the_cross_validator.num_resample_runs = analysisStruct.cross_validator_num_resample;
-  the_cross_validator.num_resample_runs = 10;
+  the_cross_validator.num_resample_runs = analysisStruct.cross_validator_num_resample;
 
   % Step 5 - Run decoding analyses
-  DECODING_RESULTS = the_cross_validator.run_cv_decoding;
+  decoding_results = the_cross_validator.run_cv_decoding;
   
-  % Plotting
+  % Step 6 - save the results
+  [result_names{1}, save_file_name] = deal(fullfile(params.outputDir, sprintf('results_%s', analysesToRun{analysis_i})));
+  save(save_file_name, 'decoding_results');
+    
+  % Step 7 - Plotting - 
+  % Per Label Accuracy Trace, Figure 1
+  figh = plot_per_label_accuracy(decoding_results, ds, analysisStruct);
+  saveFigure(params.outputDir, ['1. ' figTitle], analysisStruct, params.figStruct, [])
   
-  % Per label Correct
-  figure()
-  figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
-  title(figTitle)
-  hold on
-  labels = ds.label_names_to_label_numbers_mapping(ds.label_names_to_use);
-  confusionMat = DECODING_RESULTS.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix;
-  confusionMat = confusionMat ./ sum(confusionMat, 1);
-  correctLineStack = zeros(length(labels), size(confusionMat,3));
-  for jj = 1:length(labels)
-    correctTrace = squeeze(confusionMat(jj,jj,:))';
-    correctLineStack(jj,:) = correctTrace;
-    plot(correctTrace, 'linewidth', 3)
-  end
-  plot(mean(correctLineStack), 'linewidth', 5, 'color', 'k')
-  legend([labels; {'All Label Mean'}], 'AutoUpdate', 'off')
-
-  plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b')
-  saveFigure(params.outputDir, ['3. ' figTitle], analysisStruct, params.figStruct, [])
-
-  % save the results
-  save_file_name = fullfile(params.outputDir, sprintf('results_%s', analysesToRun{analysis_i}));
-  save(save_file_name, 'DECODING_RESULTS');
-
-  % which results should be plotted (only have one result to plot here)
-  result_names{1} = save_file_name;
-  
-  % create an object to plot the results
+  % create an object to plot the results, put line for stim start
   plot_obj = plot_standard_results_object(result_names);
-  
-  % put a line at the time when the stimulus was shown
   plot_obj.significant_event_times = 0;
   
   % optional argument, can plot different types of results
   %plot_obj.result_type_to_plot = 2;  % for example, setting this to 2 plots the normalized rank results
-  
-  % Plot and save figures
-  h = figure();
-  plot_obj.plot_results;   % actually plot the results
-  figTitle = sprintf('Classification of %s', analysisStruct.plotTitle);
-  title(figTitle);
-  saveFigure(params.outputDir, ['1. ' figTitle], analysisStruct, params.figStruct, [])
-  
+    
+  % TCT Matrix, Figure 2
   plot_obj = plot_standard_results_TCT_object(save_file_name);
   plot_obj.significant_event_times = 0;   % the time when the stimulus was shown
   plot_obj.display_TCT_movie = 0;
   plot_obj.TCT_figure_number = length(findobj('type','figure')) + 1; % Open a new figure.
   plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information is coded by a dynamic population code
+  
+  % Clean up the figure before saving
   j = gcf;
   j.Units = 'Normalized';
   j.Position = [0 0.05 0.5 0.6];

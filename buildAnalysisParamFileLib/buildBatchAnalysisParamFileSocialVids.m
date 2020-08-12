@@ -172,7 +172,7 @@ slidingTestParams.plotSize = [.8 .6];
 NDTParams.NDTPath = NDTPath;
 NDTParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
 NDTParams.rasterDir =  fullfile(NDTParams.outputDir, 'rasterData');
-NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.]
+NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
 %  spikeDataBank to rasterData Parameters, should be as inclusive as

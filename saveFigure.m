@@ -1,10 +1,18 @@
-function [ ] = saveFigure(outDir, filename, figData, figStruct, footer)
-%UNTITLED11 Summary of this function goes here
-%   Detailed explanation goes here
+function saveFigure(outDir, filename, figData, figStruct, footer)
+% function which saves present figure object, along with its data,
+% according to parameters defined in the figStruct. Also adds text to the
+% lower left of a figure.
+% Input Arguments are:
+%   outDir - save path for the figure
+%   filename - name of saved figure
+%   figData - data to be saved w/ the figure.
+%   figStruct - structure containing switches defined below for saving,
+%   exporting, and data saving w/ figure.
+%   footer - text to add to the bottom figure.
 
 if ~isempty(footer)
   ax = axes('Position',[0 0 1 .05], 'Visible','off');
-  text(ax, .025,.5,footer, 'fontsize',12);
+  text(ax, .025, .5, footer, 'fontsize',12);
 end
 if figStruct.saveFig     
   savefig(fullfile(outDir, strcat(filename, '.fig')));
