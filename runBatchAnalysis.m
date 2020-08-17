@@ -26,16 +26,14 @@ if plotSwitch.stimPresCount
   %last recording' to highlight days after long breaks.
 end
 
-if ~exist('unitCounts','var')
-  [trueCellInd, trueCellInfo, unitCounts, resultTable, nullCells] = trueCellCount(cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
-  for run_ind = 1:length(runList)
-    sessionName = extractBetween(runList{run_ind}, 2, length(runList{run_ind}));
-    dataInd = (strcmp(sessionName,trueCellInfo(:,1)));
-    spikeDataBank.(runList{run_ind}).gridHoles  = trueCellInfo(dataInd, 2);
-    spikeDataBank.(runList{run_ind}).recDepth  = trueCellInfo(dataInd, 3);
-  end
+if 1%~exist('unitCounts','var')
+  [spikeDataBank, trueCellStruct, unitCounts, resultTable, nullCells] = tableRefFunx(spikeDataBank, cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
   saveEnv(1)
 end
+
+% Report
+reportSubEventCounts(cellCountParams.subEventBatchStructPath, trueCellStruct)
+
 
 meanPSTHParams.tTestTable = resultTable;
 
@@ -2245,6 +2243,45 @@ end
 % Figure 1 - iterate through stimuli, grabbing mean and max values across
 % presentations in order, plot them on a single line. Mark dates where long
 % recording dates were taken with vertical lines.
+
+
+end
+
+function reportSubEventCounts(subEventStructPath, trueCellStruct)
+% A function which loads a struct containing selectivity information about
+% subEvents across the population, then applies the trueCellInd, and
+% generates a table/reports the summed values. 
+disp('calculating subEvent selectivity totals')
+
+tmp = load(subEventStructPath);
+subEventStruct = tmp.subEventBatchStruct;
+subEventData = subEventStruct.dataTable;
+subEventData_channelCounts = cellfun(@(x) length(x), subEventData);
+subEventStruct_runs = subEventStruct.analysisParamFileName;
+tmp2 = arrayfun(@(x) repmat(subEventStruct_runs(x), [subEventData_channelCounts(x), 1]), 1:length(subEventData_channelCounts), 'UniformOutput', false);
+subEvent_runs = vertcat(tmp2{:});
+
+trueCell_runs = trueCellStruct.taskDates;
+trueCell_ind = trueCellStruct.ind;
+
+validData = subEventData;
+for ii = 1:length(subEventStruct_runs)
+  trueCell_i = strcmp(trueCell_runs, subEventStruct_runs(ii));
+  keep_ind = trueCell_ind(trueCell_i);
+  validData{ii} = validData{ii}(keep_ind);
+end
+
+% Combine across cells to tally counts for selecitivity
+validDataAll = horzcat(validData{:});
+validDataAllMat = zeros(size(validDataAll{1},1), size(validDataAll{1},2), length(validDataAll));
+for ii = 1:length(validDataAll)
+    validDataAllMat(:,:, ii) = validDataAll{ii};
+end
+eventUnitCounts = sum(validDataAllMat, 3);
+
+
+
+dataTable = subEventStruct;
 
 
 end

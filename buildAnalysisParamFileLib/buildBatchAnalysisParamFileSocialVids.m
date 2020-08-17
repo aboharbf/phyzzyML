@@ -18,6 +18,8 @@ switch machine
     outputDir = [analysisDirectory '/batchAnalysis'];
     stimParamsFilename = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
+    subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
+    batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'H:\EphysData\Data\RecordingsMoUpdated.xlsx';
@@ -54,10 +56,11 @@ preprocessParams.preprocessedVars = {'spikesByEvent','eventIDs','eventCategories
 preprocessParams.analyzedVars = {'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','attendedObjData'}; %Variables extracted from analyzedData.mat
 preprocessParams.analysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
 
-meanPSTHParams.stimInclude = 2;                 % 0 = everything, 1 = Only Animations, 2 = Exclude Animations. 
-cellCountParams.excludePhase2 = 0;                                                    % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
-cellCountParams.batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');     % Batch analysis xlsx produced by processRunBatch.
-cellCountParams.recordingLogxls = recordingLogxls;                                    % Used to exclude phase 2 to give accurate unit counts.
+meanPSTHParams.stimInclude = 2;                                     % 0 = everything, 1 = Only Animations, 2 = Exclude Animations. 
+cellCountParams.excludePhase2 = 0;                                  % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
+cellCountParams.batchRunxls = batchRunxls;                          % Batch analysis xlsx produced by processRunBatch.
+cellCountParams.recordingLogxls = recordingLogxls;                  % Used to exclude phase 2 to give accurate unit counts.
+cellCountParams.subEventBatchStructPath = subEventBatchStructPath;  % a structure containing info about subEvent selectivity.
 
 meanPSTHParams.outputDir = fullfile(outputDir,'meanPSTH');
 meanPSTHParams.stimParamsFilename = stimParamsFilename;
@@ -188,9 +191,13 @@ NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;          % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
-NDTParams.AnalysesDefault.cross_validator_num_resample = 10;       % Number of times to resample runs for cross validator.
+NDTParams.AnalysesDefault.cross_validator_num_resample = 10;      % Number of times to resample runs for cross validator.
 
 NDTParams.figStruct = figStruct;
+NDTParams.plotParams = figStruct;
+NDTParams.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.plotParams.points_for_lines = [0, 2800];
+NDTParams.plotParams.shift = 800; % prePSTH in the code elsewhere.
 
 % Novelty Analysis
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis'); 

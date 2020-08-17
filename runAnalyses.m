@@ -13,7 +13,7 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %     specified in the stim param file
 %% unpack inputs
 %List of inputs to be unpacked
-if ~logical(exist('neuroGLMpre.mat','file'))
+% if ~logical(exist('neuroGLMpre.mat','file'))
 
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
@@ -326,20 +326,20 @@ elseif calcSwitch.categoryPSTH
   save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
 end
 
-save('neuroGLMpre.mat')
-else
-  load('neuroGLMpre.mat')
-  addpath(genpath('dependencies'));
-  rmpath(genpath('dependencies/mvgc_v1.0')); %note: Not sure if this is appropriate replacement for genpath_exclude. previous line caused issues in parallel runs.
-  addpath('buildAnalysisParamFileLib');
-end
+% save('neuroGLMpre.mat')
+% else
+%   load('neuroGLMpre.mat')
+%   addpath(genpath('dependencies'));
+%   rmpath(genpath('dependencies/mvgc_v1.0')); %note: Not sure if this is appropriate replacement for genpath_exclude. previous line caused issues in parallel runs.
+%   addpath('buildAnalysisParamFileLib');
+% end
 
-neuroGLMParams.lfpBuffer = 151;
-if isfield(plotSwitch, 'neuroGLM') && plotSwitch.neuroGLM
-  neuroGLMStruct = runNeuroGLM(spikesByEvent, lfpByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
-end
+% neuroGLMParams.lfpBuffer = 151;
+% if isfield(plotSwitch, 'neuroGLM') && plotSwitch.neuroGLM
+%   neuroGLMStruct = runNeuroGLM(spikesByEvent, lfpByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
+% end
 
-error('Done neuroGLM')
+% error('Done neuroGLM')
 
 if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
   if calcSwitch.spikeTimes

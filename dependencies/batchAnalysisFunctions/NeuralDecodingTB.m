@@ -62,7 +62,7 @@ end
 analysesToRun = fields(params.Analyses);
 analysesStructs = params.Analyses;
 
-for analysis_i = 4:length(analysesToRun)
+for analysis_i = 1:length(analysesToRun)
   % Step 2 - generate the data source object
   analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
   
@@ -101,34 +101,19 @@ for analysis_i = 4:length(analysesToRun)
   decoding_results = the_cross_validator.run_cv_decoding;
   
   % Step 6 - save the results
-  [result_names{1}, save_file_name] = deal(fullfile(params.outputDir, sprintf('results_%s', analysesToRun{analysis_i})));
-  save(save_file_name, 'decoding_results');
+  saved_results_name = 'decoding_results';
+  save_file_name = deal(fullfile(params.outputDir, sprintf('results_%s', analysesToRun{analysis_i})));
+  save(save_file_name, saved_results_name);
     
-  % Step 7 - Plotting - 
+  % Step 7 - Plotting 
   % Per Label Accuracy Trace, Figure 1
-  figh = plot_per_label_accuracy(decoding_results, ds, analysisStruct);
+  figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
+  plot_per_label_accuracy(decoding_results, ds, analysisStruct, params);
   saveFigure(params.outputDir, ['1. ' figTitle], analysisStruct, params.figStruct, [])
-  
-  % create an object to plot the results, put line for stim start
-  plot_obj = plot_standard_results_object(result_names);
-  plot_obj.significant_event_times = 0;
-  
-  % optional argument, can plot different types of results
-  %plot_obj.result_type_to_plot = 2;  % for example, setting this to 2 plots the normalized rank results
     
   % TCT Matrix, Figure 2
-  plot_obj = plot_standard_results_TCT_object(save_file_name);
-  plot_obj.significant_event_times = 0;   % the time when the stimulus was shown
-  plot_obj.display_TCT_movie = 0;
-  plot_obj.TCT_figure_number = length(findobj('type','figure')) + 1; % Open a new figure.
-  plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information is coded by a dynamic population code
-  
-  % Clean up the figure before saving
-  j = gcf;
-  j.Units = 'Normalized';
-  j.Position = [0 0.05 0.5 0.6];
   figTitle = sprintf('Cross Classification Matrix of %s', analysisStruct.plotTitle);
-  title(figTitle);
+  generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, params)
   saveFigure(params.outputDir, ['2. ' figTitle], analysisStruct, params.figStruct, [])
 end
 

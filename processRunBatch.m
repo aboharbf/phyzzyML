@@ -11,8 +11,10 @@ function [] = processRunBatch(varargin)
 %       parameters defined in the analysisParamFile and the paramTable.
 
 replaceAnalysisOut = 1;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-outputVolumeBatch = 'H:\Analyzed_noWaveClus';                                     
-dataLog = 'H:\EphysData\Data\analysisParamTable_noWaveClus.xlsx';             % Only used to find recording log, used to overwrite params.
+outputVolumeBatch = 'H:\Analyzed';                                     
+dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';             % Only used to find recording log, used to overwrite params.
+eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
@@ -251,12 +253,12 @@ end
 
 % Find the first non-empty Entry to retrieve some general information for
 % the loops below
-%save('postBatchRun')
-%load('postBatchRun')
 
-firstEntry = find(~cellfun('isempty', analysisOutFilename), 1);
+firstEntry = find(~cellfun('isempty', analysisOutFilename), 3);
+firstEntry = firstEntry(3);
 if ~isempty(firstEntry)
   tmp = load(analysisOutFilename{firstEntry},'sigStruct');
+  assert(isfield(tmp, 'sigStruct'), 'sigStruct not in this analysis param, likely due to rerunning the single run and stopping prior to this structure being made. Rerun whole or pick different run')
   epochType = tmp.sigStruct.IndInfo{1};
   dataType = tmp.sigStruct.IndInfo{3};
   epochCount = length(epochType);
@@ -278,6 +280,17 @@ emptyRow = cell([1, length(tableVar)]);
 
 dataArray = cell(epochCount, 1);
 [dataArray{:}] = deal(emptyTable);
+
+% Generate a list of events to be counted across the generation of the
+% excel table.
+tmp2 = load(eventDataPath);
+eventList = tmp2.eventData.Properties.VariableNames';
+eventList = [eventList; 'blinks'; 'saccades'];
+eventSigPerEpoch = cell(epochCount,1);
+eventSigPerEpoch{:} = deal(zeros(length(eventList), 3));
+eventSigPerEpochTable = cell(epochCount, length(analysisParamFileName));
+
+%eventSigPerEpoch{epoch}{groupingType}
 
 for ii = 1:length(analysisParamFileName)
   dataRow = emptyRow;
@@ -332,20 +345,17 @@ for ii = 1:length(analysisParamFileName)
         if isfield(tmp, 'subEventSigStruct')
           subEventSigStruct = tmp.subEventSigStruct;
           if ~subEventSigStruct.noSubEvent
-            chanInfo = subEventSigStruct.testResults{channel_ind};
-            chanInfo = cell2mat([chanInfo{:}]);
-            chanSig = chanInfo < 0.05;
-            UnsortSESig = strjoin(subEventSigStruct.events(chanSig(:,1)), ', ');
-            MUASESig = strjoin(subEventSigStruct.events(chanSig(:,end)), ', ');
-            if size(chanSig,2) > 2
-              unitSig = chanSig(:, 2:end-1);
-              UnitSESig = strjoin(subEventSigStruct.events(any(unitSig,2)), ', ');
-            end
+            % run the function which parses this structure
+            [sigString, allEventSigCount] = returnEventNames(subEventSigStruct, channel_ind, eventList);
             
-            dataRow{strcmp(tableVar, 'subEvent Unit')} = UnitSESig;
-            dataRow{strcmp(tableVar, 'subEvent Unsorted')} = UnsortSESig;
-            dataRow{strcmp(tableVar, 'subEvent MUA')} = MUASESig;
+            eventSigPerEpochTable{epoch_i, ii}{channel_ind} = allEventSigCount;
+            % Add to the total counts
+            eventSigPerEpoch{epoch_i} = eventSigPerEpoch{epoch_i} + allEventSigCount;
             
+            % Fill in value for this data row
+            dataRow{strcmp(tableVar, 'subEvent Unsorted')} = sigString{1};
+            dataRow{strcmp(tableVar, 'subEvent Unit')} = sigString{2};
+            dataRow{strcmp(tableVar, 'subEvent MUA')} = sigString{3};
           end
         end
         
@@ -397,15 +407,26 @@ for ii = 1:length(analysisParamFileName)
 
 end
 
+subEventBatchStruct = struct();
+subEventBatchStruct.dataTable = eventSigPerEpochTable;
+subEventBatchStruct.indicies = '{epoch, analysisParamFileName}{channel_ind}(eventList, groupingType)';
+subEventBatchStruct.epoch = epochType;
+subEventBatchStruct.eventList = eventList;
+subEventBatchStruct.groupingType = {'Unsorted', 'Units', 'MUA'};
+subEventBatchStruct.analysisParamFileName = analysisParamFileName;
+
+save(subEventBatchStructPath, 'subEventBatchStruct');
+
 if isempty(firstEntry)
+  
   fprintf('Done - No Excel sheet to produce')
 else
+  
   %Save Batch Run Results
   for table_ind = 1:length(dataArray)
     dataArray{table_ind}.("Other Info"){3} = sprintf('%d - %d ms', tmp.frEpochs(table_ind,1), tmp.frEpochs(table_ind,2));
     writetable(dataArray{table_ind},sprintf('%s/BatchRunResults.xlsx',outputVolumeBatch),'Sheet', sprintf('%s Epoch', epochType{table_ind}))
   end
-  
 end
 
 % %PDF Summary
@@ -421,7 +442,6 @@ end
 % for figDir_ind = 1:length(analysisOutFigDirs)
 %   createSummaryDoc('buildLayoutParamFile', analysisOutFigDirs{figDir_ind})
 % end
-
 
 end
 
@@ -439,4 +459,49 @@ function [spike, LFP, names] = autoDetectChannels(parsedFolderName)
     end
     [spike, LFP] = deal(channelsTmp); %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
     names = channelNameTmp;
+end
+
+function [sigString, allEventSigCount] = returnEventNames(subEventSigStruct, channel_ind, allEventString)
+% a function which parses the 'subEventSigStruct' produced by individual
+% calls to 'processRun'. Returns a set of strings. 
+
+% Find the appropriate indices for events to add.
+chanInfo = subEventSigStruct.testResults{channel_ind};
+chanInfo = cell2mat([chanInfo{:}]);
+chanSig = chanInfo < 0.05;
+
+% use chanSig as an index to add the appropriate titles for
+% subEvents for adding to the row in the excel sheet.
+UnsortSESig = strjoin(subEventSigStruct.events(chanSig(:,1)), ', ');
+MUASESig = strjoin(subEventSigStruct.events(chanSig(:,end)), ', ');
+if size(chanSig,2) > 2
+  unitSig = chanSig(:, 2:end-1);
+  UnitSESig = strjoin(subEventSigStruct.events(any(unitSig,2)), ', ');
+else
+  UnitSESig = '';
+end
+
+% Add counts to the overall counts across runs
+sigString{1} = UnsortSESig;
+sigString{2} = UnitSESig;
+sigString{3} = MUASESig;
+
+% Produce a count of the number of units with significant activation for a
+% particular event, according to the list of events in allEventString
+allEventRunSigCount = zeros(length(subEventSigStruct.events), 3);
+allEventSigCount = zeros(length(allEventString), 3);
+
+allEventRunSigCount(:,1) = chanSig(:,1);
+allEventRunSigCount(:,end) = chanSig(:,end);
+if size(chanSig, 2) > 2
+  allEventRunSigCount(:,2) = sum(chanSig(:, 2:end-1), 2);
+end
+
+for event_i = 1:length(subEventSigStruct.events)
+  for unit_i = 1:3
+    event_table_ind = strcmp(allEventString, subEventSigStruct.events{event_i});
+    allEventSigCount(event_table_ind, unit_i) = allEventRunSigCount(event_i, unit_i);
+  end
+end
+
 end
