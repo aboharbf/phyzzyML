@@ -1,7 +1,7 @@
 function generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, params)
 % Code which generates TCT matrix using neural decoding toolbox, and
 % modifies axes to better delinates important times in trial.
-
+  
   % use core code to generate TCT matrix
   plot_obj = plot_standard_results_TCT_object(save_file_name);
   plot_obj.saved_results_structure_name = saved_results_name;
@@ -10,8 +10,7 @@ function generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, p
   plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information is coded by a dynamic population code
   
   % Generate a title
-  figTitle = sprintf('Cross Classification Matrix of %s', analysisStruct.plotTitle);
-  title(figTitle);
+  title(params.figTitle);
   
   % Generate vectors for new X and Y axes
   points_to_label = params.plotParams.points_to_label;
@@ -44,7 +43,16 @@ function generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, p
   j.Units = 'Normalized';
   j.Position = [0 0.05 0.55 0.7];
   ax = gca;
-  ax.FontSize = 16;
+  ax.FontSize = 14;
   xlabel('Test time (ms)', 'FontSize', 20)
   ylabel('Train time (ms)', 'FontSize', 20)
+  
+  % Significance testing
+  if params.addTCTSigShading
+    sigImg = (ax.Children(end).CData) > (params.decoding_threshold * 100);
+    sigImg = double(sigImg);
+    sigImg(sigImg == 0) = 0.6;
+    ax.Children(end).AlphaData = sigImg;
+  end
+
 

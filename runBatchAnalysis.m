@@ -26,16 +26,15 @@ if plotSwitch.stimPresCount
   %last recording' to highlight days after long breaks.
 end
 
-if 1%~exist('unitCounts','var')
+if ~exist('unitCounts','var')
   [spikeDataBank, trueCellStruct, unitCounts, resultTable, nullCells] = tableRefFunx(spikeDataBank, cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
   saveEnv(1)
 end
 
+meanPSTHParams.tTestTable = resultTable;
+
 % Report
 reportSubEventCounts(cellCountParams.subEventBatchStructPath, trueCellStruct)
-
-
-meanPSTHParams.tTestTable = resultTable;
 
 % Remove repeated Runs
 if ~calcSwitch.excludeRepeats && isfield(analysisLog, 'repeatsExcluded')
@@ -316,79 +315,93 @@ frameMotionDataNames = {frameMotionData.stimVid};
 load(params.eventData); % Puts eventData into the workspace.
 eventData = eventData(allStimuliVec, :);
 eventList = eventData.Properties.VariableNames;
+eventMat = generateEventImage(eventData, params.psthImDur);
 
 % Step 2 - modify PSTHes - rewardEpoch removal, firstXRuns, animations,
 % topStimOnly
+if any([params.plotTopStim, params.removeFollowing, params.stimInclude, params.removeRewardEpoch, params.firstXRuns])
 
-if params.plotTopStim
-  keepInd = stimPresCounts >= params.topStimPresThreshold;
+  %Initialize a keep index
+  keepInd = true(size(stimPresCounts));
+  
+  if params.plotTopStim
+    keepInd = keepInd & (stimPresCounts >= params.topStimPresThreshold);
+  end
+
+  if params.removeFollowing
+    keepInd = keepInd & (~contains(allStimuliVec, 'Follow'));
+  end
+
+  % Animation related processing - allows for onlyAnim, no Anim, or all.
+  if params.stimInclude ~= 0
+
+    % If removing or focusing on anims, identify them in the list.
+    animParam.stimParamsFilename = params.stimParamsFilename;
+    animParam.plotLabels = {'animSocialInteraction', 'animControl'};
+    animParam.outLogic = 1;
+    animParam.removeEmpty = 1;
+    [tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
+    animInd = logical(sum(tmp,2));
+
+    % If excluding or only including animations, update the meanPSTHStruct
+    % accordingly to allow for unity between this function and those which rely
+    % on its outputs.
+    switch params.stimInclude
+      case 1
+         keepInd = keepInd & animInd;
+      case 2
+         keepInd = keepInd & ~animInd;
+    end
+  end
+  
+  % Once keep ind has been generated across all switches, edit appropriate
+  % structures
   stimPresCounts = stimPresCounts(keepInd);
   allStimuliVec = allStimuliVec(keepInd,:);
   stimPSTH = stimPSTH(keepInd, :, :);
-end
-
-% Animation related processing - allows for onlyAnim, no Anim, or all.
-animParam.stimParamsFilename = params.stimParamsFilename;
-animParam.plotLabels = {'animSocialInteraction', 'animControl'};
-animParam.outLogic = 1;
-animParam.removeEmpty = 1;
-[tmp, ~, ~] = plotIndex(allStimuliVec, animParam);
-animInd = logical(sum(tmp,2));
-
-% If excluding or only including animations, update the meanPSTHStruct
-% accordingly to allow for unity between this function and those which rely
-% on its outputs.
-switch params.stimInclude
-  case  1
-    stimPresCounts = stimPresCounts(animInd);
-    allStimuliVec = allStimuliVec(animInd,:);
-    stimPSTH = stimPSTH(animInd, :, :);
-    
-    % Update the meanPSTHStruct
-    meanPSTHStruct.stimPresCounts = meanPSTHStruct.stimPresCounts(animInd);
-    meanPSTHStruct.IndStructs{1} = allStimuliVec;
-    meanPSTHStruct.stimPSTH = stimPSTH;
-  case 2
-    stimPresCounts = stimPresCounts(~animInd);
-    allStimuliVec = allStimuliVec(~animInd,:);
-    stimPSTH = stimPSTH(~animInd, :, :);
-    
-    % Update the meanPSTHStruct
-    meanPSTHStruct.stimPresCounts = meanPSTHStruct.stimPresCounts(~animInd);
-    meanPSTHStruct.IndStructs{1} = allStimuliVec;
-    meanPSTHStruct.stimPSTH = stimPSTH;
-end
-
-% If desired, remove the reward epoch from the base matrix, and preserve
-% the full matrix for where needed.
-rewardStart = meanPSTHStruct.psthPre + meanPSTHStruct.psthImDur;
-stimPSTHFull = stimPSTH(:,:, 1:2);
-if params.removeRewardEpoch
-  stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart+1), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
-  params.psthPost = 0;
-end
+  eventMat = eventMat(keepInd, :, :);
   
-% If you want to only count the first X runs of a stimulus, 
-if params.firstXRuns
-  keepMat = cellfun(@(x) x <= params.firstXRuns, stimPSTH(:, :, strcmp(meanPSTHStruct.IndStructs{3}, 'presCount')), 'UniformOutput', 0);
-  
-  for ii = 1:size(stimPSTH, 1)
-    for jj = 1:size(stimPSTH, 2)
-      for kk = 1:size(stimPSTH, 3)
-        stimPSTH{ii, jj, kk} = stimPSTH{ii, jj, kk}(keepMat{ii, jj},:);
-        
-        if jj == 3 && kk == 3 %MUA and presCount
-          % Update stimPresCounts according to the new numbers.
-          stimPresCounts(ii) = max(stimPSTH{ii, jj, kk});
+  meanPSTHStruct.stimPresCounts = stimPresCounts;
+  meanPSTHStruct.IndStructs{1} = allStimuliVec;
+  meanPSTHStruct.stimPSTH = stimPSTH;
+
+
+  % If desired, remove the reward epoch from the base matrix, and preserve
+  % the full matrix for where needed.
+  if params.removeRewardEpoch
+
+    % If removing reward activity, store a copy with it.
+    rewardStart = meanPSTHStruct.psthPre + meanPSTHStruct.psthImDur;
+
+    % Remove them from each.
+    stimPSTH(:,:, 1:2) = cellfun(@(x) x(:, 1:rewardStart+1), stimPSTH(:,:, 1:2), 'UniformOutput', 0);
+    params.psthPost = 0;
+
+  end
+
+  % If you want to only count the first X runs of a stimulus, 
+  if params.firstXRuns
+    keepMat = cellfun(@(x) x <= params.firstXRuns, stimPSTH(:, :, strcmp(meanPSTHStruct.IndStructs{3}, 'presCount')), 'UniformOutput', 0);
+
+    for ii = 1:size(stimPSTH, 1)
+      for jj = 1:size(stimPSTH, 2)
+        for kk = 1:size(stimPSTH, 3)
+          stimPSTH{ii, jj, kk} = stimPSTH{ii, jj, kk}(keepMat{ii, jj},:);
+
+          if jj == 3 && kk == 3 %MUA and presCount
+            % Update stimPresCounts according to the new numbers.
+            stimPresCounts(ii) = max(stimPSTH{ii, jj, kk});
+          end
+
         end
-        
       end
     end
   end
+
 end
 
 % Generate the figure directory
-dirTags = {' NoReward','fixAligned','Normalized','Pres Threshold', 'AnimOnly', 'NoAnim', sprintf('first%d', params.firstXRuns)};
+dirTags = {' NoReward', 'fixAligned', 'Normalized', 'Pres Threshold', 'AnimOnly', 'NoAnim', sprintf('first%d', params.firstXRuns)};
 dirTagSwitch = [params.removeRewardEpoch, params.fixAlign, params.normalize, params.plotTopStim, params.stimInclude == 1, params.stimInclude == 2, params.firstXRuns];
 params.outputDir = [params.outputDir strjoin(dirTags(logical(dirTagSwitch)),' - ')];
 
@@ -450,7 +463,7 @@ if params.allStimPSTH
       ylabel('Activity (Firing Rate)');
     end
     title(catPSTHTitle);
-    xlabel('Time (ms)');
+    xlabel('Time from Stimulus Onset (ms)');
     saveFigure(params.outputDir, ['1. ' catPSTHTitle], [], figStruct, [])
     if figStruct.closeFig
       close(h)
@@ -529,8 +542,8 @@ if params.catPSTH
       
       if params.plotMeanLine
         % Include a black line which plots the mean trace on a second axis.
-        lineprops.col{1} = 'k';
-        mseb(1:size(plotData,2), plotData(end,:), catErrMat{end,group_ind,2}, lineprops,1);
+        lineProps.col{1} = 'k';
+        mseb(1:size(plotData,2), plotData(end,:), catErrMat{end,group_ind,2}, lineProps,1);
         grandMeanAxes = axes('YAxisLocation','right','Color', 'none','xtick',[],'xticklabel',[],'xlim',[0 size(plotData,2)]);%,'ytick',[],'yticklabel',[]);
         grandMeanAxes.YAxis.FontSize = 12;
         linkprop([psthAxes, grandMeanAxes],{'Position'});
@@ -706,15 +719,18 @@ if params.lineCatPlot
   singleCatplotLabelsSocialInd = params.plotLabelSocialInd(1:catCount);
   %tmp = distinguishable_colors(catCount);
   plotColors = cell(catCount,1);
-  socialColorsHSV = repmat(rgb2hsv(params.socialColor), [sum(singleCatplotLabelsSocialInd),1]);
-  nonSocialColorsHSV = repmat(rgb2hsv(params.nonSocialColor), [sum(singleCatplotLabelsSocialInd),1]);
+  socCount = sum(singleCatplotLabelsSocialInd);
+  nonSocCount = sum(~singleCatplotLabelsSocialInd);
+  
+  socialColorsHSV = repmat(rgb2hsv(params.socialColor), [socCount, 1]);
+  nonSocialColorsHSV = repmat(rgb2hsv(params.nonSocialColor), [nonSocCount, 1]);
   % HSV values cap at 240
   hsvGradient = 25/240;
-  tmp = 1:5;
-  hsvGradient = hsvGradient * tmp';
+  hsvGradientSoc = hsvGradient * (1:socCount);
+  hsvGradientNonSoc = hsvGradient * (1:nonSocCount);
   
-  socialColorsHSV(:,3) = socialColorsHSV(:,3) - hsvGradient;
-  nonSocialColorsHSV(:,3) = nonSocialColorsHSV(:,3) - hsvGradient;
+  socialColorsHSV(:,3) = socialColorsHSV(:,3) - hsvGradientSoc';
+  nonSocialColorsHSV(:,3) = nonSocialColorsHSV(:,3) - hsvGradientNonSoc';
   plotColorTmp = [socialColorsHSV; nonSocialColorsHSV];
   plotColorTmp = hsv2rgb(plotColorTmp);
   
@@ -723,7 +739,7 @@ if params.lineCatPlot
   end
   
   for group_ind = groupIterInd
-    catPSTHTitle = sprintf('%s Mean PSTH %s', groupingType{group_ind}, normTag);
+    catPSTHTitle = sprintf('%s Mean PSTH per Catagory Label %s', groupingType{group_ind}, normTag);
     h = figure('NumberTitle', 'off', 'Name', catPSTHTitle,'units','normalized','outerposition',[0 0 params.plotSizeLineCatPlot]);
     hold on
     h.Children.FontSize = 15;
@@ -751,9 +767,10 @@ if params.lineCatPlot
     mseb(-800:(size(groupData,2)-801),groupData, vertcat(groupErr{:}), lineProps);
     xlim([-800 (size(groupData,2)-801)])
     legend(singleCatplotLabels, 'AutoUpdate','off','location', 'northeastoutside');
-    line([0 0], ylim(), 'Linewidth',3,'color','k');
+    ylim manual
+    line([0 0], ylim(), 'Linewidth', 3, 'color', 'k');
     line([2800 2800], ylim(), 'Linewidth',3,'color','k');
-    xlabel('Time (ms)');
+    xlabel('Time from Stimulus Onset (ms)');
     ylabel('Normalized Activity (Baseline Z scored)');
     title(catPSTHTitle);
     saveFigure(params.outputDir, ['4. ' catPSTHTitle], [], figStruct, []);
@@ -800,14 +817,14 @@ if params.lineBroadCatPlot
     {'Socially Interacting Agents with Head Turning','Socially Interacting Agents without Head Turning'},...
     {'Agents engaging in Social Interactions ','Agents not engaging in Social Interactions'}...
     {'Socially Interacting Agents with Any Turning','Socially Interacting Agents without Any Turning'}};
-  lineprops.col = {params.socialColor, params.nonSocialColor};
+  lineProps.col = {params.socialColor, params.nonSocialColor};
   assert(length(figIncInd) == length(figLegends), 'Update figTitInd and figLegends to match figIncInd')
   
   meanPSTHStruct.lineBroadCatPlot.figIncInd = figIncInd;
   meanPSTHStruct.lineBroadCatPlot.figExcInd = figExcInd;
   meanPSTHStruct.lineBroadCatPlot.figTitInd = figTitInd;
   meanPSTHStruct.lineBroadCatPlot.figLegends = figLegends;
-  meanPSTHStruct.lineBroadCatPlot.lineprops = lineprops;
+  meanPSTHStruct.lineBroadCatPlot.lineprops = lineProps;
   
   % Append counts to the stimuliNames
   allStimuliLabels = arrayfun(@(x) sprintf('%s (n = %d)', allStimuliNames{x}, stimPresCounts(x)), 1:length(stimPresCounts), 'UniformOutput',0)';
@@ -835,7 +852,7 @@ if params.lineBroadCatPlot
         % Prepare figure
         plotTitle = sprintf('%s - %s, %s', ['mean PSTH of ' figTitInd{fig_ind}], groupingType{group_ind}, normTag);
         h = figure('NumberTitle', 'off', 'Name', plotTitle,'units','normalized','outerposition',[0 0 params.plotSizeLineBroadCatPlot]);
-        params.lineprops = lineprops;
+        params.lineProps = lineProps;
         [ ~,  ~, ~, legendH] = plotPSTH(lineMean, lineErr, [], params, 'line', plotTitle, figLegends{fig_ind});
         axesH = findobj(gcf, 'Type', 'Axes');
         axesH.FontSize = 15;
@@ -845,9 +862,6 @@ if params.lineBroadCatPlot
         
         % Save the figure
         saveFigure(params.outputDir, ['5. ' plotTitle], [], figStruct, []);
-        if figStruct.closeFig
-          close(h)
-        end
         
         % If desired, Generate plots of constituient traces.
         if params.splitContrib
@@ -1621,7 +1635,7 @@ if params.plotTest
               mseb(1:length(lineData), lineData', errorData');
               legend([target(target_i), ['non-' target{target_i}]], 'location', 'northwest','AutoUpdate','off')
               hold on
-              xlabel('Bin Start time (ms)')
+              xlabel('Bin Start Time from Stimulus Onset (ms)')
               ylabel('Firing Rates (Hz)')
               xlim([0,length(lineData)]);
               xticks(1:8:length(starts))
@@ -1846,7 +1860,7 @@ for targ_i = 1:length(target)
       title(groupingType{group_i})
       xlim([0 161])
       hold on
-      xlabel('Bin Start time (ms)')
+      xlabel('Bin Start Time from Stimulus Onset (ms)')
       ylabel('Frequency (Hz)')
       xlim([0,length(histoBins)]);
       xticks(1:8:length(starts))
@@ -2278,10 +2292,12 @@ for ii = 1:length(validDataAll)
     validDataAllMat(:,:, ii) = validDataAll{ii};
 end
 eventUnitCounts = sum(validDataAllMat, 3);
+validUnitCounts = trueCellStruct.unitCounts(trueCell_ind);
+totalCounts = [length(validUnitCounts), sum(validUnitCounts), length(validUnitCounts)];
 
-
-
-dataTable = subEventStruct;
-
+eventSelectivityPercent = eventUnitCounts./totalCounts * 100;
+eventSelTable = array2table(eventSelectivityPercent);
+eventSelTable.Properties.VariableNames = subEventStruct.groupingType;
+eventSelTable.Properties.RowNames = subEventStruct.eventList;
 
 end

@@ -41,7 +41,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
@@ -77,11 +77,11 @@ meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the 
 meanPSTHParams.maxStimOnly = 1;                 % The max value and max index taken from the PSTH is only in the area of the stimulus presentation.
 meanPSTHParams.plotLabels = {'chasing','fighting','mounting','grooming','following',...
   'objects','goalDirected','idle','scramble','scene','socialInteraction','animControl','animSocialInteraction','agents','headTurn','allTurn', 'headTurnClassic'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
-meanPSTHParams.removeEmpty = 1;         % Used by plotIndex - removes empty columns 
-meanPSTHParams.outLogic = 1;            % Used by plotIndex - turns output into logical array of 0s and 1s.
+meanPSTHParams.removeEmpty = 1;                 % Used by plotIndex - removes empty columns 
+meanPSTHParams.outLogic = 1;                    % Used by plotIndex - turns output into logical array of 0s and 1s.
 meanPSTHParams.plotLabelSocialInd = [1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0]; %Index for single catagory labels which are social.
-meanPSTHParams.socialColor = [240/255 62/255 47/255];
-meanPSTHParams.nonSocialColor = [9/255 217/255 107/255];
+meanPSTHParams.socialColor = [0/255 162/255 232/255];
+meanPSTHParams.nonSocialColor = [244/255 121/255 128/255];
 meanPSTHParams.sortPresCountSort = 1;           % Sorts images based on counts.
 meanPSTHParams.fixAlign = 1;                    % For cross catagory comparison lines, shift everything to the mean of the fix period.
 meanPSTHParams.topPSTHRunExtract = 3;           % meanPSTH will return a structure of run indices of the top PSTHes by activity (influenced by Z-scoring). This number dictates how many of the top are returned.
@@ -101,14 +101,15 @@ meanPSTHParams.colormap = map;
 meanPSTHParams.tmpFileName = 'tmpStructPrcSigChange.mat';
 
 meanPSTHParams.removeRewardEpoch = 1;           % Removes the reward period activity when generating plots.
-meanPSTHParams.firstXRuns = 0;                % Removes any runs above this number. 0 = Don't remove any.
+meanPSTHParams.firstXRuns = 0;                  % Removes any runs above this number. 0 = Don't remove any.
+meanPSTHParams.removeFollowing = 1;             % Remove traces related to following due to the ambigious nature of these interactions.
 meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, include a additional axis as a line plot.
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
 
-meanPSTHParams.catPSTH = 1;                     % 1.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
-meanPSTHParams.allStimPSTH = 1;                 % 2.0 - All Stimuli means in the same plot.
-meanPSTHParams.allRunStimPSTH = 1;              % 3.0 - Stimuli Plot - 'All chasing 1 PSTHs, sorted by...'
+meanPSTHParams.allStimPSTH = 0;                 % 1.0 - All Stimuli means in the same plot.
+meanPSTHParams.catPSTH = 0;                     % 2.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
+meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing0001 PSTHs, sorted by...'
 meanPSTHParams.lineCatPlot = 1;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
 meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
@@ -169,7 +170,6 @@ slidingTestParams.spikeDataFileName = preprocessParams.spikeDataFileName;
 slidingTestParams.exportFig = figStruct.exportFig;
 slidingTestParams.plotSize = [.8 .6];        
 
-
 % Neural Decoding Toolbox parameters
 % Paths
 NDTParams.NDTPath = NDTPath;
@@ -190,14 +190,22 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
-NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;          % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
-NDTParams.AnalysesDefault.cross_validator_num_resample = 10;      % Number of times to resample runs for cross validator.
+NDTParams.AnalysesDefault.null_shuffle_count = 20;           % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
+NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
+NDTParams.AnalysesDefault.cross_validator_num_resample = 10;  % Number of times to resample runs for cross validator.
 
 NDTParams.figStruct = figStruct;
 NDTParams.plotParams = figStruct;
 NDTParams.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
 NDTParams.plotParams.points_for_lines = [0, 2800];
 NDTParams.plotParams.shift = 800; % prePSTH in the code elsewhere.
+
+NDTParams.p_val_threshold = 0.05;
+
+NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;
+NDTParams.plot_per_label_acc.sig_bar_pos = 'bottom';
+NDTParams.addTCTSigShading = 1;
+NDTParams.plot_per_label_acc.sig_color = {[232/255 0 5/255]};
 
 % Novelty Analysis
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis'); 

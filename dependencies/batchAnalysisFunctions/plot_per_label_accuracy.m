@@ -12,6 +12,12 @@ points_to_label = params.plotParams.points_to_label;
 points_for_lines = params.plotParams.points_for_lines;
 the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1);
 
+if strcmp(params.plot_per_label_acc, 'top')
+   sigBarYLims = [0.92, .98];
+else
+   sigBarYLims = [0.035, 0.065];
+end
+
 figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
 figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
 axesh = axes(figh);
@@ -21,23 +27,38 @@ title(figTitle)
 hold on
 
 % Find Unique Labels, extract them from confusionMatrix, plot them
-labels = ds.label_names_to_label_numbers_mapping(ds.label_names_to_use);
+if isempty(ds.label_names_to_label_numbers_mapping)
+  labels = ds.label_names_to_use;
+else
+  labels = ds.label_names_to_label_numbers_mapping(ds.label_names_to_use);
+end
 if size(labels, 2) > 1
   labels = labels';
 end
 confusionMat = decoding_results.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix;
 confusionMat = confusionMat ./ sum(confusionMat, 1);
 correctLineStack = zeros(length(labels), size(confusionMat,3));
+linePlotHandles = gobjects(length(labels) + 2, 1);
 for jj = 1:length(labels)
   correctTrace = squeeze(confusionMat(jj,jj,:))';
   correctLineStack(jj,:) = correctTrace;
-  plot(correctTrace, 'linewidth', 3)
+  linePlotHandles(jj) = plot(correctTrace, 'linewidth', 3);
 end
 
-% Plot the mean and chance, Add the legend
-plot(mean(correctLineStack), 'linewidth', 5, 'color', 'r')
-plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b')
-legend([labels; {'All Label Mean'}; {'Theoretical chance'}], 'AutoUpdate', 'off', 'location', 'northeastoutside')
+% Plot the mean and chance
+linePlotHandles(length(labels) + 1) = plot(mean(correctLineStack), 'linewidth', 5, 'color', 'k');
+linePlotHandles(length(labels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
+sigBarLabel = sprintf('Significant regions (>%s%%)', num2str((1 - params.p_val_threshold) * 100));
+
+% Plot Significant p values
+[~, sigBarHands] = add_bars_to_plots([], params.sig_bins, params.plot_per_label_acc.sig_color, params.sig_bins, sigBarYLims);
+
+allLabels = [labels; 'All Label Mean'; 'Theoretical chance'; sigBarLabel];
+linePlotHandles = [linePlotHandles; sigBarHands];
+
+
+% Add the legend
+legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
 
 % Label the axes, calculate actual bin starts
 ylabel('Decoding Accuracy')
@@ -50,7 +71,10 @@ x_for_lines = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_sh
 xticks(bins_to_label);
 xticklabels(points_to_label);
 ylim([0, 1]);
+xlim([1, length(the_bin_start_times)]);
 for ii = 1:length(x_for_lines)
-  plot([x_for_lines(ii), x_for_lines(ii)], ylim(), 'linewidth', 4, 'color', 'k')
+  plot([x_for_lines(ii), x_for_lines(ii)], ylim(), 'linewidth', 4, 'color', [0.2, 0.2, 0.2])
 end
+
+
 
