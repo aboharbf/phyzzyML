@@ -12,12 +12,6 @@ points_to_label = params.plotParams.points_to_label;
 points_for_lines = params.plotParams.points_for_lines;
 the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1);
 
-if strcmp(params.plot_per_label_acc, 'top')
-   sigBarYLims = [0.92, .98];
-else
-   sigBarYLims = [0.035, 0.065];
-end
-
 figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
 figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
 axesh = axes(figh);
@@ -50,30 +44,42 @@ linePlotHandles(length(labels) + 1) = plot(mean(correctLineStack), 'linewidth', 
 linePlotHandles(length(labels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
 sigBarLabel = sprintf('Significant regions (>%s%%)', num2str((1 - params.p_val_threshold) * 100));
 
+if strcmp(params.plot_per_label_acc, 'top')
+   % Top 10%
+   yLims = [axesh.Position(2)+axesh.Position(4) - axesh.Position(4)/10, axesh.Position(4)/10];
+else
+   yLims = [axesh.Position(2), axesh.Position(4)/10];
+end
+
+decodingAx = gca;
+
 % Plot Significant p values
-[~, sigBarHands] = add_bars_to_plots([], params.sig_bins, params.plot_per_label_acc.sig_color, params.sig_bins, sigBarYLims);
+[sigBarImgAxs, sigBarHands] = add_bars_to_plots([], [], {params.sig_bins}, params.plot_per_label_acc.sig_color, {params.sig_bins}, yLims);
 
 allLabels = [labels; 'All Label Mean'; 'Theoretical chance'; sigBarLabel];
 linePlotHandles = [linePlotHandles; sigBarHands];
 
-
 % Add the legend
 legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
 
-% Label the axes, calculate actual bin starts
-ylabel('Decoding Accuracy')
-xlabel('Bin start time')
-
-% Label x axes
+% Label axes correctly
 the_bin_start_times_shift = the_bin_start_times - 800;
 bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
 x_for_lines = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
+
+ylabel('Decoding Accuracy')
+xlabel('Bin start time')
 xticks(bins_to_label);
 xticklabels(points_to_label);
 ylim([0, 1]);
 xlim([1, length(the_bin_start_times)]);
 for ii = 1:length(x_for_lines)
   plot([x_for_lines(ii), x_for_lines(ii)], ylim(), 'linewidth', 4, 'color', [0.2, 0.2, 0.2])
+end
+
+% Re-adjust significance bar to align with slightly changed size of plot.
+for ii = 1:length(sigBarImgAxs)
+  sigBarImgAxs(ii).Position(1:3) = decodingAx.Position(1:3);
 end
 
 

@@ -41,12 +41,12 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
 plotSwitch.slidingWindowANOVA = 0;    % 
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 
 %% Parameters
 preprocessParams.spikeDataFileName = 'spikeDataBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
@@ -106,11 +106,12 @@ meanPSTHParams.removeFollowing = 1;             % Remove traces related to follo
 meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, include a additional axis as a line plot.
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
+meanPSTHParams.addSubEventBars = 1;             % for plot 5.0, add bars underneath for subEvents.
 
 meanPSTHParams.allStimPSTH = 0;                 % 1.0 - All Stimuli means in the same plot.
 meanPSTHParams.catPSTH = 0;                     % 2.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
 meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing0001 PSTHs, sorted by...'
-meanPSTHParams.lineCatPlot = 1;                 % 4.0 - Line plot with Line per Catagory.
+meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
 meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
 
@@ -190,7 +191,7 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
-NDTParams.AnalysesDefault.null_shuffle_count = 20;           % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
+NDTParams.AnalysesDefault.null_shuffle_count = 20;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.AnalysesDefault.cross_validator_num_resample = 10;  % Number of times to resample runs for cross validator.
 
@@ -201,11 +202,13 @@ NDTParams.plotParams.points_for_lines = [0, 2800];
 NDTParams.plotParams.shift = 800; % prePSTH in the code elsewhere.
 
 NDTParams.p_val_threshold = 0.05;
+NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;    % The thrshold to use for determining significant regions
+NDTParams.plot_per_label_acc.sig_bar_pos = 'bottom';                          % Determines position of significance bar as top or bottom of plot.
+NDTParams.plot_per_label_acc.sig_color = {[232/255 0 5/255]};                 % Determines the color of the bar of the significant regions in 'plot_per_label accuracy'
 
-NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;
-NDTParams.plot_per_label_acc.sig_bar_pos = 'bottom';
-NDTParams.addTCTSigShading = 1;
-NDTParams.plot_per_label_acc.sig_color = {[232/255 0 5/255]};
+NDTParams.addTCTSigShading = 1;                                               % Adds shading to the Cross Temporal Decoding matrix
+NDTParams.removeSmallPatches = 1;                                             % Removes patches which don't have at least _cutOff elements in them.
+NDTParams.removeSmallPatch_cutOff = 6;                                        % The threshold for removing small patches in the Cross temporal decoding matrix.
 
 % Novelty Analysis
 noveltyParams.outputDir = fullfile(outputDir,'noveltyAnalysis'); 

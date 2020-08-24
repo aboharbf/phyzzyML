@@ -830,10 +830,15 @@ if params.lineBroadCatPlot
   allStimuliLabels = arrayfun(@(x) sprintf('%s (n = %d)', allStimuliNames{x}, stimPresCounts(x)), 1:length(stimPresCounts), 'UniformOutput',0)';
   
   for fig_ind = 1:length(figIncInd)
+    % Retrieve the labels for each plot
     line1Array = stimPSTH(figIncInd{fig_ind},:,1);
     line2Array = stimPSTH(figExcInd{fig_ind},:,1);
     line1Labels = allStimuliLabels(figIncInd{fig_ind});
     line2Labels = allStimuliLabels(figExcInd{fig_ind});
+    line1EventMat = eventMat(figIncInd{fig_ind},:,:);
+    line2EventMat = eventMat(figExcInd{fig_ind},:,:);
+    
+    % If there are two lines to plot, cycle through them.
     if ~isempty(line1Array) && ~isempty(line2Array)
       for group_ind = groupIterInd
         % Generate Data
@@ -853,12 +858,44 @@ if params.lineBroadCatPlot
         plotTitle = sprintf('%s - %s, %s', ['mean PSTH of ' figTitInd{fig_ind}], groupingType{group_ind}, normTag);
         h = figure('NumberTitle', 'off', 'Name', plotTitle,'units','normalized','outerposition',[0 0 params.plotSizeLineBroadCatPlot]);
         params.lineProps = lineProps;
-        [ ~,  ~, ~, legendH] = plotPSTH(lineMean, lineErr, [], params, 'line', plotTitle, figLegends{fig_ind});
+        
+        if params.addSubEventBars
+          figLegItr = [figLegends{fig_ind}, strrep(eventList, '_', ' ')];
+        else
+          figLegItr = figLegends{fig_ind};
+        end       
+        
+        [ ~,  ~, ~, legendH] = plotPSTH(lineMean, lineErr, [], params, 'line', plotTitle, figLegItr);
         axesH = findobj(gcf, 'Type', 'Axes');
         axesH.FontSize = 15;
         hold on
         legendH.Location = 'northeast';
         ylabel('Normalized Activity');
+        
+        % Add event plots underneath the traces using eventMat and
+        % add_bar_to_plots.m
+        if params.addSubEventBars
+          % Prepare data matrices to plot
+          line1DataMat = squeeze(sum(line1EventMat, 1))';
+          line2DataMat = squeeze(sum(line2EventMat, 1))';
+          eventCount = size(line1DataMat, 1);
+          comboMat = [line1DataMat; line2DataMat];
+          
+          % Shift to fit and pad pre and post.
+          comboMat = comboMat(:, 1:params.psthImDur);
+          comboMat = [zeros(size(comboMat,1), params.psthPre), comboMat, zeros(size(comboMat,1), params.psthPost)];
+          cMatSize = size(comboMat);
+          comboMatShow = ~comboMat == 0;
+          
+          % Package for the add_bars_to_plots
+          comboMatArray = mat2cell(comboMat, repmat(eventCount, [2,1]), cMatSize(2));
+          comboMatShowArray = mat2cell(comboMatShow, repmat(eventCount, [2,1]), cMatSize(2));
+          % Prepare labels/colors
+          colorMat = lineProps.col;
+          
+          % Add the plots
+          [newBarImg, barDummyHands] = add_bars_to_plots([], [], comboMatArray, colorMat, comboMatShowArray, []);
+        end
         
         % Save the figure
         saveFigure(params.outputDir, ['5. ' plotTitle], [], figStruct, []);
@@ -888,6 +925,7 @@ if params.lineBroadCatPlot
             
           end
         end
+        
       end
     end
   end
@@ -1221,7 +1259,15 @@ end
 
 allStimuliVec = meanPSTHStruct.IndStructs{1};
 eventList = eventData.Properties.VariableNames; % Removes blinks/saccades
-eventList = strrep(eventList, '_', ' ');
+eventData = eventData(allStimuliVec, :);
+eventMaxLengths = zeros(size(eventList));
+for ii = 1:length(eventList)
+  allEventMax = cellfun(@(x) max(x.endTime - x.startTime), table2cell(eventData(:,ii)), 'UniformOutput', false);
+  eventMaxLengths(ii) = max([allEventMax{:}]);
+end
+
+eventMat = generateEventImage(eventData, meanPSTHStruct.psthImDur);
+eventListTitle = strrep(eventList, '_', ' ');
 % Remove non-represented variables
 newEventData = eventData(allStimuliVec, :);
 stimEventLogicArray = ~cellfun(@(x) size(x, 1) == 0, table2cell(newEventData));
@@ -1314,22 +1360,27 @@ end
 groupIterInd = 1:3;
 
 if params.meanSubEventPSTH_extracted
-  % For combination type events, I need to compile things before.
-  [eventPSTHData, eventPSTHNullData] = deal(cell(length(eventList), length(groupIterInd)));
+  % This code generate an event aligned mean activity
+
+  % For combination type events, like 'all Turns', I need to compile things before.
+  % 3rd D - 1 = real data, 2 = NullData.
+  eventPSTHData = cell(length(eventListTitle), length(groupIterInd), 2);
   
+  simpleEvents = eventListTitle;
   comboEvents = {'headTurn All', 'all Turns'};
-  comboInd = [false(1, length(eventList)), true(1, length(comboEvents))];
-  eventList = [eventList,  comboEvents];
   
-  comboGroups = cell(1, length(eventList));
-  comboGroups{strcmp(eventList, 'headTurn All')} = [find(strcmp(eventList, 'headTurn right')),  find(strcmp(eventList, 'headTurn left'))];
-  comboGroups{strcmp(eventList, 'all Turns')} = [comboGroups{strcmp(eventList, 'headTurn All')}, find(strcmp(eventList, 'bodyTurn'))];
+  comboInd = [false(1, length(eventListTitle)), true(1, length(comboEvents))];
+  eventListTitle = [eventListTitle,  comboEvents];
+  
+  comboGroups = mat2cell(1:length(simpleEvents), 1, ones(length(simpleEvents),1)');
+  comboGroups{strcmp(eventListTitle, 'headTurn All')} = [find(strcmp(eventListTitle, 'headTurn right')),  find(strcmp(eventListTitle, 'headTurn left'))];
+  comboGroups{strcmp(eventListTitle, 'all Turns')} = [comboGroups{strcmp(eventListTitle, 'headTurn All')}, find(strcmp(eventListTitle, 'bodyTurn'))];
   
   % Initialize structures for holding both traces and their null
   % equivalents.
-  for event_i = 1:length(eventList)
+  for event_i = 1:length(eventListTitle)
     
-    figTitle = sprintf('mean Slice extract PSTH for %s', eventList{event_i});
+    figTitle = sprintf('mean Slice extract PSTH for %s', eventListTitle{event_i});
     h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeMeanSubEventPSTH_extracted]);
     sgtitle(figTitle);
     
@@ -1338,27 +1389,41 @@ if params.meanSubEventPSTH_extracted
       
       % Collect plot data
       if ~comboInd(event_i)
+        
         % Simple events, defined by eventData.
         stimLogicArrayEvent = stimEventLogicArray(:,event_i);
         stim2Check = find(stimLogicArrayEvent);
       
         for stim_i = stim2Check'
+          % Go through stimuli with events
           eventSpecTable = newEventData{stim_i, event_i}{1};
-          stimTimePerFrame = frameMotionData(strcmp(stimEventNames{stim_i}, frameMotionDataNames)).timePerFrame;
-          eventStarts = round(eventSpecTable.startFrame * stimTimePerFrame);
+          eventStarts = eventSpecTable.startTime;
+          eventDur = eventSpecTable.endTime - eventStarts;
           
           for inst_i = 1:length(eventStarts)
-            startT = (eventStarts(inst_i) + psthPreData) - psthPre;
-            endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
-            [eventPSTHData{event_i, group_i}, plotTraceData] = deal([eventPSTHData{event_i, group_i}; stimPSTH{stim_i,group_i,1}(:, startT:endT)]);
-            eventPSTHNullDataTmp = vertcat(stimPSTH{~stimLogicArrayEvent,group_i,1});
-            [eventPSTHNullData{event_i, group_i}, plotTraceNull] = deal([eventPSTHNullData{event_i, group_i}; eventPSTHNullDataTmp(:, startT:endT)]);
+            % For every instance of an event, identify start and stop times
+            startT = (eventStarts(inst_i) + psthPreData) - psthPre;               % Event start - desired preEvent time.
+            %             endT = (eventStarts(inst_i) + psthPreData) + round(eventDur(inst_i)) + psthPost;    % Event duration + desired postEvent time.
+            endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;    % Event duration + desired postEvent time.
+            
+            % Use those times to extract the desired slice, preparing it
+            % for later combining and for plotting.
+            eventPSTHData{event_i, group_i, 1} = [eventPSTHData{event_i, group_i, 1}; stimPSTH{stim_i,group_i,1}(:, startT:endT)];
+            
+            eventPSTHNullDataTmp = vertcat(stimPSTH{~stimLogicArrayEvent, group_i, 1});             % Generate the null trace, store null values for later.
+            eventPSTHData{event_i, group_i, 2} = [eventPSTHData{event_i, group_i, 2}; eventPSTHNullDataTmp(:, startT:endT)];
           end
         end
+        
+        % Once all the data has been collected, store in the appropriate
+        % plotting structure
+        plotTraceData = eventPSTHData{event_i, group_i, 1};
+        plotTraceNull = eventPSTHData{event_i, group_i, 2};
+        
       else
         %comboInd means the set is a combination of previous entries.
-        plotTraceData = vertcat(eventPSTHData{comboGroups{event_i}, group_i});
-        plotTraceNull = vertcat(eventPSTHNullData{comboGroups{event_i}, group_i});
+        plotTraceData = vertcat(eventPSTHData{comboGroups{event_i}, group_i, 1});
+        plotTraceNull = vertcat(eventPSTHData{comboGroups{event_i}, group_i, 2});
       end
       
       % Prepare plot data
@@ -1378,7 +1443,7 @@ if params.meanSubEventPSTH_extracted
       
       msebData = [plotData; plotNull];
       msebError = [plotErr; plotErrNull];
-      plotLabels = [eventList(event_i); sprintf('non-%s', eventList{event_i})];
+      plotLabels = [eventListTitle(event_i); sprintf('non-%s', eventListTitle{event_i})];
       
       [~, ~, ~, legendH] = plotPSTH(msebData, msebError, [], params, 'line', [], plotLabels);
       legendH.Location = 'northwest';
@@ -1389,6 +1454,8 @@ if params.meanSubEventPSTH_extracted
   end
     
 end
+
+% Put desired outputs in the struct.
 subEventPSTHStruct = struct();
 
 end

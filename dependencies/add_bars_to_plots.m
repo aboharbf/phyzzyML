@@ -1,4 +1,4 @@
-function [barImgHand, barDummyHands] = add_bars_to_plots(targAx, dataMat, colorMat, show_ind, yLims)
+function [newBarAxes, barDummyHands] = add_bars_to_plots(targAx, targFig, dataMat, colorMat, show_ind, yLims)
 % Function intended to add a bar to plot, typically with the focus on a
 % segmented bar highlighting the time of events in a continous data trace.
 %
@@ -21,41 +21,64 @@ if isempty(targAx)
   targAx = gca;
 end
 
+if isempty(targFig)
+  targFig = gcf;
+end
+
 if isempty(show_ind)
   show_ind = true(size(dataMat));
 end
 
 if isempty(yLims)
-  yLims = [targAx.YLim(1), targAx.YLim(2)/10];
+  % Default is bottom 10% of Axes. Need Bottom and Height/10.
+  yLims = [targAx.Position(2), targAx.Position(4)/10];
 end
 
-% use yVals to generate plot
-yRangeSize = yLims(2) - yLims(1);
-yDataForImg = [yLims(1) + yRangeSize/4, yLims(2) - yRangeSize/4];
+axes2Add = cellfun(@(x) any(any(x)), show_ind);
 
-% Create CData matrix of correct size
-CDataForPlot = zeros([size(dataMat), 3]);
-for ii = 1:size(dataMat,1)
-  colorSlice(1, 1, :) = colorMat{ii};
-  CDataForPlot(ii, :, :) = repmat(colorSlice, [1, size(dataMat,2), 1]);
+% use yLims to determine where new axes will go
+heightPerBar = yLims(1)/sum(axes2Add);
+bottomPerBar = yLims(1):heightPerBar:(yLims(1) + yLims(2));
+bottomPerBar = fliplr(bottomPerBar);
+% yDataForImg = [yLims(1) + yRangeSize/4, yLims(2) - yRangeSize/4];
+
+% for each line, generate an axis to holds the new image, and gives it a
+% distinct color map.
+[newBarAxes, newBarImg] = deal(gobjects(sum(axes2Add)));
+colorBarLocations = {'westoutside', 'west', 'eastoutside', 'east'};
+
+for img_i = 1:length(colorMat)
+  % Check if there are any events in the catagory to represent.
+  if axes2Add(img_i)
+    newBarAxes(img_i) = axes();   % Generate an axis
+    newBarColorMap = colorGradient([1 1 1], colorMat{img_i}, 256);
+    
+    newBarImg(img_i) = imagesc(dataMat{img_i});     % Add the image data
+    newBarImg(img_i).AlphaData = show_ind{img_i};   % Blank out empty regions.
+    colormap(newBarAxes(img_i), newBarColorMap);    % Assign the correct colormap
+    
+    if length(unique(unique(dataMat{img_i}))) > 2
+      colorbar(colorBarLocations{img_i});             % Add colorbar, if needed
+    end
+    
+    newBarAxes(img_i).Position = targAx.Position;         % Match the axes of the larger figure
+    newBarAxes(img_i).Position(2) = bottomPerBar(img_i);  % Position it correctly, bottom
+    newBarAxes(img_i).Position(4) = heightPerBar;         % Position it correctly, height
+    newBarAxes(img_i).Visible = 'off';                    % Turn off the axes
+  end
 end
-
-% Flip the data so the data/colors defined first are on top
-dataMat = flipud(dataMat);
-CDataForPlot = flipud(CDataForPlot);
-show_ind = flipud(show_ind);
-
-barImgHand = imagesc([0 size(dataMat,2)], yDataForImg, CDataForPlot);
-barImgHand.AlphaData = show_ind;
 
 % Add dummy lines matching the desired colors and return handles, for the
 % sake of complete legends
-dummyLineYVals = linspace(yDataForImg(1), yDataForImg(2), 2+size(dataMat,1));
+dummyLineYVals = linspace(yLims(1), yLims(2), 2+size(dataMat{1},1));
 dummyLineYVals = dummyLineYVals(2:end-1);
-barDummyHands = gobjects(size(dummyLineYVals));
-for ii = 1:length(gobjects)
+
+if length(dummyLineYVals) == 1
   % Plot a single point at the first instance of each line, assuming it has
   % any entries, and add it to the handles
-  firstBin = find(dataMat(ii,:),1);
-  barDummyHands(ii) = plot(firstBin, dummyLineYVals, 'color', colorMat{ii}, 'linewidth', 15);
+  barDummyHands = plot(targAx, 0, dummyLineYVals, 'color', colorMat{1}, 'linewidth', 15);
+else
+  barDummyHands = plot(targAx, 0, dummyLineYVals, 'color', 'k', 'linewidth', 1);
 end
+
+set(gcf, 'CurrentAxes', targAx);

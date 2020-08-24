@@ -1,4 +1,4 @@
-function [ psthAxes,  colorBarh, vertLineHands, legendH] = plotPSTH(psthArray, psthError, psthAxes, psthParams, plotType, psthTitle, ylabels)
+function [psthAxes, colorBarh, vertLineHands, legendH] = plotPSTH(psthArray, psthError, psthAxes, psthParams, plotType, psthTitle, ylabels)
 % Function which accepts data and generate a PSTH. Accepts the following
 % inputs.
 % psthArray: stimuli * bin in size.
@@ -68,6 +68,18 @@ switch plotType
     
     xlim(xrange);
     ylim(ylim()); % Shifts auto ylim to manual, preventing lines below from expanding the window.
+    
+    % Assumption - if I've added more labels than there are lines, I want
+    % the legend to include these labels for the sake of objects to be
+    % generated later.
+    if length(psthAxes) < length(ylabels)
+      hold on
+      dummyLines = length(ylabels) - length(psthAxes);
+      dummyLinHands = gobjects(dummyLines,1);
+      for ii = 1:dummyLines     
+        dummyLinHands(ii) = plot(0, 0, 'color', 'k', 'linewidth', 0.5);
+      end
+    end
     legendH = legend(ylabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');
 end
 

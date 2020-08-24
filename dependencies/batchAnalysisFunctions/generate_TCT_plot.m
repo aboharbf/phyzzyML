@@ -51,8 +51,18 @@ function generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, p
   if params.addTCTSigShading
     sigImg = (ax.Children(end).CData) > (params.decoding_threshold * 100);
     sigImg = double(sigImg);
+    
+    if params.removeSmallPatches
+      sigImgPatches = bwconncomp(sigImg);
+      patchSizes = cellfun('length', sigImgPatches.PixelIdxList)';
+      patchRemoveInd = patchSizes < params.removeSmallPatch_cutOff;
+      patchesRemove = sigImgPatches.PixelIdxList(patchRemoveInd);
+      patchRemoveInd = vertcat(patchesRemove{:});
+      sigImg(patchRemoveInd) = 0;
+    end
+
     sigImg(sigImg == 0) = 0.6;
     ax.Children(end).AlphaData = sigImg;
   end
-
-
+  
+end

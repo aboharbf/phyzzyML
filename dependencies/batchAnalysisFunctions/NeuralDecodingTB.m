@@ -62,7 +62,7 @@ end
 analysesToRun = fields(params.Analyses);
 analysesStructs = params.Analyses;
 
-for analysis_i = 2%1:length(analysesToRun)
+for analysis_i = 1:length(analysesToRun)
   % Step 2 - generate the data source object
   analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
   
@@ -124,11 +124,9 @@ for analysis_i = 2%1:length(analysesToRun)
       fileName = sprintf('decoding_results_shuffle%d', shuff_ind - 1);
       save_file_dir_itr = shuff_file_dir;
       tmpds.initialized = 0;       % Without this, the shuffle code isn't seen and shuffling doesn't take place until you create a new ds from scratch.
-      
     else
       fileName = sprintf('decoding_results');
       save_file_dir_itr = save_file_dir;
-      
     end
     
     the_cross_validator = standard_resample_CV(tmpds, the_classifier, the_feature_preprocessors);
@@ -182,7 +180,6 @@ for analysis_i = 2%1:length(analysesToRun)
   saveFigure(params.outputDir, ['2. ' figTitle], analysisStruct, params.figStruct, [])
   
 end
-
 save(fullfile(params.outputDir, 'ndtParams.mat'), 'params')
 
 end
