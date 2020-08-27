@@ -20,6 +20,11 @@ end
 %runData.spikesByEventBinned{stim}{chan}{unit} --> needs to be turned to
 %rasterDataUnit
 
+% Load the eventData for attaching significance activity to units
+tmp = load(params.subEventBatchStructPath);
+sigUnitGrid = tmp.subEventBatchStruct.sigUnitGrid;
+eventList = tmp.subEventBatchStruct.eventList;
+
 for run_i = 1:length(runList)
   
   % print a message the the data is being binned (and add a dot for each file that has been binned
@@ -97,6 +102,7 @@ for run_i = 1:length(runList)
   raster_site_info.alignment_event_time = abs(runData.start);
   raster_site_info.runNum = runData.runNum;
   
+  
   % Construct raster_data and save file per unit.
   for chan_i = 1:length(runData.spikesByEventBinned{1})
     % Information which is consistent per channel
@@ -113,10 +119,32 @@ for run_i = 1:length(runList)
       
       % Generate the raster_site_info
       raster_site_info.UnitType = convertUnitToName(unit_i, length(runData.spikesByEventBinned{1}{chan_i}), 2);
+      
       ULabel = convertUnitToName(unit_i, length(runData.spikesByEventBinned{1}{chan_i}), 1);
-
+      chLabel = ['Ch' num2str(chan_i)];
+      rasterFileName = [runList{run_i},chLabel, ULabel];
+      
+      % use generated label to look up eventData, subEvent significance.
+      gridRow = strcmp(sigUnitGrid.sigUnitLabels, rasterFileName(2:end));
+      subStructSigData = sigUnitGrid.sigUnitMat(gridRow, :);
+      for event_i = 1:length(eventList)
+        raster_site_info.(eventList{event_i}) = subStructSigData(event_i);
+      end
+      
+      % Combo events
+      comboName = {'headTurn_all', 'allTurn'};
+      comboInts = {{'headTurn_right','headTurn_left'};{'headTurn_right', 'headTurn_left', 'bodyTurn'}};
+      
+      for combo_i = 1:length(comboName)
+        anyArray = 0;
+        for event_i = 1:length(comboInts{combo_i})
+          anyArray = anyArray | subStructSigData(strcmp(eventList', comboInts{combo_i}{event_i}));
+        end
+        raster_site_info.(comboName{combo_i}) = anyArray;
+      end
+      
       % Save file in output folder
-      save(fullfile(rasterDataPath, [runList{run_i}, ULabel]), 'raster_data', 'raster_labels', 'raster_site_info')
+      save(fullfile(rasterDataPath, rasterFileName), 'raster_data', 'raster_labels', 'raster_site_info')
       
     end
   end

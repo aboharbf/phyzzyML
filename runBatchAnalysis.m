@@ -792,28 +792,31 @@ if params.lineBroadCatPlot
 
   % Agent videos without head turning.
   agentNHInd = agentInd & ~headTurnInd;
+  agentNTInd = agentInd & ~allTurnInd;
   
   % Social videos 
   socialHTInd = socialInd & headTurnInd;        %   Head turning vs Not
   socialNonHTInd = socialInd & ~headTurnInd;    %   
   socialTInd = socialInd & allTurnInd;
   socialNonTInd = socialInd & ~allTurnInd;
-  
+      
   % Social Agent vs Non-Social Agent
   socialAgentInd = socialInd;
   nonSocialAgentInd = agentInd & ~socialInd;
   
-  figIncInd = {agentInd, socialInd, headTurnInd, socialHTInd, socialAgentInd, socialTInd};
-  figExcInd = {~agentInd, ~socialInd, agentNHInd, socialNonHTInd, nonSocialAgentInd, socialNonTInd};
+  figIncInd = {agentInd, socialInd, headTurnInd, allTurnInd, socialHTInd, socialAgentInd, socialTInd};
+  figExcInd = {~agentInd, ~socialInd, agentNHInd, agentNTInd, socialNonHTInd, nonSocialAgentInd, socialNonTInd};
   figTitInd = {'Agent containing Stimuli Contrast',...
     'Social Interactions Contrast',...
     'Agents engaging in Head Turning Contrast',...
+    'Agents engaging in All Turning Contrast',...
     'Social Interactions with Head turning Contrast',...
     'Agents engaging in Social Interactions Contrast'...
     'Social Interactions with all Turning Contrast'};
   figLegends = {{'Agent containing Stimuli','Non-Agent containing Stimuli'},...
     {'Social Interaction Stimuli','non-Social Interaction Stimuli'},...
     {'Agents with Head Turning','Agents without Head Turning'},...
+    {'Agents with Any Turning','Agents without Any Turning'},...
     {'Socially Interacting Agents with Head Turning','Socially Interacting Agents without Head Turning'},...
     {'Agents engaging in Social Interactions ','Agents not engaging in Social Interactions'}...
     {'Socially Interacting Agents with Any Turning','Socially Interacting Agents without Any Turning'}};
@@ -895,6 +898,7 @@ if params.lineBroadCatPlot
           
           % Add the plots
           [newBarImg, barDummyHands] = add_bars_to_plots([], [], comboMatArray, colorMat, comboMatShowArray, []);
+          plotTitle = horzcat(plotTitle, '_eventBar');
         end
         
         % Save the figure
@@ -1270,8 +1274,15 @@ eventMat = generateEventImage(eventData, meanPSTHStruct.psthImDur);
 eventListTitle = strrep(eventList, '_', ' ');
 % Remove non-represented variables
 newEventData = eventData(allStimuliVec, :);
+eventLists = newEventData.Properties.VariableNames;
 stimEventLogicArray = ~cellfun(@(x) size(x, 1) == 0, table2cell(newEventData));
 stimEventNames = newEventData.Properties.RowNames;
+
+eventMaxDur = zeros(size(eventLists));
+for ii = 1:length(eventMaxDur)
+  tmp = cellfun(@(x) max(x.endTime - x.startTime), newEventData{:, ii}, 'UniformOutput', false);
+  eventMaxDur(ii) = max([tmp{:}]);
+end
 
 psthPreData = meanPSTHStruct.psthPre;   % Used to find the correct spot in larger vector.
 psthPre = params.psthPre;  
@@ -1357,14 +1368,14 @@ end
 % generating null traces by grabbing the same slice of time in other
 % events.
 
-groupIterInd = 1:3;
+groupIterInd = 2:3;
 
 if params.meanSubEventPSTH_extracted
   % This code generate an event aligned mean activity
 
   % For combination type events, like 'all Turns', I need to compile things before.
   % 3rd D - 1 = real data, 2 = NullData.
-  eventPSTHData = cell(length(eventListTitle), length(groupIterInd), 2);
+  eventPSTHData = cell(length(eventListTitle), 3, 2);
   
   simpleEvents = eventListTitle;
   comboEvents = {'headTurn All', 'all Turns'};
@@ -1376,17 +1387,28 @@ if params.meanSubEventPSTH_extracted
   comboGroups{strcmp(eventListTitle, 'headTurn All')} = [find(strcmp(eventListTitle, 'headTurn right')),  find(strcmp(eventListTitle, 'headTurn left'))];
   comboGroups{strcmp(eventListTitle, 'all Turns')} = [comboGroups{strcmp(eventListTitle, 'headTurn All')}, find(strcmp(eventListTitle, 'bodyTurn'))];
   
+  eventMaxLengths = [eventMaxLengths, max(eventMaxLengths(comboGroups{5})), max(eventMaxLengths(comboGroups{6}))];
+  eventTemplates = arrayfun(@(x) nan(1, ceil(eventMaxLengths(x))) , 1:length(eventMaxLengths), 'UniformOutput', false);
+  
   % Initialize structures for holding both traces and their null
   % equivalents.
   for event_i = 1:length(eventListTitle)
     
-    figTitle = sprintf('mean Slice extract PSTH for %s', eventListTitle{event_i});
+    figTitle = sprintf('Event aligned PSTH for %s', eventListTitle{event_i});
     h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeMeanSubEventPSTH_extracted]);
     sgtitle(figTitle);
+    eventTemp = eventTemplates{event_i};
     
-    for group_i = groupIterInd
-      subplot(length(groupIterInd), 1, group_i)
-      
+    % CURRENT HANGING POINT
+    % - How do I compile many events with different lengths? Post-event
+    % activity blurs into traces for other longer events, meaning reward
+    % triggered stuff may add in
+    % - Remove all traces w/ such reward activity.
+    % - Nanmean can be used for the final vector, but its probably going to
+    % step as a result.
+        
+    for group_i = 1:3
+        
       % Collect plot data
       if ~comboInd(event_i)
         
@@ -1397,18 +1419,18 @@ if params.meanSubEventPSTH_extracted
         for stim_i = stim2Check'
           % Go through stimuli with events
           eventSpecTable = newEventData{stim_i, event_i}{1};
-          eventStarts = eventSpecTable.startTime;
+          eventStarts = round(eventSpecTable.startTime);
           eventDur = eventSpecTable.endTime - eventStarts;
           
           for inst_i = 1:length(eventStarts)
             % For every instance of an event, identify start and stop times
-            startT = (eventStarts(inst_i) + psthPreData) - psthPre;               % Event start - desired preEvent time.
-            %             endT = (eventStarts(inst_i) + psthPreData) + round(eventDur(inst_i)) + psthPost;    % Event duration + desired postEvent time.
+            startT = (eventStarts(inst_i) + psthPreData) - psthPre;              % Event start - desired preEvent time.
             endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;    % Event duration + desired postEvent time.
             
             % Use those times to extract the desired slice, preparing it
             % for later combining and for plotting.
-            eventPSTHData{event_i, group_i, 1} = [eventPSTHData{event_i, group_i, 1}; stimPSTH{stim_i,group_i,1}(:, startT:endT)];
+            activitySlice = stimPSTH{stim_i, group_i, 1}(:, startT:endT);
+            eventPSTHData{event_i, group_i, 1} = [eventPSTHData{event_i, group_i, 1}; activitySlice];
             
             eventPSTHNullDataTmp = vertcat(stimPSTH{~stimLogicArrayEvent, group_i, 1});             % Generate the null trace, store null values for later.
             eventPSTHData{event_i, group_i, 2} = [eventPSTHData{event_i, group_i, 2}; eventPSTHNullDataTmp(:, startT:endT)];
@@ -1421,11 +1443,18 @@ if params.meanSubEventPSTH_extracted
         plotTraceNull = eventPSTHData{event_i, group_i, 2};
         
       else
-        %comboInd means the set is a combination of previous entries.
-        plotTraceData = vertcat(eventPSTHData{comboGroups{event_i}, group_i, 1});
-        plotTraceNull = vertcat(eventPSTHData{comboGroups{event_i}, group_i, 2});
+
       end
+    end
+    
+    % Once the data has been compiled, plot selectively
+    for group_i = 1:length(groupIterInd)
+      subplot(length(groupIterInd), 1, group_i)
       
+      %comboInd means the set is a combination of previous entries.
+      plotTraceData = vertcat(eventPSTHData{comboGroups{event_i}, groupIterInd(group_i), 1});
+      plotTraceNull = vertcat(eventPSTHData{comboGroups{event_i}, groupIterInd(group_i), 2});
+            
       % Prepare plot data
       plotData = mean(plotTraceData, 1);
       plotErr = std(plotTraceData)/sqrt(size(plotTraceData,1));
@@ -1447,7 +1476,8 @@ if params.meanSubEventPSTH_extracted
       
       [~, ~, ~, legendH] = plotPSTH(msebData, msebError, [], params, 'line', [], plotLabels);
       legendH.Location = 'northwest';
-      title(groupType{group_i})
+      ylabel('Normalized Activity');
+      title(groupType{groupIterInd(group_i)})
       
     end
     saveFigure(params.outputDir, ['4. ' figTitle], [], figStruct, []);

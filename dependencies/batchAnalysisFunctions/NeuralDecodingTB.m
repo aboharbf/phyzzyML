@@ -177,7 +177,7 @@ for analysis_i = 1:length(analysesToRun)
     params.figTitle = horzcat([params.figTitle, sigStr]);
   end
   generate_TCT_plot(analysisStruct, save_file_name, saved_results_struct_name, params)
-  saveFigure(params.outputDir, ['2. ' figTitle], analysisStruct, params.figStruct, [])
+  saveFigure(params.outputDir, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
   
 end
 save(fullfile(params.outputDir, 'ndtParams.mat'), 'params')

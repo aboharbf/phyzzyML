@@ -11,8 +11,8 @@ function [] = processRunBatch(varargin)
 %       parameters defined in the analysisParamFile and the paramTable.
 
 replaceAnalysisOut = 1;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-outputVolumeBatch = 'H:\Analyzed';                                     
-dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';             % Only used to find recording log, used to overwrite params.
+outputVolumeBatch = 'H:\Analyzed';                                            % The output folder for analyses performed.
+dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';                        % Only used to find recording log, used to overwrite params.
 eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
 subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
@@ -291,6 +291,9 @@ eventSigPerEpoch{:} = deal(zeros(length(eventList), 3));
 eventSigPerEpochTable = cell(epochCount, length(analysisParamFileName));
 
 %eventSigPerEpoch{epoch}{groupingType}
+sigUnitMat = zeros(0, length(eventList));
+sigUnitLabels = cell(0,1);
+sigUnitSamples = zeros(3, length(eventList));
 
 for ii = 1:length(analysisParamFileName)
   dataRow = emptyRow;
@@ -346,7 +349,7 @@ for ii = 1:length(analysisParamFileName)
           subEventSigStruct = tmp.subEventSigStruct;
           if ~subEventSigStruct.noSubEvent
             % run the function which parses this structure
-            [sigString, allEventSigCount] = returnEventNames(subEventSigStruct, channel_ind, eventList);
+            [sigString, allEventSigCount, allEventShownCount, allEventSigExpanded] = returnEventNames(subEventSigStruct, channel_ind, eventList);
             
             eventSigPerEpochTable{epoch_i, ii}{channel_ind} = allEventSigCount;
             % Add to the total counts
@@ -356,6 +359,19 @@ for ii = 1:length(analysisParamFileName)
             dataRow{strcmp(tableVar, 'subEvent Unsorted')} = sigString{1};
             dataRow{strcmp(tableVar, 'subEvent Unit')} = sigString{2};
             dataRow{strcmp(tableVar, 'subEvent MUA')} = sigString{3};
+            
+            % Second type of formating, for NDTB - generate a table with
+            % values to be added to each unit.
+            
+            ULabels = convertUnitToName(1:length(subEventSigStruct.testResults{channel_ind}), length(subEventSigStruct.testResults{channel_ind}), 1);
+            chLabel = ['Ch' num2str(channel_ind)];
+            
+            unitLabels = strcat(analysisParamFileName(ii), chLabel, ULabels);
+            
+            sigUnitLabels = [sigUnitLabels; unitLabels];
+            sigUnitMat = [sigUnitMat; allEventSigExpanded'];
+            sigUnitSamples = sigUnitSamples + allEventShownCount';
+            
           end
         end
         
@@ -409,6 +425,10 @@ end
 
 subEventBatchStruct = struct();
 subEventBatchStruct.dataTable = eventSigPerEpochTable;
+subEventBatchStruct.sigUnitGrid.sigUnitLabels = sigUnitLabels;
+subEventBatchStruct.sigUnitGrid.sigUnitMat = sigUnitMat;
+subEventBatchStruct.sigUnitGrid.sigUnitSamples = sigUnitSamples;
+
 subEventBatchStruct.indicies = '{epoch, analysisParamFileName}{channel_ind}(eventList, groupingType)';
 subEventBatchStruct.epoch = epochType;
 subEventBatchStruct.eventList = eventList;
@@ -461,9 +481,21 @@ function [spike, LFP, names] = autoDetectChannels(parsedFolderName)
     names = channelNameTmp;
 end
 
-function [sigString, allEventSigCount] = returnEventNames(subEventSigStruct, channel_ind, allEventString)
+function [sigString, allEventSigCount, allEventPerGroupingType, allEventSigExpanded] = returnEventNames(subEventSigStruct, channel_ind, allEventString)
 % a function which parses the 'subEventSigStruct' produced by individual
-% calls to 'processRun'. Returns a set of strings. 
+% calls to 'processRun'.
+% Input
+% - subEventSigStruct, with fields testResults and events.
+% - channel_ind - the channel currently being checked.
+% - allEventString - a string of all events in the entire data set.
+% Output
+% - sigString - a cell array with names of events significant in
+% {Unsorted}, {Units}, and {MUA}.
+% - allEventSigCount - an allEvent * Grouping Type sig count
+% - allEventPerGroupingType - an allEvent * Grouping type of possible sig
+% units. This is for coming up with the right denominator.
+% - allEventSigExpanded - an allEvent * True unit count of significance for
+% adding to a large table or for Neural decoding (per true unit).
 
 % Find the appropriate indices for events to add.
 chanInfo = subEventSigStruct.testResults{channel_ind};
@@ -489,19 +521,43 @@ sigString{3} = MUASESig;
 % Produce a count of the number of units with significant activation for a
 % particular event, according to the list of events in allEventString
 allEventRunSigCount = zeros(length(subEventSigStruct.events), 3);
-allEventSigCount = zeros(length(allEventString), 3);
+[allEventSigCount] = deal(zeros(length(allEventString), 3));
+[allEventShownCount, allEventSigExpanded] = deal(zeros(length(allEventString), size(chanInfo, 2)));
 
+% trueUnitCount = size(chanSig,2);
+% allEventRunSigCount = zeros(trueUnitCount, length(allEventString));
+% 
+% for event_i = 1:length(subEventSigStruct.events)
+%   event_table_ind = strcmp(subEventSigStruct.events{event_i}, allEventString);
+%   allEventRunSigCount(:, event_table_ind) = chanSig(event_i,:);
+% end
+
+% Change the matrix from localEvent * Units to LocalEvent * Grouptype
 allEventRunSigCount(:,1) = chanSig(:,1);
 allEventRunSigCount(:,end) = chanSig(:,end);
 if size(chanSig, 2) > 2
   allEventRunSigCount(:,2) = sum(chanSig(:, 2:end-1), 2);
 end
 
+% Change from LocalEvent * GroupType to AllEvent * groupType
 for event_i = 1:length(subEventSigStruct.events)
+  event_table_ind = strcmp(allEventString, subEventSigStruct.events{event_i});
+  allEventShownCount(event_table_ind, :) = 1;
   for unit_i = 1:3
-    event_table_ind = strcmp(allEventString, subEventSigStruct.events{event_i});
     allEventSigCount(event_table_ind, unit_i) = allEventRunSigCount(event_i, unit_i);
   end
+  
+  %Create expanded presentation
+  for unit_i = 1:size(chanSig, 2)
+    allEventSigExpanded(event_table_ind, unit_i) = chanSig(event_i, unit_i);
+  end
+end
+
+allEventPerGroupingType = zeros(length(allEventString), 3);
+allEventPerGroupingType(:,1) = allEventShownCount(:,1);
+allEventPerGroupingType(:,end) = allEventShownCount(:,end);
+if size(allEventShownCount, 2) > 2
+  allEventPerGroupingType(:,2:end-1) = sum(allEventShownCount(:,2:end-1), 2);
 end
 
 end

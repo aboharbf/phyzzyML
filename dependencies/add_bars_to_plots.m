@@ -37,7 +37,7 @@ end
 axes2Add = cellfun(@(x) any(any(x)), show_ind);
 
 % use yLims to determine where new axes will go
-heightPerBar = yLims(1)/sum(axes2Add);
+heightPerBar = yLims(2)/sum(axes2Add);
 bottomPerBar = yLims(1):heightPerBar:(yLims(1) + yLims(2));
 bottomPerBar = fliplr(bottomPerBar);
 % yDataForImg = [yLims(1) + yRangeSize/4, yLims(2) - yRangeSize/4];

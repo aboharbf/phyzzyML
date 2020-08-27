@@ -33,7 +33,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
@@ -41,7 +41,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
@@ -106,7 +106,7 @@ meanPSTHParams.removeFollowing = 1;             % Remove traces related to follo
 meanPSTHParams.plotMeanLine = 0;                % For 'All Chasing' plots, include a additional axis as a line plot.
 meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, include the mean of all traces at the bottom of the PSTH.
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
-meanPSTHParams.addSubEventBars = 1;             % for plot 5.0, add bars underneath for subEvents.
+meanPSTHParams.addSubEventBars = 0;             % for plot 5.0, add bars underneath for subEvents.
 
 meanPSTHParams.allStimPSTH = 0;                 % 1.0 - All Stimuli means in the same plot.
 meanPSTHParams.catPSTH = 0;                     % 2.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
@@ -119,8 +119,8 @@ meanPSTHParams.exportFig = figStruct.exportFig; % Turns on the 'exportFig' featu
 meanPSTHParams.plotSizeCatPSTH = [.8 .6];       
 meanPSTHParams.plotSizeAllStimPSTH = [.5 1];           
 meanPSTHParams.plotSizeAllRunStimPSTH = [1 1];           
-meanPSTHParams.plotSizeLineCatPlot = [.5 .6];           
-meanPSTHParams.plotSizeLineBroadCatPlot = [.5 .6];           
+meanPSTHParams.plotSizeLineCatPlot = [.6 .7];           
+meanPSTHParams.plotSizeLineBroadCatPlot = [.6 .7];           
 
 subEventPSTHParams.outputDir = fullfile(outputDir,'subEventPSTH');
 subEventPSTHParams.eventData = eventDataPath;
@@ -137,7 +137,7 @@ subEventPSTHParams.psthImDur = 400;
 subEventPSTHParams.psthPost = 200;             
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
-subEventPSTHParams.meanSubEventPSTH = 1;                        % Plot 2 - Mean event PSTHes, line plots
+subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
 subEventPSTHParams.allRunStimPSTH_extracted = 0;                % Plot 3 - Individual event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 
@@ -177,6 +177,7 @@ NDTParams.NDTPath = NDTPath;
 NDTParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
 NDTParams.rasterDir =  fullfile(NDTParams.outputDir, 'rasterData');
 NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
+NDTParams.spikeToRasterParams.subEventBatchStructPath = subEventBatchStructPath; % a full path to a subEventStruct produced by processRunBatch.
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
 %  spikeDataBank to rasterData Parameters, should be as inclusive as
