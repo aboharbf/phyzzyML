@@ -247,13 +247,17 @@ if (length(taskEventIDsLog) ~= length(taskEventIDsBlk))
     juiceOffTimesBlk = juiceOffTimesBlk((lag+1):end);
     taskEventIDs = taskEventIDs((lag+1):end);
   end
-  %Recalculate lengths
+  % Recalculate lengths
   LogLen = length(taskEventIDsLog);
   BlkLen = length(taskEventIDsBlk);
+  
+  % If The lengths are still different, one of them stopped early.
+  
   if LogLen < BlkLen %monkeyLogic stopped storing things early.
     %Chop the Blackrock events down to the size of what Mkl has stored
     taskEventIDsBlk = taskEventIDsBlk(1:LogLen);
-    if sum(taskEventIDsBlk == taskEventIDsLog) == length(taskEventIDsLog) %If They are now a match
+    if sum(taskEventIDsBlk == taskEventIDsLog) == length(taskEventIDsLog) % If They are now a match
+      trialStartTimesBlk = trialStartTimesBlk(1:LogLen);
       taskEventStartTimesBlk = taskEventStartTimesBlk(1:LogLen);
       taskEventEndTimesBlk = taskEventEndTimesBlk(1:LogLen);
       stimFramesLost = stimFramesLost(1:LogLen);

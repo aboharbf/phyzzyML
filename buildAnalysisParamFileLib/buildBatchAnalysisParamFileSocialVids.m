@@ -6,13 +6,17 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Alienware_FA'
-    analysisDirectory = slashSwap('D:\DataAnalysis\March2020');
+    analysisDirectory = slashSwap('D:\DataAnalysis');
     outputDir = [analysisDirectory '/batchAnalysis'];
     stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
+    subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
+    batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
-    recordingLogxls = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Data\RecordingsMoUpdated.xlsx';
+    recordingLogxls = 'D:\EphysData\Data\RecordingsMoUpdated.xlsx';
+    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
   case 'homeDesktopWork'
     analysisDirectory = 'H:\Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];
@@ -23,17 +27,17 @@ switch machine
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'H:\EphysData\Data\RecordingsMoUpdated.xlsx';
-    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
-    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
+    NDTPath = 'D:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'D:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
 end
 
 analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 1;      % save the figure in its output directory.           
+figStruct.saveFig = 0;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 1;    % export figure using export_fig.
+figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';

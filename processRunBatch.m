@@ -10,13 +10,25 @@ function [] = processRunBatch(varargin)
 %       {{'param1', 'arg1'}; {'param2','arg2'}}, which will replace
 %       parameters defined in the analysisParamFile and the paramTable.
 
+[~, machine] = system('hostname');
+machine = machine(~isspace(machine));
+
+switch machine
+  case 'Alienware_FA'
+    outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
+    dataLog = 'D:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
+    eventDataPath = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+    subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
+  case 'homeDesktopWork'
+    outputVolumeBatch = 'H:\Analyzed';                                            % The output folder for analyses performed.
+    dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';                        % Only used to find recording log, used to overwrite params.
+    eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+    subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
+end
+
 replaceAnalysisOut = 1;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-outputVolumeBatch = 'H:\Analyzed';                                            % The output folder for analyses performed.
-dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';                        % Only used to find recording log, used to overwrite params.
-eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
-subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
-runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
+runParallel = 0;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
 %% Load Appropriate variables and paths

@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '003';
-dateSubject = '20180628Mo';
+runNum = '006';
+dateSubject = '20191002Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -15,16 +15,16 @@ switch machine
     ephysVolume = slashSwap('H:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = 'H:/Analyzed';
-    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
     neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case 'Alienware_FA'
     ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
-    outputVolume = slashSwap('D:\DataAnalysis\March2020');
+    outputVolume = slashSwap('D:\DataAnalysis');
     stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
+    neuroGLMPath = 'D:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case {'turing.rockefeller.edu','hopper.rockefeller.edu'}
     ephysVolume = '/Freiwald/lab_files/raw_data/EPHYS/Farid_ESINRec/Data2018';
     stimulusLogVolume = ephysVolume;

@@ -26,7 +26,7 @@ if plotSwitch.stimPresCount
   %last recording' to highlight days after long breaks.
 end
 
-if ~exist('unitCounts','var')
+if ~exist('unitCounts','var') && ~exist('trueCellStruct', 'var')
   [spikeDataBank, trueCellStruct, unitCounts, resultTable, nullCells] = tableRefFunx(spikeDataBank, cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
   saveEnv(1)
 end
