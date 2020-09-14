@@ -1119,7 +1119,7 @@ if params.allRunStimPSTH
     for sort_i = 4
       for group_i = groupIterInd
         figTitle = sprintf('%s - %s PSTHs, Sorted by %s, %s', eventListPlot{event_i}, groupType{group_i} ,sortType{sort_i}, normTag);
-        h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH]);
+        h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 params.plotSizeAllRunStimPSTH]);
         sgtitle(figTitle)
         
         sortIndex = sortMat{event_i, group_i, sort_i};
@@ -1172,37 +1172,37 @@ end
 
 % Plot 2 - mean subEvent PSTH, lineplot
 if params.meanSubEventPSTH
-for event_i = 1:length(eventListPlot)
-  if baselineSubtract
-    figTitle = sprintf('mean subEvent PSTH for %s %s, baselineSub', eventListPlot{event_i}, normTag);
-  else
-    figTitle = sprintf('mean subEvent PSTH for %s %s', eventListPlot{event_i}, normTag);
-  end
-  h = figure('NumberTitle', 'off', 'Name', figTitle, 'units','normalized','outerposition',[0 0 0.5 1]);
-  sgtitle(figTitle)
-  for group_i = 1:size(eventDataArray,2)
-    subplot(length(groupType), 1, group_i);
-    plotData = mean([eventDataArray{event_i, group_i, 1}]);
-    plotErr = std([eventDataArray{event_i, group_i, 1}])/sqrt(size([eventDataArray{event_i, group_i, 1}],1)); 
-    
-    plotNull = mean([eventDataArray{event_i, group_i, 2}]);
-    plotErrNull = std([eventDataArray{event_i, group_i, 2}])/sqrt(size([eventDataArray{event_i, group_i, 2}],1));
-    
+  for event_i = 1:length(eventListPlot)
     if baselineSubtract
-      baselinePeriod = (psthParam.psthPre/2):psthParam.psthPre;
-      plotData = plotData - mean(plotData(baselinePeriod));
-      plotNull = plotNull - mean(plotNull(baselinePeriod));
+      figTitle = sprintf('mean subEvent PSTH for %s %s, baselineSub', eventListPlot{event_i}, normTag);
+    else
+      figTitle = sprintf('mean subEvent PSTH for %s %s', eventListPlot{event_i}, normTag);
+    end
+    h = figure('NumberTitle', 'off', 'Name', figTitle, 'units','normalized','outerposition',[0 0 0.5 1]);
+    sgtitle(figTitle)
+    for group_i = 1:size(eventDataArray,2)
+      subplot(length(groupType), 1, group_i);
+      plotData = mean([eventDataArray{event_i, group_i, 1}]);
+      plotErr = std([eventDataArray{event_i, group_i, 1}])/sqrt(size([eventDataArray{event_i, group_i, 1}],1));
+      
+      plotNull = mean([eventDataArray{event_i, group_i, 2}]);
+      plotErrNull = std([eventDataArray{event_i, group_i, 2}])/sqrt(size([eventDataArray{event_i, group_i, 2}],1));
+      
+      if baselineSubtract
+        baselinePeriod = (psthParam.psthPre/2):psthParam.psthPre;
+        plotData = plotData - mean(plotData(baselinePeriod));
+        plotNull = plotNull - mean(plotNull(baselinePeriod));
+      end
+      
+      traceData = [plotData; plotNull];
+      errData = [plotErr; plotErrNull];
+      
+      [~] = plotPSTH(traceData, errData, [], psthParam, 'line', groupType{group_i}, {'Event', 'Null'});
     end
     
-    traceData = [plotData; plotNull];
-    errData = [plotErr; plotErrNull];
+    saveFigure(params.outputDir, ['2. ' figTitle], [], figStruct, []);
     
-    [~] = plotPSTH(traceData, errData, [], psthParam, 'line', groupType{group_i}, {'Event', 'Null'});
   end
-  
-  saveFigure(params.outputDir, ['2. ' figTitle], [], figStruct, []);
-  
-end
 end
 
 % Variables for Plot 3 and 4
@@ -1262,7 +1262,9 @@ for stim_i = 1:size(stimPSTH,1)
 end
 
 allStimuliVec = meanPSTHStruct.IndStructs{1};
+allStimuliNames = regexprep(extractBefore(allStimuliVec, '.avi'), '_\d\d\d', ' ');
 eventList = eventData.Properties.VariableNames; % Removes blinks/saccades
+eventListPlot = strrep(eventList, '_', ' ');
 eventData = eventData(allStimuliVec, :);
 eventMaxLengths = zeros(size(eventList));
 for ii = 1:length(eventList)
@@ -1275,93 +1277,205 @@ eventListTitle = strrep(eventList, '_', ' ');
 % Remove non-represented variables
 newEventData = eventData(allStimuliVec, :);
 eventLists = newEventData.Properties.VariableNames;
-stimEventLogicArray = ~cellfun(@(x) size(x, 1) == 0, table2cell(newEventData));
-stimEventNames = newEventData.Properties.RowNames;
+stimEventCountarray = cellfun(@(x) size(x, 1), table2cell(newEventData));
+stimEventLogicArray = stimEventCountarray ~= 0;
+stimEvent2Plot = any(stimEventLogicArray,2);  % Only worry about plotting stimuli below which have events.
+stimEvent2PlotCount = sum(stimEventCountarray,2);  % Only worry about plotting stimuli below which have events.
 
 eventMaxDur = zeros(size(eventLists));
-for ii = 1:length(eventMaxDur)
+for ii = 1:length(eventLists)
   tmp = cellfun(@(x) max(x.endTime - x.startTime), newEventData{:, ii}, 'UniformOutput', false);
-  eventMaxDur(ii) = max([tmp{:}]);
+  eventMaxDur(ii) = ceil(max([tmp{:}]));
 end
 
 psthPreData = meanPSTHStruct.psthPre;   % Used to find the correct spot in larger vector.
 psthPre = params.psthPre;  
 psthImDur = params.psthImDur;                
 psthPost = params.psthPost;
+traceLength = length(stimPSTH{1,1,1});
+
+% If you want the entire trace to fit, with the initial activity (but not
+% the post activity), you need to extend the initialized arrays by psthPre.
+eventMaxDur = eventMaxDur + psthPre + 1;
+
+% Prepare a array which can store all the event slices extracted
+eventStorage = cell(length(eventMaxDur), 3, 2);
+eventInstanceCount = sum(stimEventCountarray);
+% for ii = 1:length(eventStorage)
+%   eventStorage(ii, :) = deal({nan(eventInstanceCount(ii), eventMaxDur(ii) + psthPre + psthPost)});
+% end
+eventInstIndex = ones(size(eventMaxDur));
+
+% GOAL - Create line plot for each event, taking into account how long it
+% is. Use this to come to some reasonable response latency for each event's
+% associated activity.
+
+% GOAL - Add a 'reward spike filter', where by traces w/ high reward
+% activity are excluded.
 
 % Plot 3 - all subEvent PSTH from stimuli
 if params.allRunStimPSTH_extracted
   for stim_i = 1:size(stimPSTH,1)
-    % Get the relevant frameMotion/eventData
-    eventDataStim = eventData(allStimuliVec{stim_i},:);
-    stimTimePerFrame = frameMotionData(strcmp(allStimuliVec{stim_i}, frameMotionDataNames)).timePerFrame;
-    for group_i = groupIterInd % Can not rely on groupIter here.
-      %for sort_i = 4%1:length(sortType)
-      for event_i = 1:length(eventList)
-        if ~isempty(eventDataStim.(eventList{event_i}){1})
+    if stimEvent2Plot(stim_i) % If a stimuli has events...
+      % Get the relevant eventData
+      eventDataStim = eventData(allStimuliVec{stim_i},:);
+      
+      % Generate a list of plot indicies here for ease of subplotting
+      % later
+      numPlotsRight = stimEvent2PlotCount(stim_i);
+      subplotInds = 2:2:(numPlotsRight*2);
+      
+      for group_i = groupIterInd
+        subplotCount = 0; % Reset this per figure
+        
+        sgFigTitle = sprintf('Events in %s - %s', allStimuliNames{stim_i}, groupType{group_i});
+        figure('NumberTitle', 'off', 'Name', sgFigTitle, 'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted])
+        sgtitle(sgFigTitle)
+
+        % Plot normal activity
+        subplot(2,2,1)
+        fullStimTraces = stimPSTH{stim_i,group_i,1};
+        traces2plot = 30;
+        if size(fullStimTraces, 1) > traces2plot
+          fullStimTracesPlot = fullStimTraces(randi(size(fullStimTraces, 1), [traces2plot, 1]), :);
+        else
+          fullStimTracesPlot = fullStimTraces;
+        end
+        meanPSTHStruct.addLegend = false;
+        plotPSTH(fullStimTracesPlot, [], [], meanPSTHStruct, 'line', 'All Activity Traces', [])
+        
+        % Plot traces with reward peaks removed
+        rewardRemovalThreshold = 4;
+        rewardPeaks = any(fullStimTraces(:, meanPSTHStruct.psthPre + meanPSTHStruct.psthImDur:end) > rewardRemovalThreshold, 2);
+        fullStimTraceMean = mean(fullStimTraces);
+        fullStimTraceSEM = std(fullStimTraces)/sqrt(length(rewardPeaks));
+        fullStimTracesNoRewardPeaksMean = mean(fullStimTraces(~rewardPeaks, :));
+        fullStimTracesNoRewardPeaksSEM = std(fullStimTraces(~rewardPeaks, :))/sqrt(sum(~rewardPeaks));
+
+        tmpMeans = [fullStimTracesNoRewardPeaksMean; fullStimTraceMean];
+        tmpSEM = [fullStimTracesNoRewardPeaksSEM; fullStimTraceSEM];
+
+        subplot(2,2,3)
+        plotPSTH(tmpMeans, tmpSEM, [], meanPSTHStruct, 'line', sprintf('Activity Traces w.o reward activity > %d', rewardRemovalThreshold), [])
+        legend({'All Traces - Reward Peak Traces', 'All Traces'}, 'location', 'northwest')
+        
+        for event_i = 1:length(eventList)
+          % Grab event data for each event, adjusting it by the psthPre.
           evTable = eventDataStim.(eventList{event_i}){1};
-          eventStarts = round(evTable.startFrame * stimTimePerFrame);
+          eventStarts = round(evTable.startTime);
+          eventEnds = round(evTable.endTime);
+          eventLengths = eventEnds - eventStarts; 
           
           for inst_i = 1:length(eventStarts)
-            startT = (eventStarts(inst_i) + psthPreData) - psthPre;
-            endT = (eventStarts(inst_i) + psthPreData) + psthImDur + psthPost;
-            eventPSTHData = stimPSTH{stim_i,group_i,1}(:, startT:endT);
-            eventPSTHLabel = sortLabel{stim_i, group_i, 4};
+            % Expand the desired stop and start by the amount outside of
+            % the event you'd like to see.
+            startT = eventStarts(inst_i) + psthPreData - psthPre;
+            endT = min(eventEnds(inst_i) + psthPreData + psthPost, traceLength);            % If endT exceeds the length of the trace, then adjust it.            
+            endDist = min(traceLength - eventEnds(inst_i), psthPost);
             
-            % Plot
-            figTitle = sprintf('%s - %s, %s, %d - %d', extractBefore(allStimuliVec{stim_i}, regexp(allStimuliVec{stim_i}, '.avi')), eventList{event_i}, groupType{group_i}, startT, endT);
-            h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted]);
+%             eventPSTHData = stimPSTH{stim_i,group_i,1}(:, startT:endT);
+            eventPSTHData = fullStimTraces(~rewardPeaks, startT:endT);
+            eventPSTHLabel = sortLabel{stim_i, group_i, 4};
             sortIndex = sortMat{stim_i, group_i, 1};
             
-            % Break up PSTHes with many lines into subplots.
-            TracesPerPlot = ceil(length(sortIndex)/3);
-            if TracesPerPlot < 20
-              subplot2Plot = 1;
-            elseif TracesPerPlot < 45
-              subplot2Plot = 2;
-            else
-              subplot2Plot = 3;
+            % Store the mean and the label for later use.
+            storInd = eventInstIndex(event_i);
+            eventInstIndex(event_i) = eventInstIndex(event_i) + 1;
+%             eventStorage{event_i, group_i}(storInd, 1:size(eventPSTHData(:, 1:end-endDist),2)) = mean(eventPSTHData(:, 1:end-endDist),1);
+            data2Store = nan(size(eventPSTHData,1), eventMaxDur(event_i));
+            endIndForData = size(eventPSTHData, 2) - endDist;
+            data2Store(:, 1:endIndForData) = eventPSTHData(:, 1:end - endDist); % Using endDist here to avoid possibly cutting out activity during event, when postEvent time can't be 200 ms.
+            eventStorage{event_i, group_i, 1}{storInd} = data2Store;
+            eventStorage{event_i, group_i, 2}{storInd} = sprintf('%s - %s, %d - %d', allStimuliNames{stim_i}, eventListPlot{event_i}, eventStarts(inst_i), eventEnds(inst_i));
+            continue
+            
+            % Plot
+            vertLinePos = 200;
+            figTitle = sprintf('%s (Red Line @ %d ms)', eventListPlot{event_i}, vertLinePos);
+            subplotCount = subplotCount + 1;
+            psthAxes = subplot(numPlotsRight, 2, subplotInds(subplotCount));
+%           h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted]);
+            
+            subplotParams.psthPre = psthPre;
+            subplotParams.psthImDur = eventLengths(inst_i);
+            subplotParams.psthPost = endDist;
+            subplotParams.addLegend = false;
+            
+            plotPSTH(mean(eventPSTHData), std(eventPSTHData)/sqrt(size(eventPSTHData,1)), psthAxes, subplotParams, 'line', [], []);
+            
+            % Modify X axis
+            psthAxes.XTick = sort([0 eventLengths(inst_i) vertLinePos]);
+            psthAxes.XTickLabel = sort([eventStarts(inst_i) eventEnds(inst_i) eventStarts(inst_i) + vertLinePos]);
+            
+            % Add Red line @ 200 after stim onset to give sense of length
+            line([vertLinePos vertLinePos], ylim(),'LineWidth', 5, 'color', 'r');
+
+            
+            if ~(subplotCount == numPlotsRight)
+              psthAxes.XLabel.String = '';
             end
-            TracesPerPlot = ceil(length(sortIndex)/subplot2Plot);
-            
-            plotStarts = 1:TracesPerPlot:length(sortIndex);
-            plotEnds = [plotStarts(2:end)-1, length(sortIndex)];
-            
-            subplotAxes = gobjects(subplot2Plot,1);
-            cbHandle = gobjects(subplot2Plot,1);
-            for plot_i = 1:subplot2Plot
-              plotLabels = eventPSTHLabel(plotStarts(plot_i):plotEnds(plot_i));
-              plotData = eventPSTHData(plotStarts(plot_i):plotEnds(plot_i), :);
-              %sortIndex = sortMat{stim_i, group_i, sort_i}(plotStarts(plot_i):plotEnds(plot_i));
-              psthAxes = subplot(1,subplot2Plot,plot_i);
-              [subplotAxes(plot_i), cbHandle(plot_i)] = plotPSTH(plotData, [], psthAxes, params, 'color', [], plotLabels); %(sortIndex,:)
-              cbHandle(plot_i).Label.FontSize = 10;
-              
-              if plot_i == subplot2Plot
-                % Label the Y
-                if params.normalize == 1
-                  cbHandle(plot_i).Label.String = 'Signal Change relative to Baseline (%)';
-                elseif params.normalize == 2
-                  cbHandle(plot_i).Label.String = 'Z score relative to fixation';
-                end
-              else
-                delete(cbHandle(plot_i))
-              end
-              
-              set(gca,'FontSize',10,'TickLength',[.01 .01],'LineWidth',.25);
-            end
-            
-            sgtitle(figTitle);
-            
-            saveFigure(params.outputDir, ['3. ' figTitle], [], figStruct, []);
+
+            title(figTitle);
           end
           
         end
+        
+        saveFigure(params.outputDir, ['3. ' sgFigTitle], [], figStruct, []);
+        
       end
-      %end
     end
   end
 end
+
+close all
+
+% Plot 3.5 - Go through and stack all the mean responses from each event
+if params.allRunStimPSTH_extracted
+  for event_i = 1:size(eventStorage,1)
+    for group_i = groupIterInd
+      allTraces = eventStorage{event_i, group_i, 1};
+      allTraceLabels = eventStorage{event_i, group_i, 2}';
+      figTitle = sprintf('Event means for all instances of %s', eventListPlot{event_i});
+      figure('NumberTitle', 'off', 'Name', figTitle, 'units','normalized','outerposition',[0 0 params.plotSizeAllRunStimPSTH_extracted])
+      hold on
+      
+      % Use function to calculate means and SEM. include grandMean.
+      grandMeanSwitch = 1;
+      [meanStack, semStack, nStack] = raw2meanSEM(allTraces, grandMeanSwitch);
+            
+      % do quick loop to find the appropriate offsets.
+      traceBaseline = zeros(length(allTraces)+1,1);
+      for trace_i = 1:length(traceBaseline)
+        if trace_i ~= length(traceBaseline)
+          traceBaseline(trace_i) = mean(mean(allTraces{trace_i}(:, 1:psthPre)));
+        else
+          grandStack = vertcat(allTraces{:});
+          traceBaseline(trace_i) = mean(mean(grandStack(:,1:psthPre)));
+        end
+      end
+      
+      % Apply the offset to the means
+      for mean_i = 1:size(meanStack, 1)
+        meanStack(mean_i) = meanStack(mean_i) - traceBaseline(mean_i);
+      end      
+          
+      %Complete Trace labels.
+      allTraceLabels = [allTraceLabels; sprintf('All %s mean (%d)', eventListPlot{event_i}, nStack(end))];
+      
+      % Plot using plotPSTH, Line version
+      tmpParams.psthPre = psthPre;
+      tmpParams.psthImDur = size(meanStack,2) - psthPre - 1;
+      tmpParams.psthPost = 0;
+      tmpParams.addLegend = 1;
+      
+      plotPSTH(meanStack, [], [], tmpParams, 'line', figTitle, allTraceLabels)
+      
+    end
+  end
+end
+
+% We have some strange graphs now with event averages
+
 
 % Plot 4 - mean subEvent PSTH, based on extracted slices
 % Generates Plots for each event by overlaying particular event types and

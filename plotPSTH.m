@@ -19,6 +19,12 @@ psthPre = psthParams.psthPre;
 psthImDur = psthParams.psthImDur;
 psthPost = psthParams.psthPost;
 
+if isfield(psthParams, 'addLegend')
+  addLegend = psthParams.addLegend;
+else
+  addLegend = true;
+end
+
 xrange= [-psthPre psthImDur+psthPost]; 
 nrows = size(psthArray,1);
 yaxis = [1 nrows];
@@ -48,6 +54,7 @@ switch plotType
     yRange = ylimits(2) - ylimits(1);
     set(gca,'YTick',linspace(ylimits(1)+yRange/(2*nrows),ylimits(2)-yRange/(2*nrows),nrows),'YTicklabel',ylabels,...
       'box','off','TickDir','out','FontSize',14,'TickLength',[.012 .012],'LineWidth',1.3);
+    
   case 'line'
     colorBarh = [];
     if isempty(psthError)
@@ -80,7 +87,9 @@ switch plotType
         dummyLinHands(ii) = plot(0, 0, 'color', 'k', 'linewidth', 0.5);
       end
     end
-    legendH = legend(ylabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');
+    if addLegend
+      legendH = legend(ylabels, 'location', 'northeastoutside', 'AutoUpdate', 'off');
+    end
 end
 
 % Deliniate stimulus presentation period
