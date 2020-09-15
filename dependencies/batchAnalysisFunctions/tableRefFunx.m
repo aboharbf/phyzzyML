@@ -16,6 +16,7 @@ function [spikeDataBank, trueCellIndStruct, unitCountStruct, resultTable, nullSi
 % Outputs
 % - trueCellInd - a 'total channels' * 1 logical index which defines
 % whether a channels activity should count as a 'new site/units'.
+% - Adds gridHole and recordingDepth data from xlsx to the spikeDataBank.
 performSigCounts = 1;
 %% Analysis
 % Read both excel tables.

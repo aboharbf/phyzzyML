@@ -46,6 +46,15 @@ switch SaveOrLoad
     fprintf('loading spikeDataBank...\n')
     spikeDataBankTmp = struct();
     filesToCombine = dir(fullfile(outDir, ['spikeDataBank_*.mat']));
+    
+    % Arrange correctly. In cases over 10, sorting is messed up.
+    sliceNum = extractBetween([{filesToCombine.name}'], '_', '.');
+    sliceNum = cellfun(@(x) str2num(x), sliceNum, 'UniformOutput', 0);
+    sliceNum = [sliceNum{:}];
+    [~, newInd] = sort(sliceNum);
+    filesToCombine = filesToCombine(newInd);
+    
+    % Loop through files and concatonate them into output struct.
     for ii = 1:length(filesToCombine)
       tmp = load(fullfile(filesToCombine(ii).folder, filesToCombine(ii).name));
       fieldsToCombine = fields(tmp.spikeDataBankSlice);

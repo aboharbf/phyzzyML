@@ -72,8 +72,7 @@ else
     analyzedData = load(fullfile(analyzedList(ii).folder, analyzedList(ii).name), 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned');
     analysisParams = load(fullfile(analyzedList(ii).folder, 'AnalysisParams.mat'), 'psthParams');
     
-    sessField = sprintf('S%s%s', analyzedData.dateSubject, analyzedData.runNum);
-    sessionList{ii} = [analyzedData.dateSubject analyzedData.runNum];
+    [sessField, sessionList{ii}] = deal(['S' analyzedData.dateSubject analyzedData.runNum]);
     
     % fields from analysis params
     spikeDataBank.(sessField).start = -analysisParams.psthParams.psthPre;

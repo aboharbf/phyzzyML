@@ -12,21 +12,11 @@ load(fullfile(outputDir, 'batchAnalysisParams.mat'));
 runList = fields(spikeDataBank);
 
 if ~isfield(spikeDataBank.(runList{end}), 'stimPresCount')
-  spikeDataBank = stimulusStatistics(spikeDataBank);
-  %Save modified struct.
+  spikeDataBank = stimulusStatistics(spikeDataBank, stimStructParams);
   saveEnv()
 end
 
-if plotSwitch.stimPresCount
-  disp('plot stimPresCount')
-  %Plot as an image the 'daysSinceLastPres' matrix, stimuli on Y, date on
-  %X.will likely require a figure callback for making Y axis labels
-  %legible.
-  %At the top of the plot, I will have a single vector with 'days since
-  %last recording' to highlight days after long breaks.
-end
-
-if ~exist('unitCounts','var') && ~exist('trueCellStruct', 'var')
+if ~exist('unitCounts','var') || ~exist('trueCellStruct', 'var') || ~isfield(spikeDataBank.(runList{end}), 'gridHoles')
   [spikeDataBank, trueCellStruct, unitCounts, resultTable, nullCells] = tableRefFunx(spikeDataBank, cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
   saveEnv(1)
 end
@@ -43,7 +33,7 @@ elseif calcSwitch.excludeRepeats && ~isfield(analysisLog, 'repeatsExcluded')
   % Exclude repeated recordings at the same site.
   for run_ind = 1:length(runList)
     sessionName = extractBetween(runList{run_ind}, 2, length(runList{run_ind}));
-    validInd = trueCellInd(strcmp(sessionName,trueCellInfo(:,1)));
+    validInd = trueCellInd(strcmp(sessionName, trueCellInfo(:,1)));
     if sum(validInd) == 0
       % Remove entire field if all channels are repeated recordings.
       spikeDataBank = rmfield(spikeDataBank,(runList{run_ind}));
@@ -75,7 +65,7 @@ if ~exist('stimPSTHStruct', 'var')
 end
 
 % Combine PSTH across all runs for a particular stimulus.
-if plotSwitch.meanPSTH 
+if plotSwitch.meanPSTH || (plotSwitch.subEventPSTH && ~exist('meanPSTHStruct', 'var'))
   [stimPSTH, meanPSTHStruct] = meanPSTH(stimPSTHStruct, meanPSTHParams, figStruct);
   saveEnv(0)
 end
@@ -112,7 +102,7 @@ end
 
 %% Functions
 
-function spikeDataBank = stimulusStatistics(spikeDataBank)
+function spikeDataBank = stimulusStatistics(spikeDataBank, params)
 % Stimuli Presentation count and 'Novelty' Related Information.
 %Code below creates a single large vector of stimuli used, and uses this to
 %create individual vectors containing which viewing of the stimulus this
@@ -122,40 +112,64 @@ function spikeDataBank = stimulusStatistics(spikeDataBank)
 
 runList = fields(spikeDataBank);
 
-%extract the eventIDs field, generate a cell array of unique stimuli
+tok2Find = {'S20', 'Mo00'};
+tok2Rep = {'', 'R'};
+
+runListLabels = regexprep(runList, tok2Find, tok2Rep);
+
+
+% Extract the eventIDs field, generate a cell array of unique stimuli
 allStimuliVec = struct2cell(structfun(@(x) x.eventIDs, spikeDataBank,'UniformOutput', 0));
 allStimuliVec = unique(vertcat(allStimuliVec{:}));
 
-%Produce matrix (N stim * M runs) which gives 0 for non present stim, count of stim presentation otherwise.
+tokens2Find = {'.avi', '_\d{3}', 'monkey', 'human'};
+tokens2Rep = {'', '', 'm', 'h'};
+allStimuliVecNames = regexprep(allStimuliVec, tokens2Find, tokens2Rep);
+allStimuliVecNames = strrep(allStimuliVecNames, '_', ' ');
+
+% Produce matrix (N stim * M runs) which gives 0 for non present stim, count of stim presentation otherwise.
 stimLogicalArray = zeros(length(allStimuliVec),length(runList));
 for run_ind = 1:length(runList)
   stimLogicalArray(:,run_ind) = ismember(allStimuliVec,spikeDataBank.(runList{run_ind}).eventIDs);
 end
+
+% Turn that matrix into a matrix of nth presentation.
 csStimLogicalArray = cumsum(stimLogicalArray,2);
 csStimLogicalArray(~stimLogicalArray) = 0;
 
 % When was a stimulus first seen? Index of runList where first presentation took place.
-firstStimPresInd = zeros(length(allStimuliVec),1);
-for stim_ind = 1:length(allStimuliVec)
-  firstStimPresInd(stim_ind) = find(stimLogicalArray(stim_ind,:),1,'first');
-end
+[firstStimPresInd, ~] = find(csStimLogicalArray' == 1);
+
+% Sort the previous count array by the first presentations
+[~, newInd] = sort(firstStimPresInd);
+csStimLogicalArraySorted = csStimLogicalArray(newInd, :);
+
+% If this is run, it should be saved
+params.figStruct.saveFig = 1;
+
+% Generate image figure for this using XYGrid
+XYGrid(csStimLogicalArraySorted, allStimuliVecNames(newInd), runListLabels, params.xyStimParams);
+saveFigure(params.outDir, 'StimRunGrid', [], params.figStruct, [])
+
+% Generate image figure for eventData using XYGrid
+tmp = load(params.eventDataPath);
+eventListPlot = strrep(tmp.eventData.Properties.VariableNames, '_', ' ');
+tmp.eventData = tmp.eventData(allStimuliVec,:);
+
+XYGrid(tmp.eventData, allStimuliVecNames, eventListPlot, params.xyEventparams)
+saveFigure(params.outDir, 'StimEventGrid', [], params.figStruct, [])
 
 % Append a dateTime to each field with the time in days since the last
 % recording. Add the relevant slice of the larger csStimLogicalArray.
+allDateTimeVec = NaT(size(runList));
 for run_ind = 1:length(runList)
-  spikeDataBank.(runList{run_ind}).stimPresArray = csStimLogicalArray(:,run_ind);
-  spikeDataBank.(runList{run_ind}).dateTime = datetime(extractBetween(spikeDataBank.(runList{run_ind}).dateSubject,1,8),'InputFormat','yyyyMMdd');     %Generate 'daysSinceLastRec' for each field.
+  allDateTimeVec(run_ind) = datetime(extractBetween(spikeDataBank.(runList{run_ind}).dateSubject,1,8),'InputFormat','yyyyMMdd');     %Generate 'daysSinceLastRec' for each field.
 end
 
 % find unique recording dates, and the distance between them. Add these
-% to the spikeDataBank
-allDateTimeVec = struct2cell(structfun(@(x) x.dateTime, spikeDataBank,'UniformOutput', 0));
-allDateTimeVec = [allDateTimeVec{:}]';
+% to the spikeDataBank later.
 uniqueDateTimeVec = unique(allDateTimeVec);
 daysSinceLastRec = [1000; days(diff(uniqueDateTimeVec))];
-for run_ind = 1:length(runList)
-  spikeDataBank.(runList{run_ind}).daysSinceLastRec = daysSinceLastRec(spikeDataBank.(runList{run_ind}).dateTime == uniqueDateTimeVec);
-end
 
 % use the dateTime and stimulus presentation matrix to find out how long
 % in days takes place before a particular showing of a stimulus.
@@ -165,11 +179,14 @@ for stim_ind = 1:size(stimLogicalArray,1)
   daysSinceLastPres(stim_ind,presentationInd) = [1000; days(diff(allDateTimeVec(presentationInd)))]; %Duration between those dates in days
 end
 
-%Return days since last presentation and the stimulus presentation count to spikeDataBank, arranged in way that matches stim table.
+% Fill out spikeDataBank with generated values.
 for run_ind = 1:size(stimLogicalArray,2)
   [~, big2SmallInd] = ismember(spikeDataBank.(runList{run_ind}).eventIDs,allStimuliVec);
   spikeDataBank.(runList{run_ind}).daysSinceLastPres = daysSinceLastPres(big2SmallInd,run_ind);
   spikeDataBank.(runList{run_ind}).stimPresCount = csStimLogicalArray(big2SmallInd,run_ind);
+  spikeDataBank.(runList{run_ind}).stimPresArray = csStimLogicalArray(:,run_ind);
+  spikeDataBank.(runList{run_ind}).dateTime = allDateTimeVec(run_ind);
+  spikeDataBank.(runList{run_ind}).daysSinceLastRec = daysSinceLastRec(allDateTimeVec(run_ind) == uniqueDateTimeVec);
 end
 
 end

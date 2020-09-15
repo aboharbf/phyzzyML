@@ -53,6 +53,17 @@ plotSwitch.slidingWindowANOVA = 0;    %
 plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 
 %% Parameters
+
+stimStructParams.outDir = outputDir;
+stimStructParams.figStruct = figStruct;
+stimStructParams.eventDataPath = eventDataPath;
+stimStructParams.xyStimParams.plotTitle = 'Stimulus Presentation Counts, Sorted by first presentation';
+stimStructParams.xyStimParams.XLabel = 'Run Name';
+stimStructParams.xyStimparams.YLabel = 'Stimulus Name';
+stimStructParams.xyEventparams.plotTitle = 'Events Per Stimulus Count, Sorted by first presentation';
+stimStructParams.xyEventparams.XLabel = 'Event Name';
+stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
+
 preprocessParams.spikeDataFileName = 'spikeDataBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
 %3 variables below are not used, as defining the variables in a load
 %command w/ a cell array (or other structures) doesn't work.
