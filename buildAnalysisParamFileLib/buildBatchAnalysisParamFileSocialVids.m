@@ -154,8 +154,8 @@ subEventPSTHParams.psthPost = 200;
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
 subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
-subEventPSTHParams.stimPlusEvents_extracted = 1;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
-subEventPSTHParams.eventPsthColorPlots = 1;                     % Plot 3.1 - event PSTH color plots, each individual trace, stacked. Takes length of event into account.
+subEventPSTHParams.stimPlusEvents_extracted = 0;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
+subEventPSTHParams.eventPsthColorPlots = 0;                     % Plot 3.1 - event PSTH color plots, each individual trace, stacked. Takes length of event into account.
 subEventPSTHParams.eventPsthMeanLinePlots = 1;                  % Plot 3.2 - event PSTH mean line plots, shows the full slice of event related activity to the PSTH. ACTIVATES PLOT 3 CODE!
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 
