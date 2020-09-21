@@ -1,4 +1,4 @@
-function figHand = XYGrid(dataTable, RowLabels, ColumnLabels, params)
+function figHand = XYGrid(figHand, dataTable, RowLabels, ColumnLabels, params)
 % Function which generates a figure with a grid representing non-empty
 % entries in a table or cell array (or 0's in a numeric array).
 % Inputs:
@@ -26,8 +26,14 @@ else
   dataMat = dataTable;
 end
 
+if isempty(figHand)
+  figHand = figure('Units', 'Normalized');
+end
 
-figHand = figure('Units', 'Normalized');
+if isempty(ColumnLabels)
+  ColumnLabels = 1:size(dataTable,2);
+end
+
 axHand = axes();
 imagesc(dataMat);
 

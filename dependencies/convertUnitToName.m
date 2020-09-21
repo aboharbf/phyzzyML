@@ -2,10 +2,6 @@ function stringName = convertUnitToName(unitNumber, totalUnitCount, outputType)
 % Assumes phyzzy convention, returns string with appropriate Label
 % outputType - 1 = Named labels, which can be used in figures, 2 = US, U or M.
 
-if any(size(unitNumber) > [1, 1])
-  
-end
-
 stringName = cell(length(unitNumber), 1);
 
 for ii = 1:length(unitNumber)

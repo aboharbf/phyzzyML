@@ -35,11 +35,11 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 0;      % save the figure in its output directory.           
-figStruct.closeFig = 0;     % close the figure once it is saved
+figStruct.saveFig = 1;      % save the figure in its output directory.           
+figStruct.closeFig = 1;     % close the figure once it is saved
 figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
-figStruct.noOverWrite = 1;      % If a figure is already there, don't make it again.
+figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Switches
@@ -71,6 +71,7 @@ preprocessParams.preprocessedVars = {'spikesByEvent','eventIDs','eventCategories
 preprocessParams.analyzedVars = {'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','attendedObjData'}; %Variables extracted from analyzedData.mat
 preprocessParams.analysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
 
+meanPSTHParams.runInclude = 30;                                     % 0 = everything, N = Nth first runs of the stimulus.
 meanPSTHParams.stimInclude = 2;                                     % 0 = everything, 1 = Only Animations, 2 = Exclude Animations. 
 cellCountParams.excludePhase2 = 0;                                  % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
 cellCountParams.batchRunxls = batchRunxls;                          % Batch analysis xlsx produced by processRunBatch.
@@ -140,8 +141,8 @@ meanPSTHParams.plotSizeLineBroadCatPlot = [.6 .7];
 subEventPSTHParams.outputDir = fullfile(outputDir,'subEventPSTH');
 subEventPSTHParams.eventData = eventDataPath;
 subEventPSTHParams.stimParamsFilename = stimParamsFilename;
-subEventPSTHParams.normalize = 1;                                 % Grab activity from same unit, Z score fixation activity with respect to fixation period activity.
-subEventPSTHParams.fixBuffer = 150;                                % normalization acts on the fixation period. Some effects of the fix dot appearance or stimulus onset may be driving neurons away from the true baseline. this number is the millisecond after true fix start, before fix end.
+subEventPSTHParams.normalize = 1;                                   % Grab activity from same unit, Z score fixation activity with respect to fixation period activity.
+subEventPSTHParams.fixBuffer = 150;                                 % normalization acts on the fixation period. Some effects of the fix dot appearance or stimulus onset may be driving neurons away from the true baseline. this number is the millisecond after true fix start, before fix end.
 subEventPSTHParams.plotSizeAllRunStimPSTH = [1 1];
 subEventPSTHParams.exportFig = figStruct.exportFig;
 subEventPSTHParams.saveFig = figStruct.saveFig;
@@ -153,7 +154,9 @@ subEventPSTHParams.psthPost = 200;
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
 subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
-subEventPSTHParams.allRunStimPSTH_extracted = 1;                % Plot 3 - Individual event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
+subEventPSTHParams.stimPlusEvents_extracted = 1;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
+subEventPSTHParams.eventPsthColorPlots = 1;                     % Plot 3.1 - event PSTH color plots, each individual trace, stacked. Takes length of event into account.
+subEventPSTHParams.eventPsthMeanLinePlots = 1;                  % Plot 3.2 - event PSTH mean line plots, shows the full slice of event related activity to the PSTH. ACTIVATES PLOT 3 CODE!
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 
 subEventPSTHParams.plotSizeAllRunStimPSTH_extracted = [.5 .6];           

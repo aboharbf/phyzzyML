@@ -24,7 +24,9 @@ for event_i = 1:length(eventNames)
         eventInd = round(starts(ev_i)):round(stops);
         eventMat(stim_i, eventInd, event_i) = 1;
       end
-    end    
+      
+    end
+    
   end
   
 end
