@@ -27,9 +27,7 @@ end
 outDirPath = dir([parsedFolder '/'  file '_NSX_Ch*.NC5']);
 if ~isempty(outDirPath)
   disp('Data already processed - returning appropriate paths')
-  for i = 1:length(outDirPath)
-    outfile_path{i} = [outDirPath(i).folder filesep outDirPath(i).name];
-  end
+  outfile_path = fullfile({outDirPath.folder}, {outDirPath.name})';
   return
 else
   with_memory=true;
@@ -39,7 +37,7 @@ else
     with_memory=false;
   end
   if with_memory
-    [userview,systemview] = memory;
+    [userview, systemview] = memory;
     memo_avaible = floor(systemview.PhysicalMemory.Available*0.80);
     if exist('max_memo_GB','var') && ~isempty(max_memo_GB)
       max_memo = max_memo_GB*(1024)^3;

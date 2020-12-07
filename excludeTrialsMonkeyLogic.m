@@ -100,9 +100,12 @@ taskDataValid = struct;
 taskDataValid.taskDataSummary = taskData.taskDataSummary;
 taskDataValid.taskEventList = taskData.taskEventList;
 taskDataValid.frameMotionData = taskData.frameMotionData;
-taskDataValid.eventData = taskData.eventData;
 taskDataValid.RFmap = taskData.RFmap;
 taskDataValid.eyeCal = taskData.eyeCal;
+
+if isfield(taskData, 'eventData')
+  taskDataValid.eventData = taskData.eventData;
+end
 
 % Per trial values, which need to be changed
 taskDataValid.taskEventIDs = taskData.taskEventIDs(trialValid);

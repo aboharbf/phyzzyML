@@ -1,5 +1,5 @@
 function [ taskData, stimTiming ] = preprocessLogFileMonkeyLogic(logfile, taskTriggers, diodeTriggers, params)
-%% Reads in Black
+%% Reads in Blackrock
 %  - in presentation order, stimulus filenames, start/end times and jump RF mapping positions
 %  - task event times: fixation in/out, fixspot flash start/end, juice delivery start/end 
 %  - currently, uses digital IO packets for synchronization. In future
@@ -59,8 +59,15 @@ while sum(find(cellfun('isempty', translationTable))) ~= 0
   trial_ind = trial_ind + 1;
 end
 
-logFileStimTable = strtrim((TrialRecord.TaskInfo.Stimuli)); %Clean up the stim table in the logfile.
-
+if strcmp(TrialRecord.TaskInfo.Stimuli{1}(2), ':') % new version of ML might show full path?
+  logFileStimTable = cell(length(TrialRecord.TaskInfo.Stimuli),1);
+  for ii = 1:length(logFileStimTable)
+    [~, B, C] = fileparts(TrialRecord.TaskInfo.Stimuli{ii});
+    logFileStimTable{ii} = [B C];
+  end
+else
+  logFileStimTable = strtrim((TrialRecord.TaskInfo.Stimuli)); %Clean up the stim table in the logfile.
+end
 %Check to see if what you collected by cycling through the stim matches
 %this table.
 assert(sum(strcmp(logFileStimTable,translationTable)) == length(translationTable), 'Stim table from MonkeyLogic doesnt match collected table');
@@ -176,7 +183,15 @@ else % Means Blackrock/MKL Communication was intact, correct
   
   %Now, use the correct trial array from MKL to pick out only the correct
   %trials from the whole array. Assign them them to the correct vectors. 
-  [taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, trialStartTimesBlk] = deal(nan(size(trialStartInds)));
+  [taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, rewardTrialInds, trialStartTimesBlk] = deal(nan(size(trialStartInds)));
+  
+  % Identify which trials were rewarded by looking for the correct series
+  % of eventMarkers.
+  trialIntervals = [find(packetData == 9), find(packetData == 18)]';
+  for trial_i = 1:length(juiceOnTimesBlk)
+    trial_int = trialIntervals(:, trial_i);
+    rewardTrialInds(trial_i) = any(packetData(trial_int(1):trial_int(2)) == rewardMarker);
+  end
   
   %Construct Error array from Blackrock files only, useful in the case that
   %incomplete trials lead to unpaired start and stop triggers.
@@ -210,8 +225,11 @@ else % Means Blackrock/MKL Communication was intact, correct
   trialStartTimesBlk(errorArray ~= 4) = trialStartTimesAll(errorArray ~= 4);
   taskEventStartTimesBlk(errorArray ~= 4) = packetTimes(packetData == stimStartMarker); %Stores every trial where stim started (no fail during fix);
   taskEventEndTimesBlk(errorArray ~= 4) = packetTimes(stimFixEndInds(errorArray ~= 4));
-  juiceOnTimesBlk(errorArray == 0) = packetTimes(packetData == rewardMarker);
-  juiceOffTimesBlk(errorArray == 0) = packetTimes(trialEndInds(errorArray == 0));
+  
+  % Juice processing needs to account for paradigms where reward doesn't
+  % come w/ every trial.
+  juiceOnTimesBlk(rewardTrialInds == 1) = packetTimes(packetData == rewardMarker);
+  juiceOffTimesBlk(rewardTrialInds == 1) = packetTimes(trialEndInds(rewardTrialInds == 1));
   
   %use the condition number to fill out the taskEventsIDs using the
   %translation table.
@@ -396,35 +414,36 @@ fprintf('range of offset %d ms - %d ms \n', [min(offsets), max(offsets)])
 %% If eventData file is present, search it, and generate composite subEvents.
 % Code below generates a table used by neuroGLM function.
 eventDataFile = dir([params.stimDir '/**/eventData.mat']);
-if ~isempty(eventDataFile)  
+if ~isempty(eventDataFile)
   load(fullfile(eventDataFile(1).folder, eventDataFile(1).name), 'eventData');
-  eventDataRun = eventData(translationTable, :);
-  eventsInEventData = eventDataRun.Properties.VariableNames;
-  
-  % Generate an output table
-  eventDataStarts = cell2table(cell(size(eventDataRun)));
-  eventDataStarts.Properties.RowNames = translationTable;
-  eventDataStarts.Properties.VariableNames = eventsInEventData;
-  
-  for stim_i = 1:length(translationTable)
-    % Converting frames to times.
-    timePerFrame = tmpFrameMotionData(stim_i).timePerFrame;
+  if ~isempty(intersect(eventData.Properties.RowNames, translationTable))
+    eventDataRun = eventData(translationTable, :);
+    eventsInEventData = eventDataRun.Properties.VariableNames;
     
-    for event_i = 1:length(eventsInEventData)
-      events2pull = eventDataRun{translationTable{stim_i}, eventsInEventData{event_i}}{1};
-      if ~isempty(events2pull)
-        eventDataStarts{translationTable{stim_i}, eventsInEventData{event_i}} = {events2pull.startFrame*timePerFrame}; 
+    % Generate an output table
+    eventDataStarts = cell2table(cell(size(eventDataRun)));
+    eventDataStarts.Properties.RowNames = translationTable;
+    eventDataStarts.Properties.VariableNames = eventsInEventData;
+    
+    for stim_i = 1:length(translationTable)
+      % Converting frames to times.
+      timePerFrame = tmpFrameMotionData(stim_i).timePerFrame;
+      
+      for event_i = 1:length(eventsInEventData)
+        events2pull = eventDataRun{translationTable{stim_i}, eventsInEventData{event_i}}{1};
+        if ~isempty(events2pull)
+          eventDataStarts{translationTable{stim_i}, eventsInEventData{event_i}} = {events2pull.startFrame*timePerFrame};
+        end
       end
+      
     end
     
+    % Initialize output struct, remove empty columns, load variables
+    taskData.eventData = struct();
+    column2keepInd = logical(sum(~cellfun('isempty', table2cell(eventDataStarts))));
+    taskData.eventData.events = eventsInEventData(column2keepInd);
+    taskData.eventData.eventDataStarts = eventDataStarts(:,column2keepInd);
   end
-  
-  % Initialize output struct, remove empty columns, load variables
-  taskData.eventData = struct();
-  column2keepInd = logical(sum(~cellfun('isempty', table2cell(eventDataStarts))));
-  taskData.eventData.events = eventsInEventData(column2keepInd);
-  taskData.eventData.eventDataStarts = eventDataStarts(:,column2keepInd);
-      
 end
 
 %% Addtion in Aug 2020 - Realization of diversity of fixation times due to 'punishment' dynamic (failed trial = +50 msec on subsuquent fix time to initiate next trial)
@@ -444,6 +463,15 @@ end
   % Generate a vector of reward times relative to stimulus onset.
   rewardTimePerTrial = juiceOnTimesBlk - taskEventStartTimesBlk;
 
+%% Nov 2020 - merge stimuli across certains domains.
+% This segment identifies whether a head turning paradigm is being used,
+% and collapses the output data across those stimuli (pretending they are
+% the same stimulus).
+  
+% Structures which need to be updated TrialRecord, and taskEventIDs.
+if strncmp(taskEventIDs{1}, 'headTurn', 8)
+  taskEventIDs = mergeStimuli(taskEventIDs);
+end
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.
@@ -454,7 +482,7 @@ fixationInTimesBlk = taskEventStartTimesBlk(firstNonNaN);
 fixationOutTimesBlk = taskEventEndTimesBlk(firstNonNaN);
 
 % finally, build the output structure:
-% Note: **If something is missing in RunAnalyses** - likely due to taskData
+% Note: **If something is missing in runAnalyses** - likely due to taskData
 % being overwritten following excludeTrial function.
 
 taskData.taskDataSummary.TrialRecord = TrialRecord;
@@ -486,7 +514,6 @@ taskData.eyeCal.origin = MLConfig.EyeTransform{1,2}.origin;
 taskData.eyeCal.gain = MLConfig.EyeTransform{1,2}.gain;
 
 end
-%
 
 function translationTable = updateTranslationTable(translationTable)
 %Function takes the translation table drawn from the MonkeyLogic file, and
@@ -621,3 +648,74 @@ end
 
 end
 
+function taskEventIDs = mergeStimuli(taskEventIDs)
+% Takes in the taskEventID string, relabels variants of a stimuli to the
+% same name.
+
+% Identify the paradigm
+paradigm = extractBefore(taskEventIDs{1}, '_');
+
+% Knowing that headTurnCon and headTurnIso follow a specific code,
+% identify ones which are the same.
+isolatedCodes = extractBetween(taskEventIDs, '_1', '.');
+
+switch paradigm
+  case 'headTurnIso'
+  % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
+  % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
+  % skin_i make variants of these stim.
+  stimCode = cellfun(@(x) x(1, [2 4 7 9]), isolatedCodes, 'UniformOutput', false);
+  [A, ~, uniqueStimGroup] = unique(stimCode);
+  
+  % insert these names to json file via "MonkeyPrefabs":"name". use this
+  % index directly into name position 3.
+  prefabToSet = {'idle','bioMotion'};
+  prefabCounts = 3;
+  prefabTypes = {'leftFull', 'leftHalf', 'core', 'rightHalf', 'rightFull'};
+  prefabID = {'','_Red', '_Ashe', '_White'}; %The first prefab, 'Beige', doesn't have the color appended.
+  
+  % insert these names to json file via "CameraName" field. this index goes
+  % into the name in position 4.
+  cameras = {'leftCam', 'frontCam', 'rightCam'};
+  
+  % insert the index - 1 of the desired mesh below, and set
+  % 'OverrideMeshType' to 'true'. Use the index in the name as code position
+  % 5.
+  % meshes = {'Normal', 'LowRes', 'Dots', 'Spheres'};
+  meshes = {'Normal', 'LowRes', 'Dots'};
+  
+  mergeTaskEvent = cell(length(A),1);
+  for ii = 1:length(A)
+    wholeCode = A{ii};
+    intInd = str2num(wholeCode(1));   % Extract int type.
+    turnInd = str2num(wholeCode(2));  % Extract head Turn
+    camInd = str2num(wholeCode(3));
+    meshInd = str2num(wholeCode(4));
+    mergeTaskEvent{ii} = strjoin([prefabToSet(intInd), prefabTypes(turnInd), cameras(camInd), meshes(meshInd)], '_');
+  end
+  
+  taskEventIDs = mergeTaskEvent(uniqueStimGroup);
+  case 'headTurnCon'
+  % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
+  % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
+  % variants.
+  stimCode = cellfun(@(x) x(1, [2, 3, 5]), isolatedCodes, 'UniformOutput', false);
+  [A, ~, uniqueStimGroup] = unique(stimCode);
+  
+  intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
+  turnArray = {'_noTurn', '_Turn'};
+  
+  mergeTaskEvent = cell(length(A),1);
+  for ii = 1:length(A)
+    indCode = A{ii};
+    intInd = str2num(indCode(1));
+    intNum = indCode(2);
+    turnInd = str2num(indCode(3))+1;
+    mergeTaskEvent{ii} = [intArray{intInd} intNum turnArray{turnInd}];
+  end
+  
+  taskEventIDs = mergeTaskEvent(uniqueStimGroup);
+  otherwise
+    taskEventIDs = taskEventIDs;
+end
+end

@@ -13,7 +13,7 @@ function [ spikesByChannel, taskTriggers, channelUnitNames ] = preprocessSpikes(
 Output.VERBOSE('loading blackrock event file');
 assert(logical(exist(spikeFilename,'file')),'The spike-event file you requested does not exist.');
 NEV = openNEV(spikeFilename,'nosave','nomat'); %note: add param 'report' for verbose
-
+originalDir = pwd;
 
 %Check to see if new openNEV (where Spikes struct has been flipped), and if
 %so, flip it back.
@@ -55,34 +55,42 @@ if isfield(params,'offlineSorted') && params.offlineSorted == 1
 end
 
 if isfield(params, 'waveClus') && params.waveClus
-  %   try
-  %Temporarily add directories needed for wave_clus
   addpath(genpath('dependencies/wave_clus'))
   
   %use the typical naming convention to find the contious trace (ns5)
   lfpFilename = [spikeFilePath '/' spikeFile '.ns5'];
   
   %parse the ns5, or see if they are already parsed.
-  parsedData = parse_data_NSx(lfpFilename,[],[], 1:128); %(filename,max_memo_GB,output_name,channels)
+  parsedData = parse_data_NSx(lfpFilename, [], [], 1:128)'; %(filename,max_memo_GB,output_name,channels)
+  parsedChannelNum = str2double(extractBetween(parsedData, 'Ch', '.NC5'));
+  [~, B, ~] = intersect(parsedChannelNum, params.spikeChannels);
+  parsedData = parsedData(B);
+  parsedDir = fileparts(parsedData{1});
   
-  clusterResults = cell(length(parsedData),1);
   %Check to see if a previously clustered file exists for each channel
-  previousFile = dir([fileparts(parsedData{1}) filesep 'times_*.mat']);
-  if ~isempty(previousFile)
-    disp('waveClus spikes already clustered, providing path to file.')
-    for ii = 1:length(previousFile)
-      clusterResults{ii} = [previousFile(ii).folder filesep previousFile(ii).name];
-    end
-    Do_clustering(clusterResults, 'make_plots', true, 'make_times', false)
-  else
-    %Find spikes
-    output_paths = Get_spikes(parsedData);
+  %specified in the analysisParamFile
+  clusterResults = cell(length(params.spikeChannels), 1);
+  for spike_ch_i = 1:length(params.spikeChannels)
+    chNum = params.spikeChannels(spike_ch_i);
+    previousFile = dir(fullfile(parsedDir, sprintf('times_*Ch%d.mat', chNum)));
     
-    %Cluster them, based on either a specified param file or the default.
-    if isfield(params, 'paramHandle')
-      clusterResults = Do_clustering(output_paths, 'par', params.paramHandle);
+    if ~isempty(previousFile)
+      disp('waveClus spikes already clustered, providing path to file.')
+      % Construct the clusterResult path
+      clusterResults{spike_ch_i} = fullfile(previousFile.folder, previousFile.name);
+      
+      % Use Do_clustering to plot results.
+      Do_clustering(fullfile(previousFile.folder, previousFile.name), 'make_plots', true, 'make_times', false);
     else
-      clusterResults = Do_clustering(output_paths);
+      %Find spikes
+      output_paths = Get_spikes(parsedData(spike_ch_i));
+      
+      %Cluster them, based on either a specified param file or the default.
+      if isfield(params, 'paramHandle')
+        clusterResults(spike_ch_i) = Do_clustering(output_paths, 'par', params.paramHandle);
+      else
+        clusterResults(spike_ch_i) = Do_clustering(output_paths);
+      end
     end
   end
   
@@ -90,18 +98,20 @@ if isfield(params, 'waveClus') && params.waveClus
   %a temporary NEV structure.
   [tmpSpikes.TimeStamp, tmpSpikes.Electrode, tmpSpikes.Unit, tmpSpikes.Waveform] = deal([]);
   for ii=1:length(clusterResults)
-    WC = load(clusterResults{ii}); %Electrode should actually parse the name of the file.
-    tmpSpikes.Unit = vertcat(tmpSpikes.Unit, WC.cluster_class(:,1));
-    tmpSpikes.TimeStamp = vertcat(tmpSpikes.TimeStamp, WC.cluster_class(:,2));
-    tmpSpikes.Waveform = vertcat(tmpSpikes.Waveform, WC.spikes);
-    electrodeTmp = split(clusterResults{ii},'Ch');
-    electrodes(ii) = str2double(electrodeTmp{2}(1:end-4));
-    tmpSpikes.Electrode = vertcat(tmpSpikes.Electrode, ones(length(WC.cluster_class), 1)*electrodes(ii));
-    try
-      tmpSpikes.Threshold(ii) = WC.threshold;
-    catch
-      warning('threshold in wrong spot');
-      tmpSpikes.Threshold(ii) = WC.par.threshold(end);
+    if ~isempty(clusterResults{ii})
+      WC = load(clusterResults{ii}); %Electrode should actually parse the name of the file.
+      tmpSpikes.Unit = vertcat(tmpSpikes.Unit, WC.cluster_class(:,1));
+      tmpSpikes.TimeStamp = vertcat(tmpSpikes.TimeStamp, WC.cluster_class(:,2));
+      tmpSpikes.Waveform = vertcat(tmpSpikes.Waveform, WC.spikes);
+      electrodeTmp = split(clusterResults{ii},'Ch');
+      electrodes(ii) = str2double(electrodeTmp{2}(1:end-4));
+      tmpSpikes.Electrode = vertcat(tmpSpikes.Electrode, ones(length(WC.cluster_class), 1)*electrodes(ii));
+      try
+        tmpSpikes.Threshold(ii) = WC.threshold;
+      catch
+        warning('threshold in wrong spot');
+        tmpSpikes.Threshold(ii) = WC.par.threshold(end);
+      end
     end
   end
   
@@ -180,8 +190,15 @@ if isfield(params, 'waveClus') && params.waveClus
   %     warning('waveClus failure - proceeding unsorted')
   %     error('waveClus failure')
   %   end
-  %Clean up - Remove added paths, delete folder with files if requested.
+  
+  %Clean up - Remove added paths, delete folder with files if requested,
+  %and make sure you are in the phyzzy directory.
   rmpath(genpath('dependencies/wave_clus'))
+  [~, currentDir] = fileparts(pwd);
+  if ~strcmp(currentDir, 'phyzzyML')
+    cd(originalDir);
+  end
+  
   switch params.waveClusClear
     case 1
       %delete([spikeFilePath '/' spikeFile '_parsed' '/times*'])
@@ -197,27 +214,29 @@ end
 for channel_i = 1:length(params.spikeChannels)
   %change units from sample index to ms; type from int32 to double
   tmp.times = params.cPtCal*double(NEV.Data.Spikes.TimeStamp(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i)));
-  tmp.units = NEV.Data.Spikes.Unit(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i));
-  tmp.waveforms = NEV.Data.Spikes.Waveform(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i),:);
-  if min(tmp.units) > 0 && isempty(params.unitsToUnsort{channel_i})
-    unitNamesTmp = unitNames(2:length(unique(tmp.units))+1);
-  else
-    unitNamesTmp = unitNames(1:length(unique(tmp.units)));
+  if ~isempty(tmp.times)
+    tmp.units = NEV.Data.Spikes.Unit(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i));
+    tmp.waveforms = NEV.Data.Spikes.Waveform(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i),:);
+    if min(tmp.units) > 0 && isempty(params.unitsToUnsort{channel_i})
+      unitNamesTmp = unitNames(2:length(unique(tmp.units))+1);
+    else
+      unitNamesTmp = unitNames(1:length(unique(tmp.units)));
+    end
+    for discard_i = 1:length(params.unitsToDiscard{channel_i})
+      tmp.times = tmp.times(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
+      tmp.waveforms = tmp.waveforms(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
+      tmp.units = tmp.units(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
+    end
+    assert(~ismember(0,params.unitsToUnsort{channel_i}),'0 cannot appear in params.unitsToUnsort: cannot unsort unsorted');
+    for unsort_i = 1:length(params.unitsToUnsort{channel_i})
+      tmp.units(tmp.units == params.unitsToUnsort{channel_i}(unsort_i)) = 0;
+    end
+    spikesByChannel(channel_i) = tmp;
+    if ~isempty(tmp.units)
+      channelUnitNames{channel_i} = [unitNamesTmp(setdiff(0:(length(unitNamesTmp)-1),union(params.unitsToUnsort{channel_i},params.unitsToDiscard{channel_i}))+1),{'MUA'}];
+    end
+    Output.VERBOSE(channelUnitNames{channel_i});
   end
-  for discard_i = 1:length(params.unitsToDiscard{channel_i})
-    tmp.times = tmp.times(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
-    tmp.waveforms = tmp.waveforms(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
-    tmp.units = tmp.units(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
-  end
-  assert(~ismember(0,params.unitsToUnsort{channel_i}),'0 cannot appear in params.unitsToUnsort: cannot unsort unsorted');
-  for unsort_i = 1:length(params.unitsToUnsort{channel_i})
-    tmp.units(tmp.units == params.unitsToUnsort{channel_i}(unsort_i)) = 0;
-  end
-  spikesByChannel(channel_i) = tmp;
-  if ~isempty(tmp.units)
-    channelUnitNames{channel_i} = [unitNamesTmp(setdiff(0:(length(unitNamesTmp)-1),union(params.unitsToUnsort{channel_i},params.unitsToDiscard{channel_i}))+1),{'MUA'}];
-  end
-  Output.VERBOSE(channelUnitNames{channel_i});
 end
 if params.shiftSpikeWaveforms
   rawSpikes = spikesByChannel;
@@ -278,7 +297,7 @@ if params.plotSpikeWaveforms
   halfTime = endTime/2;
   for channel_i = 1:length(params.spikeChannels)
     tmp = spikesByChannel(channel_i);
-    fh = figure('Name','Spike Waveform Development','NumberTitle','off');
+    fh = figure('Name',sprintf('Spike Waveform Development - Ch%d', channel_i) , 'NumberTitle', 'off');
     numPlotColumns = length(unique(tmp.units)) + 1; %extra is for MUA plot
     %initialize top row 
     for subplot_i = 1:numPlotColumns-1

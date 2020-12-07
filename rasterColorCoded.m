@@ -72,29 +72,32 @@ if colorSwitch == 1
 end
 
 %Plot the Shaded area, if appropriate
-if colorSwitch == 2
-  attObjData = cat(1, attendedObjData.tracePlotData{1:end});
-  im = image(attObjData);
-  imOffset = 0;
-  im.XData = [0+imOffset psthParams.psthImDur-imOffset];
-  im.AlphaData = 0.5;
-  im.YData = [im.YData(1)-0.5 im.YData(2)-0.5];
-  figHandle.UserData.shadedAreaHandle = im;
-elseif colorSwitch == 3 ||  colorSwitch == 4
-  if colorSwitch == 3
-    saccadeData = vertcat(saccadeByStim{attendObjInd});
-    im = imagesc(saccadeData);
-  else
-    pupilByStim = vertcat(pupilByStim{attendObjInd});
-    im = imagesc(pupilByStim);
-    colorbar('location','westoutside')
+try
+  if colorSwitch == 2
+    attObjData = cat(1, attendedObjData.tracePlotData{1:end});
+    im = image(attObjData);
+    imOffset = 0;
+    im.XData = [0+imOffset psthParams.psthImDur-imOffset];
+    im.AlphaData = 0.5;
+    im.YData = [im.YData(1)-0.5 im.YData(2)-0.5];
+    figHandle.UserData.shadedAreaHandle = im;
+  elseif colorSwitch == 3 ||  colorSwitch == 4
+    if colorSwitch == 3
+      saccadeData = vertcat(saccadeByStim{attendObjInd});
+      im = imagesc(saccadeData);
+    else
+      pupilByStim = vertcat(pupilByStim{attendObjInd});
+      im = imagesc(pupilByStim);
+      colorbar('location','westoutside')
+    end
+    im.XData = [-preAlign,imDur+postAlign];
+    im.YData = [im.YData(1)-0.5 im.YData(2)-0.5];
+    im.AlphaData = 0.5;
+    figHandle.UserData.shadedAreaHandle = im;
   end
-  im.XData = [-preAlign,imDur+postAlign];
-  im.YData = [im.YData(1)-0.5 im.YData(2)-0.5];
-  im.AlphaData = 0.5;
-  figHandle.UserData.shadedAreaHandle = im; 
+catch
   
-  
+  warning('colorSwitch failed')
 end
 
 %Plot spikes

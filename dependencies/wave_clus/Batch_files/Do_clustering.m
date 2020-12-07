@@ -160,15 +160,19 @@ if make_times
     if run_par_for == true
       parfor fnum = 1:Nfiles
         filename = filenames{fnum};
-        output_files{fnum} = do_clustering_single(filename, min_spikes4SPC, par_file, par_input, fnum);
+        output_files{fnum} = do_clustering_single_FASort(filename, min_spikes4SPC, par_file, par_input, fnum);
         fprintf('%d of %d ''times'' files finished.\n',count_new_times(initial_date, filenames),Nfiles)
       end
     else
       for fnum = 1:length(filenames)
-        filename = filenames{fnum};
-        %do clustering
-        output_files{fnum} = do_clustering_single_FASort(filename, min_spikes4SPC, par_file, par_input, fnum);
-        fprintf('%d of %d ''times'' files finished.\n',count_new_times(initial_date, filenames),Nfiles)
+          try 
+          filename = filenames{fnum};
+          %do clustering
+          output_files{fnum} = do_clustering_single_FASort(filename, min_spikes4SPC, par_file, par_input, fnum);
+          fprintf('%d of %d ''times'' files finished.\n', count_new_times(initial_date, filenames), Nfiles)
+          catch
+            warning('failed to sort file - %s', filenames{fnum});
+          end
       end
     end
     if parallel == true

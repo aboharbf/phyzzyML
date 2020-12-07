@@ -1,10 +1,10 @@
-function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )    
+function [analysisParamFilename] = buildAnalysisParamFileSocialVids32( varargin )    
 %buildAnalysisParamFile saves a mat file of parameters, which control the
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20201112Mo';
+dateSubject = '20201206Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -19,7 +19,7 @@ switch machine
     stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
     neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case 'Alienware_FA'
-    ephysVolume = slashSwap('D:\EphysData\Data');
+    ephysVolume = slashSwap('C:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('D:\DataAnalysis');
     stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
@@ -48,20 +48,20 @@ figStruct.exportFig = 0;
 figStruct.saveFigData = 0;            
 figStruct.figPos = [0 0 .6 0.7];      % Normalized units for figure position
 
-savePreprocessed = 1;       %#ok
-verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
+savePreprocessed = 1;             % #ok
+verbosity = 'INFO';               % other options, 'DEBUG', 'VERBOSE';
 
 %% Plot switches
-plotSwitch.pupilDilation = 1;               % plots image which illustrates continuous values for pupil dilation. 
-plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
+plotSwitch.pupilDilation = 0;               % plots image which illustrates continuous values for pupil dilation. 
+plotSwitch.subEventAnalysis = 0;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
 plotSwitch.imageEyeMap = 0;                 
 plotSwitch.eyeCorralogram = 0;              % Eye Gram
-plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements.
-plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
-plotSwitch.neuroGLM = 1;                    % implements neuroGLM package from jpillow lab/github.
+plotSwitch.eyeStatsAnalysis = 0;            % use ClusterFix to generate a vector characterizing eye movements.
+plotSwitch.attendedObject = 0;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
+plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli.
-plotSwitch.spikePupilCorr = 1;              % see the correlation between single trial PSTHes and pupil size.
+plotSwitch.spikePupilCorr = 0;              % see the correlation between single trial PSTHes and pupil size.
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
@@ -140,15 +140,15 @@ calcSwitch.spikeTimes = 0;
 calcSwitch.useJacknife = 0;      
 
 %% Parameters
+channels2Check = 1:64;
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
 ephysParams.needSpikes = 1;
 autoChannelDetect = 0;
-ephysParams.spikeChannels = [1]; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
-ephysParams.lfpChannels = [1];
-ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, 1:32);
-% ephysParams.channelNames = {'8B'};
-ephysParams.lfpChannelScaleBy = [8191/32764, 8191/32764]; %converts raw values to microvolts
+ephysParams.spikeChannels = channels2Check; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
+ephysParams.lfpChannels = channels2Check;
+ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Check);
+ephysParams.lfpChannelScaleBy = repmat(8191/32764, length(channels2Check)); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
 ephysParams.waveClus = 1;             % Does automated offline sorting using wave_clus.
 ephysParams.paramHandle = @set_parameters; %Function which produces param struct for wave_clus. in wave_clus folder.
@@ -163,8 +163,8 @@ ephysParams.decimateFactorPass1 = 6;  % note: product of the two decimate factor
 ephysParams.decimateFactorPass2 = 5;
 ephysParams.samPerMS = 1; %THIS IS AFTER DECIMATION, and applies to LFP (should be raw rate/productOfDecimateFactors)
 %note: use Blackrock indexing for unitsToUnsort and unitsToDiscard, so unsorted is 0, first defined unit is 1, etc.
-ephysParams.unitsToUnsort = {[], []}; %these units will be re-grouped with u0
-ephysParams.unitsToDiscard = {[], []}; %these units will be considered noise and discarded
+ephysParams.unitsToUnsort = cell(length(channels2Check),1); %these units will be re-grouped with u0
+ephysParams.unitsToDiscard = cell(length(channels2Check),1); %these units will be considered noise and discarded
 ephysParams.spikeWaveformPca = 0;
 ephysParams.plotSpikeWaveforms = 2; %0, 1 to build then close, 2 to build and leave open
 ephysParams.spikeWaveformsColors = [[0.0 0.0 1.0];[1.0 0.0 0.0];[0.0 0.5 0.0];[0.620690 0.0 0.0];[0.413793 0.0 0.758621];[0.965517 0.517241 0.034483]];
@@ -263,10 +263,10 @@ stimSyncParams.logProcessor = @preprocessLogFileMonkeyLogic;
 stimSyncParams.tryPreparsedLogFile = 1;
 stimSyncParams.keepTriggersAndSubTriggers = 0;
 stimSyncParams.subTriggerArrayFilenames = {'socialSceneConcatSubTriggers.mat'};
-stimSyncParams.usePhotodiode = 1;
+stimSyncParams.usePhotodiode = 0;
 stimSyncParams.plotFitShifts = 0;   % Plots a histogram of differences b/t trial start times on Blackrock vs on MonkeyLogic, following a shift to the Blackrock clock.
 stimSyncParams.stimDir = stimDir;
-stimSyncParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum); %#ok
+stimSyncParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum); 
 %
 eyeCalParams.needEyeCal = 1;
 eyeCalParams.method = 'monkeyLogic'; %'zeroEachFixation', 'monkeyLogic'
@@ -284,8 +284,8 @@ eyeCalParams.offsetX = 0;
 eyeCalParams.offsetY = 0; 
 eyeCalParams.calFile = ''; %note: needed only when method = fromFile
 eyeCalParams.fixOutLag = 10; 
-eyeCalParams.minFixZeroTime = 1000; %#ok
-eyeCalParams.analogInParams = analogInParams;
+eyeCalParams.minFixZeroTime = 1000; 
+eyeCalParams.analogInParams = analogInParams; %#ok<*STRNU>
 
 accelParams.needAccelCal = 0;
 accelParams.accelChannels = {[4;5;6]};
