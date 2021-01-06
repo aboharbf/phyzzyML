@@ -80,7 +80,9 @@ if isfield(params, 'waveClus') && params.waveClus
       clusterResults{spike_ch_i} = fullfile(previousFile.folder, previousFile.name);
       
       % Use Do_clustering to plot results.
-      Do_clustering(fullfile(previousFile.folder, previousFile.name), 'make_plots', true, 'make_times', false);
+      if length(params.spikeChannels) < 10
+        Do_clustering(fullfile(previousFile.folder, previousFile.name), 'make_plots', true, 'make_times', false);
+      end
     else
       %Find spikes
       output_paths = Get_spikes(parsedData(spike_ch_i));
@@ -238,6 +240,7 @@ for channel_i = 1:length(params.spikeChannels)
     Output.VERBOSE(channelUnitNames{channel_i});
   end
 end
+
 if params.shiftSpikeWaveforms
   rawSpikes = spikesByChannel;
   for channel_i = 1:length(params.spikeChannels)
@@ -279,7 +282,7 @@ if isfield(params, 'spikeWaveformsColors')
       colors{ii} = params.spikeWaveformsColors(ii,:);
     end
   else
-      colors = params.spikeWaveformsColors;
+    colors = params.spikeWaveformsColors;
   end
 else
   colors = {'k','r','c','g','b'};
@@ -297,90 +300,93 @@ if params.plotSpikeWaveforms
   halfTime = endTime/2;
   for channel_i = 1:length(params.spikeChannels)
     tmp = spikesByChannel(channel_i);
-    fh = figure('Name',sprintf('Spike Waveform Development - Ch%d', channel_i) , 'NumberTitle', 'off');
-    numPlotColumns = length(unique(tmp.units)) + 1; %extra is for MUA plot
-    %initialize top row 
-    for subplot_i = 1:numPlotColumns-1
-      subplot(3,numPlotColumns,subplot_i);
-      title(sprintf('%s Unit %d',params.channelNames{channel_i},subplot_i-1));
-      if subplot_i == 1
-        ylabel('voltage (uV)');
+    if ~isempty(tmp.times)
+      fh = figure('Name',sprintf('Spike Waveform Development - Ch%d', channel_i) , 'NumberTitle', 'off');
+      numPlotColumns = length(unique(tmp.units)) + 1; %extra is for MUA plot
+      %initialize top row
+      for subplot_i = 1:numPlotColumns-1
+        subplot(3,numPlotColumns,subplot_i);
+        title(sprintf('%s Unit %d',params.channelNames{channel_i},subplot_i-1));
+        if subplot_i == 1
+          ylabel('voltage (uV)');
+        end
+        hold on
       end
+      subplot(3,numPlotColumns,numPlotColumns);
+      title(sprintf('%s MUA',params.channelNames{channel_i}));
       hold on
-    end
-    subplot(3,numPlotColumns,numPlotColumns);
-    title(sprintf('%s MUA',params.channelNames{channel_i}));
-    hold on
-    %initialize middle row 
-    for subplot_i = 1:numPlotColumns-1
-      subplot(3,numPlotColumns,numPlotColumns+subplot_i);
-      title(sprintf('%s Unit %d early',params.channelNames{channel_i},subplot_i-1));
-      if subplot_i == 1
-        ylabel('voltage (uV)');
+      %initialize middle row
+      for subplot_i = 1:numPlotColumns-1
+        subplot(3,numPlotColumns,numPlotColumns+subplot_i);
+        title(sprintf('%s Unit %d early',params.channelNames{channel_i},subplot_i-1));
+        if subplot_i == 1
+          ylabel('voltage (uV)');
+        end
+        hold on
       end
+      subplot(3,numPlotColumns,2*numPlotColumns);
+      title(sprintf('%s MUA early',params.channelNames{channel_i}));
       hold on
-    end
-    subplot(3,numPlotColumns,2*numPlotColumns);
-    title(sprintf('%s MUA early',params.channelNames{channel_i}));
-    hold on
-    %initialize bottom row 
-    for subplot_i = 1:numPlotColumns-1
-      subplot(3,numPlotColumns,2*numPlotColumns+subplot_i);
-      title(sprintf('%s Unit %d late',params.channelNames{channel_i},subplot_i-1));
-      if subplot_i == 1
-        ylabel('voltage (uV)');
+      %initialize bottom row
+      for subplot_i = 1:numPlotColumns-1
+        subplot(3,numPlotColumns,2*numPlotColumns+subplot_i);
+        title(sprintf('%s Unit %d late',params.channelNames{channel_i},subplot_i-1));
+        if subplot_i == 1
+          ylabel('voltage (uV)');
+        end
+        xlabel('time (ms)');
+        hold on
       end
+      subplot(3,numPlotColumns,3*numPlotColumns);
+      title(sprintf('%s MUA late',params.channelNames{channel_i}));
       xlabel('time (ms)');
       hold on
-    end
-    subplot(3,numPlotColumns,3*numPlotColumns);
-    title(sprintf('%s MUA late',params.channelNames{channel_i}));
-    xlabel('time (ms)');
-    hold on
-    tAxis = params.cPtCal*(1:size(tmp.waveforms,2));
-    toSkipByUnit = zeros(numPlotColumns-1,1);
-    spikesToPlot = 100;
-    for unit_i = 1:length(toSkipByUnit)
-      toSkipByUnit(unit_i) = floor(sum(tmp.units == unit_i-1)/spikesToPlot);
-    end
-    for unit_i = 1:numPlotColumns-1
-      unitWaveforms = tmp.waveforms(tmp.units == unit_i-1,:);
-      unitTimes = tmp.times(tmp.units == unit_i-1);
-      unitWaveformsToPlot = unitWaveforms(1:toSkipByUnit(unit_i):size(unitWaveforms,1),:);
-      unitTimesToPlot = unitTimes(1:toSkipByUnit(unit_i):size(unitWaveforms,1));
-      midPoint = find(unitTimesToPlot > halfTime, 1 );
-      subplot(3,numPlotColumns,unit_i);
-      for spike_i = 1:length(unitWaveformsToPlot)
-        plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+      tAxis = params.cPtCal*(1:size(tmp.waveforms,2));
+      toSkipByUnit = zeros(numPlotColumns-1,1);
+      spikesToPlot = 100;
+      for unit_i = 1:length(toSkipByUnit)
+        toSkipByUnit(unit_i) = floor(sum(tmp.units == unit_i-1)/spikesToPlot);
       end
-      subplot(3,numPlotColumns,numPlotColumns); %MUA plot
-      for spike_i = 1:length(unitWaveformsToPlot)
-        plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+      for unit_i = 1:numPlotColumns-1
+        unitWaveforms = tmp.waveforms(tmp.units == unit_i-1,:);
+        unitTimes = tmp.times(tmp.units == unit_i-1);
+        unitWaveformsToPlot = unitWaveforms(1:toSkipByUnit(unit_i):size(unitWaveforms,1),:);
+        unitTimesToPlot = unitTimes(1:toSkipByUnit(unit_i):size(unitWaveforms,1));
+        midPoint = find(unitTimesToPlot > halfTime, 1 );
+        subplot(3,numPlotColumns,unit_i);
+        for spike_i = 1:length(unitWaveformsToPlot)
+          plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+        end
+        subplot(3,numPlotColumns,numPlotColumns); %MUA plot
+        for spike_i = 1:length(unitWaveformsToPlot)
+          plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+        end
+        subplot(3,numPlotColumns,numPlotColumns+unit_i) %second row of the subplot
+        for spike_i = 1:midPoint - 1
+          plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+        end
+        subplot(3,numPlotColumns,2*numPlotColumns); %MUA plot
+        for spike_i = 1:midPoint - 1
+          plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+        end
+        subplot(3,numPlotColumns,2*numPlotColumns+unit_i) %third row of the subplot
+        for spike_i = midPoint:length(unitWaveformsToPlot)
+          plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+        end
+        subplot(3,numPlotColumns,3*numPlotColumns); %MUA plot
+        for spike_i = midPoint:length(unitWaveformsToPlot)
+          plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+        end
       end
-      subplot(3,numPlotColumns,numPlotColumns+unit_i) %second row of the subplot
-      for spike_i = 1:midPoint - 1
-        plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
-      end    
-      subplot(3,numPlotColumns,2*numPlotColumns); %MUA plot
-      for spike_i = 1:midPoint - 1
-        plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+      drawnow;
+      if isfield(params, 'saveFig') && params.saveFig
+        figHandles = findobj('Type', 'figure');
+        savefig(figHandles(1), [params.outDir spikeFile '_Ch' num2str(params.spikeChannels(channel_i)) '_SpikeWaveforms'], 'compact')
       end
-      subplot(3,numPlotColumns,2*numPlotColumns+unit_i) %third row of the subplot
-      for spike_i = midPoint:length(unitWaveformsToPlot)
-        plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
+      if params.plotSpikeWaveforms == 1
+        close(fh);
       end
-      subplot(3,numPlotColumns,3*numPlotColumns); %MUA plot
-      for spike_i = midPoint:length(unitWaveformsToPlot)
-        plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
-      end
-    end
-    drawnow;
-    if isfield(params, 'saveFig') && params.saveFig
-      figHandles = findobj('Type', 'figure');
-      savefig(figHandles(1), [params.outDir spikeFile '_Ch' num2str(params.spikeChannels(channel_i)) '_SpikeWaveforms'], 'compact')
-    end
-    if params.plotSpikeWaveforms == 1
-      close(fh);
+      
     end
   end
 end

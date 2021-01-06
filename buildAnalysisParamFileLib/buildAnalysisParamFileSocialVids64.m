@@ -1,4 +1,4 @@
-function [analysisParamFilename] = buildAnalysisParamFileSocialVids32( varargin )    
+function [analysisParamFilename] = buildAnalysisParamFileSocialVids64( varargin )    
 %buildAnalysisParamFile saves a mat file of parameters, which control the
 %behavior of processRun, runAnalysis
 

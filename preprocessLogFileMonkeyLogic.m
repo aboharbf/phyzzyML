@@ -196,6 +196,7 @@ else % Means Blackrock/MKL Communication was intact, correct
   %Construct Error array from Blackrock files only, useful in the case that
   %incomplete trials lead to unpaired start and stop triggers.
   errorArray = zeros(sum(packetData == trialStartMarker), 1);
+  
   for ii = 1:length(trialStartInds) %for every trial
     %Go through packet data, starting at that stim, and see if you hit a
     %40, 3, or 4 first.
@@ -209,7 +210,7 @@ else % Means Blackrock/MKL Communication was intact, correct
         case stimFailMarker
           errorArray(ii) = stimFailMarker;
           found = 1;
-        case rewardMarker
+        case {rewardMarker, trialEndMarker}
           errorArray(ii) = 0;
           found = 1;
         otherwise
