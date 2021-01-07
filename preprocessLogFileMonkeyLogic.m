@@ -471,7 +471,7 @@ end
   
 % Structures which need to be updated TrialRecord, and taskEventIDs.
 if strncmp(taskEventIDs{1}, 'headTurn', 8)
-  taskEventIDs = mergeStimuli(taskEventIDs);
+    [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable);
 end
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
@@ -649,9 +649,14 @@ end
 
 end
 
-function taskEventIDs = mergeStimuli(taskEventIDs)
+function [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable)
 % Takes in the taskEventID string, relabels variants of a stimuli to the
 % same name.
+
+translationTableIndex = nan(size(translationTable));
+for ii = 1:length(translationTable)
+  translationTableIndex(ii) = find(strcmp(translationTable{ii}, taskEventIDs), 1);
+end
 
 % Identify the paradigm
 paradigm = extractBefore(taskEventIDs{1}, '_');
@@ -660,63 +665,65 @@ paradigm = extractBefore(taskEventIDs{1}, '_');
 % identify ones which are the same.
 isolatedCodes = extractBetween(taskEventIDs, '_1', '.');
 
+% Identify the elements of the stimulus name which point out 'unique
+% stimuli' as opposed to variants of the same stimulus.
 switch paradigm
   case 'headTurnIso'
-  % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
-  % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
-  % skin_i make variants of these stim.
-  stimCode = cellfun(@(x) x(1, [2 4 7 9]), isolatedCodes, 'UniformOutput', false);
-  [A, ~, uniqueStimGroup] = unique(stimCode);
-  
-  % insert these names to json file via "MonkeyPrefabs":"name". use this
-  % index directly into name position 3.
-  prefabToSet = {'idle','bioMotion'};
-  prefabCounts = 3;
-  prefabTypes = {'leftFull', 'leftHalf', 'core', 'rightHalf', 'rightFull'};
-  prefabID = {'','_Red', '_Ashe', '_White'}; %The first prefab, 'Beige', doesn't have the color appended.
-  
-  % insert these names to json file via "CameraName" field. this index goes
-  % into the name in position 4.
-  cameras = {'leftCam', 'frontCam', 'rightCam'};
-  
-  % insert the index - 1 of the desired mesh below, and set
-  % 'OverrideMeshType' to 'true'. Use the index in the name as code position
-  % 5.
-  % meshes = {'Normal', 'LowRes', 'Dots', 'Spheres'};
-  meshes = {'Normal', 'LowRes', 'Dots'};
-  
-  mergeTaskEvent = cell(length(A),1);
-  for ii = 1:length(A)
-    wholeCode = A{ii};
-    intInd = str2num(wholeCode(1));   % Extract int type.
-    turnInd = str2num(wholeCode(2));  % Extract head Turn
-    camInd = str2num(wholeCode(3));
-    meshInd = str2num(wholeCode(4));
-    mergeTaskEvent{ii} = strjoin([prefabToSet(intInd), prefabTypes(turnInd), cameras(camInd), meshes(meshInd)], '_');
-  end
-  
-  taskEventIDs = mergeTaskEvent(uniqueStimGroup);
+    % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
+    % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
+    % skin_i make variants of these stim.
+    uniqueStimID = [2 4 7 9];
+    
+    prefabToSet = {'idle','bioMotion'};
+    prefabTypes = {'_leftFull', '_leftHalf', '_core', '_rightHalf', '_rightFull'};
+    cameras = {'_leftCam', '_frontCam', '_rightCam'};
+    meshes = {'_Normal', '_LowRes', '_Dots'};
+    
+    nameElements = {prefabToSet; prefabTypes; cameras; meshes};
   case 'headTurnCon'
-  % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
-  % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
-  % variants.
-  stimCode = cellfun(@(x) x(1, [2, 3, 5]), isolatedCodes, 'UniformOutput', false);
-  [A, ~, uniqueStimGroup] = unique(stimCode);
+    % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
+    % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
+    % variants.
+    uniqueStimID = [2, 3, 5];
+    
+    intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
+    intNum = {'1', '2', '3', '4', '5', '6'};
+    turnArray = {'_noTurn', '_Turn'};
+    
+    nameElements = {intArray; intNum; turnArray};
+  otherwise
+    error('cant identify paradigm for mergingStimuli - %s', paradigm)
+end
+
+% Extract unique stimuli based on code
+stimCode = cellfun(@(x) x(1, uniqueStimID), isolatedCodes, 'UniformOutput', false);
+[A, ~, uniqueStimGroup] = unique(stimCode);
+mergeTaskEvent = cell(length(A),1);
+
+% Need to add 1 to the headTurn number to make it usable as an index.
+if strcmp(paradigm, 'headTurnCon')
+  tmp = str2double(A) + 1;
+  A = num2str(tmp);
+  A = mat2cell(A, ones(size(A,1),1), size(A,2));
+end
+
+% Iterate across the codes, using the previously indicated vectors to turn
+% them into names.
+for ii = 1:length(A)
+  wholeCode = A{ii};
+  eventName = cell(size(wholeCode));
   
-  intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
-  turnArray = {'_noTurn', '_Turn'};
-  
-  mergeTaskEvent = cell(length(A),1);
-  for ii = 1:length(A)
-    indCode = A{ii};
-    intInd = str2num(indCode(1));
-    intNum = indCode(2);
-    turnInd = str2num(indCode(3))+1;
-    mergeTaskEvent{ii} = [intArray{intInd} intNum turnArray{turnInd}];
+  for jj = 1:length(uniqueStimID)
+    vect = nameElements{jj};
+    vectInd = str2num(wholeCode(jj));
+    eventName(jj) = vect(vectInd);
   end
   
-  taskEventIDs = mergeTaskEvent(uniqueStimGroup);
-  otherwise
-    taskEventIDs = taskEventIDs;
+  % Join the elements
+  mergeTaskEvent{ii} = strjoin(eventName, '');
 end
+
+taskEventIDs = mergeTaskEvent(uniqueStimGroup);
+translationTable = taskEventIDs(translationTableIndex);
+
 end

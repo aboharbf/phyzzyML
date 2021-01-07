@@ -5986,9 +5986,6 @@ stimDir = eyeStatsParams.stimDir;
 psthPre = eyeStatsParams.psthPre;
 psthImDur = eyeStatsParams.psthImDur;
 lfpPaddedBy = eyeStatsParams.lfpPaddedBy+1;
-eventIDs = eyeStatsParams.eventIDs;
-taskEventIDs = taskData.taskEventList;
-frameMotionInd = cellfun(@(x) find(strcmp(taskEventIDs, x)), eventIDs);
 
 % Remove Padding, as this messes with indexing and the code signal pads itself.
 stimStartInd = lfpPaddedBy;
@@ -6106,63 +6103,67 @@ for stim_i = 1:length(fixStats)
 end
 
 if plotPaths
-% Generate Images that illustrate Saccade Path
-for stim_i = 1:length(fixStats)
-  % Find the right frame
-  lowerLeft = -([taskData.frameMotionData(frameMotionInd(stim_i)).width/2 taskData.frameMotionData(frameMotionInd(stim_i)).height/2] ./ abs(taskData.eyeCal.PixelsPerDegree));
+  eventIDs = eyeStatsParams.eventIDs;
+  taskEventIDs = taskData.taskEventList;
+  frameMotionInd = cellfun(@(x) find(strcmp(taskEventIDs, x)), eventIDs, 'UniformOutput', false);
   
-  h = figure('Units','normalized','Position', [0 0 1 0.9], 'Name', sprintf('Trial eye Traces - %s', eyeStatsParams.eventIDs{stim_i}));
-  plotHandles = gobjects(length(fixStats{stim_i}),1);
-  objTbGrp = uitabgroup('Parent', h);
-  for trial_i = 1:length(fixStats{stim_i})
-    objTab = uitab('Parent', objTbGrp, 'Title', sprintf('Trial %d', trial_i));
-    plotHandles(trial_i) = axes('parent', objTab);
-    xy = fixStats{stim_i}{trial_i}.XY;
-    rectangle('Position', [[lowerLeft] abs([lowerLeft*2])], 'EdgeColor', 'b', 'LineWidth', 4);
-    fixations = fixStats{stim_i}{trial_i}.fixations;
-    fixationtimes = fixStats{stim_i}{trial_i}.fixationtimes;
-    saccadetimes = fixStats{stim_i}{trial_i}.saccadetimes;
-    saccMeanDist = round(fixStats{stim_i}{trial_i}.SaaccadeClusterValues(:,3), 3);
-    saccMaxDist = round(fixStats{stim_i}{trial_i}.SaaccadeClusterValues(:,7), 3);
+  % Generate Images that illustrate Saccade Path
+  for stim_i = 1:length(fixStats)
+    % Find the right frame
+    lowerLeft = -([taskData.frameMotionData(frameMotionInd(stim_i)).width/2 taskData.frameMotionData(frameMotionInd(stim_i)).height/2] ./ abs(taskData.eyeCal.PixelsPerDegree));
     
-    hold on
-    % Plot the entire trace in black for the sake of microsaccades which
-    % were removed.
-    a = plot(xy(1,:), xy(2,:), 'k');
+    h = figure('Units','normalized','Position', [0 0 1 0.9], 'Name', sprintf('Trial eye Traces - %s', eyeStatsParams.eventIDs{stim_i}));
+    plotHandles = gobjects(length(fixStats{stim_i}),1);
+    objTbGrp = uitabgroup('Parent', h);
+    for trial_i = 1:length(fixStats{stim_i})
+      objTab = uitab('Parent', objTbGrp, 'Title', sprintf('Trial %d', trial_i));
+      plotHandles(trial_i) = axes('parent', objTab);
+      xy = fixStats{stim_i}{trial_i}.XY;
+      rectangle('Position', [[lowerLeft] abs([lowerLeft*2])], 'EdgeColor', 'b', 'LineWidth', 4);
+      fixations = fixStats{stim_i}{trial_i}.fixations;
+      fixationtimes = fixStats{stim_i}{trial_i}.fixationtimes;
+      saccadetimes = fixStats{stim_i}{trial_i}.saccadetimes;
+      saccMeanDist = round(fixStats{stim_i}{trial_i}.SaaccadeClusterValues(:,3), 3);
+      saccMaxDist = round(fixStats{stim_i}{trial_i}.SaaccadeClusterValues(:,7), 3);
       
-    % Plot fixation means
-    for ii = 1:size(fixationtimes, 2)
-      plot(fixations(1,ii),fixations(2,ii),'y*'); % plot mean fixation location, yellow
+      hold on
+      % Plot the entire trace in black for the sake of microsaccades which
+      % were removed.
+      a = plot(xy(1,:), xy(2,:), 'k');
+      
+      % Plot fixation means
+      for ii = 1:size(fixationtimes, 2)
+        plot(fixations(1,ii),fixations(2,ii),'y*'); % plot mean fixation location, yellow
+      end
+      
+      % Plot saccades
+      saccHandles = gobjects(size(saccadetimes, 2),1);
+      saccLegend = cell(size(saccadetimes, 2),1);
+      for ii = 1:size(saccadetimes,2)
+        saccHandles(ii) = plot(xy(1,saccadetimes(1,ii):saccadetimes(2,ii)),...
+          xy(2, saccadetimes(1,ii): saccadetimes(2,ii)),...
+          saccadeColors(mod(ii - 1, length(saccadeColors)) + 1)); %   Each saccade gets a distinct color.
+        saccLegend{ii} = sprintf('%s, %s', num2str(saccMaxDist(ii)), num2str(saccMeanDist(ii)));
+      end
+      
+      %Plot the start and end
+      text(xy(1,psthPre), xy(2,psthPre), 'S', 'Fontsize', 10, 'FontWeight', 'bold', 'BackgroundColor','white')
+      text(xy(1,psthPre+psthImDur), xy(2,psthPre+psthImDur), 'E', 'Fontsize', 10, 'FontWeight', 'bold', 'BackgroundColor','white', 'Clipping', 'on')
+      
+      legend([a; saccHandles], [{'Fixations'}; saccLegend], 'location', 'NorthEastOutside')
+      title(sprintf('Trial %d', trial_i));
+      
     end
+    % Link all the subplots
+    linkprop(plotHandles, {'XLim', 'YLim', 'Position'});
+    plotHandles(1).XLim = [-12 12];
+    plotHandles(1).YLim = [-7 7];
     
-    % Plot saccades
-    saccHandles = gobjects(size(saccadetimes, 2),1);
-    saccLegend = cell(size(saccadetimes, 2),1);
-    for ii = 1:size(saccadetimes,2)
-      saccHandles(ii) = plot(xy(1,saccadetimes(1,ii):saccadetimes(2,ii)),...
-        xy(2, saccadetimes(1,ii): saccadetimes(2,ii)),...
-        saccadeColors(mod(ii - 1, length(saccadeColors)) + 1)); %   Each saccade gets a distinct color.
-      saccLegend{ii} = sprintf('%s, %s', num2str(saccMaxDist(ii)), num2str(saccMeanDist(ii)));
-    end
-    
-    %Plot the start and end
-    text(xy(1,psthPre), xy(2,psthPre), 'S', 'Fontsize', 10, 'FontWeight', 'bold', 'BackgroundColor','white')
-    text(xy(1,psthPre+psthImDur), xy(2,psthPre+psthImDur), 'E', 'Fontsize', 10, 'FontWeight', 'bold', 'BackgroundColor','white', 'Clipping', 'on')
-
-    legend([a; saccHandles], [{'Fixations'}; saccLegend], 'location', 'NorthEastOutside')
-    title(sprintf('Trial %d', trial_i));
-    
+    % Save the figure
+    savefig(fullfile(eyeStatsParams.outDir, ['saccadeTraces_' eyeStatsParams.eventLabels{stim_i}]))
+    close(h);
   end
-  % Link all the subplots
-  linkprop(plotHandles, {'XLim', 'YLim', 'Position'});
-  plotHandles(1).XLim = [-12 12];
-  plotHandles(1).YLim = [-7 7];
   
-  % Save the figure
-  savefig(fullfile(eyeStatsParams.outDir, ['saccadeTraces_' eyeStatsParams.eventLabels{stim_i}]))
-  close(h);
-end
-
 end
 
 % Reshape smoothed eye signal from clusterFix back into the appropriate
