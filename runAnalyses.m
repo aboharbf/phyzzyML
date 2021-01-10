@@ -158,6 +158,7 @@ for field_i = 1:length(analysisGroupFields)
       analysisGroups.(field).(itemDelimitedSubfields{subfield_i}){group_i} = tmp(1:newItem_i);
     end
   end
+  
   % now, remove any groups that are empty after empty-item exclusion
   newStruct = analysisGroups.(field);
   validGroups = 0;

@@ -1,4 +1,4 @@
-function [analysisParamFilename] = buildAnalysisParamFileSocialVids32( varargin )    
+function [analysisParamFilename] = buildAnalysisParamFileSocialVidsTest( varargin )    
 %buildAnalysisParamFile saves a mat file of parameters, which control the
 %behavior of processRun, runAnalysis
 
@@ -18,7 +18,7 @@ switch machine
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
     neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
-  case 'Alienware_FA'
+  case 'Skytech_FA'
     ephysVolume = slashSwap('C:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('E:\DataAnalysis');

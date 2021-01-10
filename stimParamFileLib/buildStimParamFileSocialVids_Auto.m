@@ -8,7 +8,8 @@ function [ ] = buildStimParamFileSocialVids_Auto()
 
 
 %Find the folder with what you want
-StimFolder = {'D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories', 'C:\Videos'};
+StimFolder = {'D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories', ...
+    'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\headTurningStimuli\Final Videos Produced'};
 stimType = '.avi';
 
 %Find every file in this folder with the extension desired.
@@ -20,7 +21,7 @@ for ii = 1:length(StimFolder)
 end
 
 % Remove duplicates
-stimNames = {tmpStimFilesStack.name};
+stimNames = {tmpStimFilesStack.name}';
 [~, uniInd] = unique(stimNames);
 stimList = {tmpStimFilesStack(uniInd).name}';
 
@@ -122,7 +123,7 @@ for ii = 1:length(stimList)
       end
       stimLabels = horzcat(stimLabels , dynLabels{turnConInd});     
     else
-      staticLabels = {'left profile', 'frontal', 'right profile'};
+      staticLabels = {'leftProfile', 'frontal', 'rightProfile'};
       stimLabels = horzcat(stimLabels , staticLabels{camInd});
     end
     
@@ -130,7 +131,7 @@ for ii = 1:length(stimList)
   
   if code(2) == '5'     % Code in the name of isolated head turning context stim.
     % code = sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
-    scenes = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};    % Observed Scenes
+    scenes = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};    % Observed Scenes
     
     % Entirely too many cameras.
     cameraNum = {'CamRing_Chase1_1', 'CamRing_Chase1_2', 'CamRing_Chase1_3', 'CamRing_Chase1_4','CamRing_Chase2_1', 'CamRing_Chase2_2',...
@@ -138,6 +139,7 @@ for ii = 1:length(stimList)
       'CamRing_Groom1','CamRing_Groom2','CamRing_Groom3','CamRing_Groom4','CamRing_Mate1','CamRing_Mate2','CamRing_Mate3','CamRing_Mate4', ...
       'CamRing_Fight1','CamRing_Fight2','CamRing_Fight3','CamRing_Fit4','CamRing_Control1', 'CamRing_Control2', 'CamRing_Control3', 'CamRing_Control4',...
       'CamRing_Scene1', 'CamRing_Scene2', 'CamRing_Scene3', 'CamRing_Scene4'};
+  
     turnsMat = {'noTurn', 'Turn'};
     
     sceneInd = str2double(code(3));
@@ -265,10 +267,15 @@ pictureLabels = [pictureLabels; labelAdd];
 %% Package Outputs
 %pictureLabels = pictureLabels(:,1);
 
-categoryLabels = {'agents', 'objects', 'scramble', 'scene', 'interaction', 'nonInteraction', 'idle', 'bioMotion', 'socialInteraction','nonSocialInteraction'...
-  'goalDirected', 'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing','animated', 'animControl',...
-  'foraging','sitting','faces','bodies','hands','background', 'subEvents', 'headTurn', 'bodyTurn', 'allTurn', 'eyeContact', 'allStim'};
-  
+stimLabels = cellfun(@(x) x(2:end), stimList, 'UniformOutput', false);
+catLabels = unique([stimLabels{:}]);
+
+% categoryLabels = {'agents', 'objects', 'scramble', 'scene', 'interaction', 'nonInteraction', 'idle', 'bioMotion', 'socialInteraction','nonSocialInteraction'...
+%   'goalDirected', 'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing','animated', 'animControl',...
+%   'foraging','sitting','faces','bodies','hands','background', 'subEvents', 'headTurn', 'bodyTurn', 'allTurn', 'eyeContact', 'allStim'};
+
+categoryLabels = catLabels;
+
 paramArray = stimList;
 
 %% Remove replicates
@@ -343,7 +350,6 @@ for jj = 1:2
         meshInd = str2num(wholeCode(4));
         mergeTaskEvent{ii} = strjoin([prefabToSet(intInd), prefabTypes(turnInd), cameras(camInd), meshes(meshInd)], '_');
       end
-      
     case 'headTurnCon'
       % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
       % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
@@ -351,7 +357,7 @@ for jj = 1:2
       stimCode = cellfun(@(x) x(1, [2, 3, 5]), isolatedCodes, 'UniformOutput', false);
       [A, labels2Add, uniqueStimGroup] = unique(stimCode);
       
-      intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
+      intArray = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};
       turnArray = {'_noTurn', '_Turn'};
       
       mergeTaskEvent = cell(length(A),1);
