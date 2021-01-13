@@ -38,7 +38,7 @@ function [ taskData, stimTiming ] = preprocessLogFileMonkeyLogic(logfile, taskTr
 disp('Loading MonkeyLogic log file');
 assert(logical(exist(logfile,'file')),'The logfile you requested does not exist.');
 [data,MLConfig,TrialRecord] = mlread(logfile);
-assert(length(unique(TrialRecord.ConditionsPlayed)) < ceil((length(TrialRecord.ConditionsPlayed))/2) , 'MonkeyLogic file reports each condition was not repeated at least 2 times')
+% assert(length(unique(TrialRecord.ConditionsPlayed)) < ceil((length(TrialRecord.ConditionsPlayed))/2) , 'MonkeyLogic file reports each condition was not repeated at least 2 times')
 
 %Find stimulus timing range - in ML, we have no range within valid trials.
 stimTiming.shortest = 2800; %Making this 0 for now
@@ -52,9 +52,15 @@ allConditions = unique(TrialRecord.ConditionsPlayed); %Pull unique members of th
 translationTable = cell(length(allConditions),1); %Initialize translation table
 trial_ind = 1;
 
+% Find out which TaskObject is the Fixation point (this changes)
+trialHolder = data(1);
+stimName = {trialHolder.TaskObject.Attribute.Name}; %Pull the string containing the stimulus name.
+stimInd = find(~strcmp(stimName, 'Fixation Point'));
+
+% Use that to generate a table of stimuli
 while sum(find(cellfun('isempty', translationTable))) ~= 0
   trialHolder = data(trial_ind);
-  stimName = trialHolder.TaskObject.Attribute(2).Name; %Pull the string containing the stimulus name.
+  stimName = trialHolder.TaskObject.Attribute(stimInd).Name; %Pull the string containing the stimulus name.
   translationTable{trialHolder.Condition} = stimName(~isspace(stimName));
   trial_ind = trial_ind + 1;
 end
@@ -470,9 +476,12 @@ end
 % the same stimulus).
   
 % Structures which need to be updated TrialRecord, and taskEventIDs.
-if strncmp(taskEventIDs{1}, 'headTurn', 8)
-    [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable);
-end
+% if strncmp(taskEventIDs{1}, 'headTurn', 8)
+%     [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable);
+% end
+
+% Update: Will be instead performed as catagories.
+
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.
@@ -649,81 +658,81 @@ end
 
 end
 
-function [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable)
-% Takes in the taskEventID string, relabels variants of a stimuli to the
-% same name.
-
-translationTableIndex = nan(size(translationTable));
-for ii = 1:length(translationTable)
-  translationTableIndex(ii) = find(strcmp(translationTable{ii}, taskEventIDs), 1);
-end
-
-% Identify the paradigm
-paradigm = extractBefore(taskEventIDs{1}, '_');
-
-% Knowing that headTurnCon and headTurnIso follow a specific code,
-% identify ones which are the same.
-isolatedCodes = extractBetween(taskEventIDs, '_1', '.');
-
-% Identify the elements of the stimulus name which point out 'unique
-% stimuli' as opposed to variants of the same stimulus.
-switch paradigm
-  case 'headTurnIso'
-    % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
-    % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
-    % skin_i make variants of these stim.
-    uniqueStimID = [2 4 7 9];
-    
-    prefabToSet = {'idle','bioMotion'};
-    prefabTypes = {'_leftFull', '_leftHalf', '_core', '_rightHalf', '_rightFull'};
-    cameras = {'_leftCam', '_frontCam', '_rightCam'};
-    meshes = {'_Normal', '_LowRes', '_Dots'};
-    
-    nameElements = {prefabToSet; prefabTypes; cameras; meshes};
-  case 'headTurnCon'
-    % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
-    % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
-    % variants.
-    uniqueStimID = [2, 3, 5];
-    
-    intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
-    intNum = {'1', '2', '3', '4', '5', '6'};
-    turnArray = {'_noTurn', '_Turn'};
-    
-    nameElements = {intArray; intNum; turnArray};
-  otherwise
-    error('cant identify paradigm for mergingStimuli - %s', paradigm)
-end
-
-% Extract unique stimuli based on code
-stimCode = cellfun(@(x) x(1, uniqueStimID), isolatedCodes, 'UniformOutput', false);
-[A, ~, uniqueStimGroup] = unique(stimCode);
-mergeTaskEvent = cell(length(A),1);
-
-% Need to add 1 to the headTurn number to make it usable as an index.
-if strcmp(paradigm, 'headTurnCon')
-  tmp = str2double(A) + 1;
-  A = num2str(tmp);
-  A = mat2cell(A, ones(size(A,1),1), size(A,2));
-end
-
-% Iterate across the codes, using the previously indicated vectors to turn
-% them into names.
-for ii = 1:length(A)
-  wholeCode = A{ii};
-  eventName = cell(size(wholeCode));
-  
-  for jj = 1:length(uniqueStimID)
-    vect = nameElements{jj};
-    vectInd = str2num(wholeCode(jj));
-    eventName(jj) = vect(vectInd);
-  end
-  
-  % Join the elements
-  mergeTaskEvent{ii} = strjoin(eventName, '');
-end
-
-taskEventIDs = mergeTaskEvent(uniqueStimGroup);
-translationTable = taskEventIDs(translationTableIndex);
-
-end
+% function [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable)
+% % Takes in the taskEventID string, relabels variants of a stimuli to the
+% % same name.
+% 
+% translationTableIndex = nan(size(translationTable));
+% for ii = 1:length(translationTable)
+%   translationTableIndex(ii) = find(strcmp(translationTable{ii}, taskEventIDs), 1);
+% end
+% 
+% % Identify the paradigm
+% paradigm = extractBefore(taskEventIDs{1}, '_');
+% 
+% % Knowing that headTurnCon and headTurnIso follow a specific code,
+% % identify ones which are the same.
+% isolatedCodes = extractBetween(taskEventIDs, '_1', '.');
+% 
+% % Identify the elements of the stimulus name which point out 'unique
+% % stimuli' as opposed to variants of the same stimulus.
+% switch paradigm
+%   case 'headTurnIso'
+%     % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
+%     % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
+%     % skin_i make variants of these stim.
+%     uniqueStimID = [2 4 7 9];
+%     
+%     prefabToSet = {'idle','bioMotion'};
+%     prefabTypes = {'_leftFull', '_leftHalf', '_core', '_rightHalf', '_rightFull'};
+%     cameras = {'_leftCam', '_frontCam', '_rightCam'};
+%     meshes = {'_Normal', '_LowRes', '_Dots'};
+%     
+%     nameElements = {prefabToSet; prefabTypes; cameras; meshes};
+%   case 'headTurnCon'
+%     % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
+%     % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
+%     % variants.
+%     uniqueStimID = [2, 3, 5];
+%     
+%     intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
+%     intNum = {'1', '2', '3', '4', '5', '6'};
+%     turnArray = {'_noTurn', '_Turn'};
+%     
+%     nameElements = {intArray; intNum; turnArray};
+%   otherwise
+%     error('cant identify paradigm for mergingStimuli - %s', paradigm)
+% end
+% 
+% % Extract unique stimuli based on code
+% stimCode = cellfun(@(x) x(1, uniqueStimID), isolatedCodes, 'UniformOutput', false);
+% [A, ~, uniqueStimGroup] = unique(stimCode);
+% mergeTaskEvent = cell(length(A),1);
+% 
+% % Need to add 1 to the headTurn number to make it usable as an index.
+% if strcmp(paradigm, 'headTurnCon')
+%   tmp = str2double(A) + 1;
+%   A = num2str(tmp);
+%   A = mat2cell(A, ones(size(A,1),1), size(A,2));
+% end
+% 
+% % Iterate across the codes, using the previously indicated vectors to turn
+% % them into names.
+% for ii = 1:length(A)
+%   wholeCode = A{ii};
+%   eventName = cell(size(wholeCode));
+%   
+%   for jj = 1:length(uniqueStimID)
+%     vect = nameElements{jj};
+%     vectInd = str2num(wholeCode(jj));
+%     eventName(jj) = vect(vectInd);
+%   end
+%   
+%   % Join the elements
+%   mergeTaskEvent{ii} = strjoin(eventName, '');
+% end
+% 
+% taskEventIDs = mergeTaskEvent(uniqueStimGroup);
+% translationTable = taskEventIDs(translationTableIndex);
+% 
+% end

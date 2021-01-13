@@ -68,8 +68,9 @@ else
       fprintf('processing run %d... \n', ii)      
     end
     
-    preprocessedData = load(fullfile(preprocessedList(ii).folder, preprocessedList(ii).name),'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign');
-    analyzedData = load(fullfile(analyzedList(ii).folder, analyzedList(ii).name), 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned');
+    preprocessedData = load(fullfile(preprocessedList(ii).folder, preprocessedList(ii).name),'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList');
+    analyzedData = load(fullfile(analyzedList(ii).folder, analyzedList(ii).name), 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', ...
+      'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'psthByCategory', 'psthErrByCategory');
     analysisParams = load(fullfile(analyzedList(ii).folder, 'AnalysisParams.mat'), 'psthParams');
     
     [sessField, sessionList{ii}] = deal(['S' analyzedData.dateSubject analyzedData.runNum]);
@@ -91,14 +92,21 @@ else
     spikeDataBank.(sessField).spikesByEventBinned = analyzedData.spikesByEventBinned;
     spikeDataBank.(sessField).psthByImage = analyzedData.psthByImage;
     spikeDataBank.(sessField).psthErrByImage = analyzedData.psthErrByImage;
-    spikeDataBank.(sessField).attendedObjData = analyzedData.eyeDataStruct.attendedObjData;
-    spikeDataBank.(sessField).groupLabelsByImage = analyzedData.groupLabelsByImage;
+%     spikeDataBank.(sessField).attendedObjData = analyzedData.eyeDataStruct.attendedObjData;
+%     spikeDataBank.(sessField).groupLabelsByImage = analyzedData.groupLabelsByImage;
     spikeDataBank.(sessField).tTest = analyzedData.stimStatsTable;
-    spikeDataBank.(sessField).subEventSigStruct = analyzedData.subEventSigStruct;
+%     spikeDataBank.(sessField).subEventSigStruct = analyzedData.subEventSigStruct;
     
     %spikeDataBank.(sessField).groupLabel = target; %Now in slidingANOVAparams.
+    
+    % New Batch Analysis of category
+    spikeDataBank.(sessField).categoryList = preprocessedData.categoryList;
+    spikeDataBank.(sessField).psthByCategory = analyzedData.psthByCategory;
+    spikeDataBank.(sessField).psthErrByCategory = analyzedData.psthErrByCategory;
   end
-  spikeDataBankPath = saveSpikeDataBank(spikeDataBank, 12, 'save',outputDir);
+  tic
+  spikeDataBankPath = saveSpikeDataBank(spikeDataBank, 56, 'save',outputDir);
+  toc
   clearvars spikeDataBank
   nonSpikeSaveName = fullfile(outputDir, [preprocessParams.spikeDataFileName 'Vars']);
   spikeDataBankPath = [nonSpikeSaveName; spikeDataBankPath];

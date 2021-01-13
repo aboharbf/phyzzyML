@@ -5,18 +5,18 @@ function [batchAnalysisParamFilename] = buildBatchAnalysisParamFileSocialVids( v
 machine = machine(~isspace(machine));
 
 switch machine
-  case 'Alienware_FA'
-    analysisDirectory = slashSwap('D:\DataAnalysis');
+  case 'Skytech_FA'
+    analysisDirectory = slashSwap('E:\DataAnalysis');
     outputDir = [analysisDirectory '/batchAnalysis'];
-    stimParamsFilename = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
-    stimDir = slashSwap('D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
+    stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
     batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
-    recordingLogxls = 'D:\EphysData\Data\RecordingsMoUpdated.xlsx';
-    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
-    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
+    recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
+    NDTPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
   case 'homeDesktopWork'
     analysisDirectory = 'H:\Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];

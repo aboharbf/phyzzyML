@@ -4,12 +4,18 @@ function [ ] = buildStimParamFileSocialVids_Auto()
 
 %File produced 2 Cell Arrays. The first is a ParamArray, with the name of
 %the video. {{VideoID1; {label1}; {label2}...}{VideoID2; {label1};
-%{label2}...}. The second is a TriggerLabels, containing all possible labels. 
+%{label2}...}. The second is a TriggerLabels, containing all possible labels.
 
+% Combined catagories - which are either an '&' or '|' of other catagories.
+comboCat.comboCategoryLabels = {'fullModel_headTurn', 'fullModel_noTurn', 'smoothModel_headTurn', 'smoothModel_noTurn', 'dotModel_headTurn', 'dotModel_noTurn'};
+comboCat.comboCategoryMembers = {{'&', 'fullModel', 'headTurn'},  {'&', 'fullModel', 'noTurn'}, ...
+                      {'&', 'smoothModel', 'headTurn'}, {'&', 'smoothModel', 'noTurn'},...
+                      {'&', 'dotModel', 'headTurn'},    {'&', 'dotModel', 'noTurn'}};
 
 %Find the folder with what you want
-StimFolder = {'D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories', ...
-    'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\headTurningStimuli\Final Videos Produced'};
+StimFolder = {'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories', ...
+    'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\headTurningStimuli\Final Videos Produced',...
+    'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\FamiliarFace Paradigm'};
 stimType = '.avi';
 
 %Find every file in this folder with the extension desired.
@@ -68,176 +74,235 @@ for ii = 1:length(stimList)
   stimParts = split(stim,["_","."]);
   stimParts = stimParts(1:end-1); %Remove the tag
   code = stimParts{2};
-  
-  %First Label
-  firstLabelArray = {'agents','objects','scramble','scene'};
-  stimLabels = firstLabelArray(str2num(code(1)));
-  
-  % 2nd Label
-  secondLabelArray = {'interaction', 'NONE', 'idle', 'headTurn_isolated', 'headTurn_context'};
-  contextInd = str2double(code(2));
-  if contextInd ~= 0
-    stimLabels = [stimLabels, secondLabelArray(contextInd)];
-  end
-  
-  if strcmp(code(1:3), '110')
-    stimLabels = horzcat(stimLabels ,'goalDirected');
-  end
-  
-  % Make sure to not catch controls for animated stimuli
-  if (((length(stimParts) > 2) && ~strncmp(stimParts(3),'C',1)) || (length(stimParts) == 2)) && ~strcmp(stimParts{1}, 'scramble') && ~code(2) == 4
-    socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
-    stimLabels = [stimLabels, socCatagoryArray(str2num(code(3))), 'socialInteraction'];
-
-  elseif ((length(stimParts) > 2) && strncmp(stimParts(3),'C',1))
-    stimLabels = horzcat(stimLabels ,'animControl');
-  end
-  
-  if code(2) == '4'     % Code in the name of isolated head turning paradigm stim.
-    % code = sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
-    codeAdd = stimParts{3};
+  stimLabels = {};
+      
+  if ~isempty(str2num(code(1)))
     
-    motionType = {'headIso', 'bioMotion'};
-    turnDirection = {'leftFull', 'leftHalf', 'noTurn', 'rightHalf', 'rightFull'};   % Direction of Turn
-    cameras = {'leftCam', 'frontCam', 'rightCam'};
-    mesh = {'fullModel', 'smoothModel', 'dotModel', 'sphereModel'};                 % Mesh used.
-    
-    condInd = str2double(code(3));   % {'Idle' vs 'bioMotion'}
-    turnDirInd = str2double(code(5));
-    meshInd = str2double(codeAdd(4));
-    camInd = str2double(codeAdd(2));
-    
-    stimLabels = horzcat(stimLabels , motionType{condInd});
-    stimLabels = horzcat(stimLabels , turnDirection{turnDirInd});
-    stimLabels = horzcat(stimLabels , mesh{meshInd});
-    
-    % Use a combination of the turn direction and camera to determine
-    % either 'turnAway' or 'turnToward'.
-    if turnDirInd ~= 3
-      stimLabels = horzcat(stimLabels , 'headTurn');
-      dynLabels = {'turnToward', 'turnAway'};
-      if (camInd == 3 && turnDirInd > 3) || (camInd == 1 && turnDirInd < 3)
-        turnConInd = 1;
-      else
-        turnConInd = 2;
-      end
-      stimLabels = horzcat(stimLabels , dynLabels{turnConInd});     
-    else
-      staticLabels = {'leftProfile', 'frontal', 'rightProfile'};
-      stimLabels = horzcat(stimLabels , staticLabels{camInd});
+    % 2nd Label
+    secondLabelArray = {'interaction', 'NONE', 'idle', 'headTurn_isolated', 'headTurn_context'};
+    contextInd = str2double(code(2));
+    if contextInd ~= 0
+      stimLabels = [stimLabels, secondLabelArray(contextInd)];
     end
     
-  end
-  
-  if code(2) == '5'     % Code in the name of isolated head turning context stim.
-    % code = sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
-    scenes = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};    % Observed Scenes
-    
-    % Entirely too many cameras.
-    cameraNum = {'CamRing_Chase1_1', 'CamRing_Chase1_2', 'CamRing_Chase1_3', 'CamRing_Chase1_4','CamRing_Chase2_1', 'CamRing_Chase2_2',...
-      'CamRing_Chase2_3', 'CamRing_Chase2_4','CamRing_Chase3_1', 'CamRing_Chase3_2', 'CamRing_Chase3_3', 'CamRing_Chase3_4', ...
-      'CamRing_Groom1','CamRing_Groom2','CamRing_Groom3','CamRing_Groom4','CamRing_Mate1','CamRing_Mate2','CamRing_Mate3','CamRing_Mate4', ...
-      'CamRing_Fight1','CamRing_Fight2','CamRing_Fight3','CamRing_Fit4','CamRing_Control1', 'CamRing_Control2', 'CamRing_Control3', 'CamRing_Control4',...
-      'CamRing_Scene1', 'CamRing_Scene2', 'CamRing_Scene3', 'CamRing_Scene4'};
-  
-    turnsMat = {'noTurn', 'Turn'};
-    
-    sceneInd = str2double(code(3));
-    turnCode = logical(str2double(code(6)));
-    
-    stimLabels = horzcat(stimLabels ,scenes{sceneInd});
-    if turnCode
-      stimLabels = horzcat(stimLabels ,'headTurn');
+    %First Label
+    firstLabelArray = {'agents','objects','scramble','scene'};
+    setInd = str2double(code(1));
+    %headTurn isn't labeled correctly here.
+    if contextInd < 4
+      stimLabels = firstLabelArray(setInd);
     end
-        
-  end
-  
-  % Animation Processing
-  if strcmp(stimParts{2}(end),'A')
-    stimLabels = horzcat(stimLabels ,'animated');
-    %A change needed for the naming convention on animated stimuli controls
-    if length(stimParts) > 2 && strncmp(stimParts(3),'C',1)
+    
+    if strcmp(code(1:3), '110')
+      stimLabels = horzcat(stimLabels ,'goalDirected');
+    end
+    
+    % Make sure to not catch controls for animated stimuli
+    if (((length(stimParts) > 2) && ~strncmp(stimParts(3),'C',1)) || (length(stimParts) == 2)) && ~strcmp(stimParts{1}, 'scramble') && ~code(2) == 4
+      socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
+      stimLabels = [stimLabels, socCatagoryArray(str2num(code(3))), 'socialInteraction'];
+      
+    elseif ((length(stimParts) > 2) && strncmp(stimParts(3),'C',1))
       stimLabels = horzcat(stimLabels ,'animControl');
-    elseif length(stimParts) == 2
-      stimLabels = horzcat(stimLabels ,'animSocialInteraction');
     end
-  end
-  
-  % Decomposed Stimuli processing
-  if any(strcmp(stimParts, 'Dephased'))
-    stimLabels = {'scramble'};
-    label = 'Scrambled';
-  end
-  
-  if (length(stimParts) > 2)
-    if strncmp(stimParts(3),'Decomp',5)
-      modWord = 'no';
-      stimLabels = horzcat(stimLabels, 'Decomp');
-      switch stimParts{3}
-        case 'DecompA'
-          switch stimParts{4}
-            case 'B';   stimLabels = horzcat(stimLabels, 'faces','background'); label = 'Bodies';
-            case 'F';   stimLabels = horzcat(stimLabels, 'bodies', 'hands','background'); label = 'Faces';
-            case 'H';   stimLabels = horzcat(stimLabels, 'bodies', 'faces','background'); label = 'Hands';
-            case 'FB';  stimLabels = horzcat(stimLabels, 'background'); label = 'FacesBodies';
-            case 'FH';  stimLabels = horzcat(stimLabels, 'bodies','background'); label = 'FaceHands';
-          end
-        case 'DecompB'
-          switch stimParts{4}
-            case 'B';   stimLabels = horzcat(stimLabels, 'bodies','hands'); label = 'FacesScene';
-            case 'F';   stimLabels = horzcat(stimLabels, 'faces'); label = 'BodiesScene';
-            case 'H';   stimLabels = horzcat(stimLabels, 'hands'); label = 'FacesBodiesScene';
-            case 'FB';  stimLabels = horzcat(stimLabels, 'faces', 'bodies'); label = 'Scene';
-            case 'FH';  stimLabels = horzcat(stimLabels, 'faces', 'hands'); label = 'BodiesScene';
-          end
+    
+    if code(2) == '4'     % Code in the name of isolated head turning paradigm stim.
+      % code = sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
+      codeAdd = stimParts{3};
+      
+      motionType = {'headIso', 'bioMotion'};
+      turnDirection = {'leftFull', 'leftHalf', 'noTurn', 'rightHalf', 'rightFull'};   % Direction of Turn
+      cameras = {'leftCam', 'frontCam', 'rightCam'};
+      mesh = {'fullModel', 'smoothModel', 'dotModel', 'sphereModel'};                 % Mesh used.
+      
+      condInd = str2double(code(3));   % {'Idle' vs 'bioMotion'}
+      if condInd == 2
+        % Mistake where bioMotion wasn't labeled w/ 3, instead 1.
+        turnDirInd = 3;
+      else
+        turnDirInd = str2double(code(5));
       end
-    elseif strncmp(stimParts(3),'C',1)
-      label = strjoin(stimParts(3:end));
-    end
-  end
-  
-  % Event based labels, derived from eventData.mat in stim folder.
-  if any(eventPresMat(ii, :))
-    stimLabels = horzcat(stimLabels, eventTitles(eventPresMat(ii, :)));
-  end
-  
-  % Accounts for stimuli with no Labels
-  stimLabels = horzcat(stimLabels, 'allStim'); %#ok<*AGROW>
-  
-  % Generate final structure
-  stimList{ii} = horzcat(stimList{ii}, stimLabels);
-  
-  % Make the picture Label
-  if str2double(code(1)) == 1 % Agents
-    if contextInd == 1 || contextInd == 3
-      eventTag = stimParts{1};
-      cutStartInd = find(isstrprop(eventTag, 'upper'));
-      speciesTag = eventTag(1);
-      eventTag = eventTag(cutStartInd: end);
-      if strcmp(eventTag(end-2:end), 'ing')
-        eventTag = eventTag(1:end-3);
-        if strcmp(eventTag, 'Chas')
-          eventTag = 'Chase';
+      meshInd = str2double(codeAdd(4));
+      camInd = str2double(codeAdd(2));
+      
+      stimLabels = horzcat(stimLabels , motionType{condInd});
+      stimLabels = horzcat(stimLabels , turnDirection{turnDirInd});
+      stimLabels = horzcat(stimLabels , mesh{meshInd});
+      
+      if condInd == 1
+        % Use a combination of the turn direction and camera to determine
+        % either 'turnAway' or 'turnToward'.
+        if turnDirInd ~= 3
+          stimLabels = horzcat(stimLabels , 'headTurn');
+          dynLabels = {'turnToward', 'turnAway'};
+          if (camInd == 3 && turnDirInd > 3) || (camInd == 1 && turnDirInd < 3)
+            turnConInd = 1;
+          else
+            turnConInd = 2;
+          end
+          stimLabels = horzcat(stimLabels , dynLabels{turnConInd});
+        else
+          staticLabels = {'leftProfile', 'frontal', 'rightProfile'};
+          stimLabels = horzcat(stimLabels , staticLabels{camInd});
         end
       end
-      pictureLabels{ii} = [eventTag '_' speciesTag '_' stimParts{2}(4:end) modWord label];
-    elseif contextInd == 4
-      pictureLabels{ii} = [motionType{condInd} '_' turnDirection{turnDirInd} '_' cameras{camInd}];
-    elseif contextInd == 5
-      turns = {'noTurn', 'Turn'};
-      turnInd = str2num(code(6)) + 1;
-      pictureLabels{ii} = [scenes{sceneInd} code(4) '_' turns{turnInd}];
+      
+    end
+    
+    if code(2) == '5'     % Code in the name of context head turning paradigm stim.
+      % code = sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
+      scenes = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};    % Observed Scenes
+      
+      % Entirely too many cameras.
+      cameraNum = {'CamRing_Chase1_1', 'CamRing_Chase1_2', 'CamRing_Chase1_3', 'CamRing_Chase1_4','CamRing_Chase2_1', 'CamRing_Chase2_2',...
+        'CamRing_Chase2_3', 'CamRing_Chase2_4','CamRing_Chase3_1', 'CamRing_Chase3_2', 'CamRing_Chase3_3', 'CamRing_Chase3_4', ...
+        'CamRing_Groom1','CamRing_Groom2','CamRing_Groom3','CamRing_Groom4','CamRing_Mate1','CamRing_Mate2','CamRing_Mate3','CamRing_Mate4', ...
+        'CamRing_Fight1','CamRing_Fight2','CamRing_Fight3','CamRing_Fit4','CamRing_Control1', 'CamRing_Control2', 'CamRing_Control3', 'CamRing_Control4',...
+        'CamRing_Scene1', 'CamRing_Scene2', 'CamRing_Scene3', 'CamRing_Scene4'};
+      
+      turnsMat = {'noTurn', 'Turn'};
+      
+      sceneInd = str2double(code(3));
+      turnCode = logical(str2double(code(6)));
+      
+      stimLabels = horzcat(stimLabels ,scenes{sceneInd});
+      
+      if sceneInd < 5
+        stimLabels = horzcat(stimLabels ,'socialInteraction');
+      else
+        stimLabels = horzcat(stimLabels ,'nonSocialInteraction');
+      end
+      
+      if turnCode
+        stimLabels = horzcat(stimLabels ,'headTurn');
+      else
+        stimLabels = horzcat(stimLabels , 'noTurn');
+      end
+      
+    end
+    
+    % Animation Processing
+    if strcmp(stimParts{2}(end),'A')
+      stimLabels = horzcat(stimLabels ,'animated');
+      %A change needed for the naming convention on animated stimuli controls
+      if length(stimParts) > 2 && strncmp(stimParts(3),'C',1)
+        stimLabels = horzcat(stimLabels ,'animControl');
+      elseif length(stimParts) == 2
+        stimLabels = horzcat(stimLabels ,'animSocialInteraction');
+      end
+    end
+    
+    % Decomposed Stimuli processing
+    if any(strcmp(stimParts, 'Dephased'))
+      stimLabels = {'scramble'};
+      label = 'Scrambled';
+    end
+    
+    if (length(stimParts) > 2)
+      if strncmp(stimParts(3),'Decomp',5)
+        modWord = 'no';
+        stimLabels = horzcat(stimLabels, 'Decomp');
+        switch stimParts{3}
+          case 'DecompA'
+            switch stimParts{4}
+              case 'B';   stimLabels = horzcat(stimLabels, 'faces','background'); label = 'Bodies';
+              case 'F';   stimLabels = horzcat(stimLabels, 'bodies', 'hands','background'); label = 'Faces';
+              case 'H';   stimLabels = horzcat(stimLabels, 'bodies', 'faces','background'); label = 'Hands';
+              case 'FB';  stimLabels = horzcat(stimLabels, 'background'); label = 'FacesBodies';
+              case 'FH';  stimLabels = horzcat(stimLabels, 'bodies','background'); label = 'FaceHands';
+            end
+          case 'DecompB'
+            switch stimParts{4}
+              case 'B';   stimLabels = horzcat(stimLabels, 'bodies','hands'); label = 'FacesScene';
+              case 'F';   stimLabels = horzcat(stimLabels, 'faces'); label = 'BodiesScene';
+              case 'H';   stimLabels = horzcat(stimLabels, 'hands'); label = 'FacesBodiesScene';
+              case 'FB';  stimLabels = horzcat(stimLabels, 'faces', 'bodies'); label = 'Scene';
+              case 'FH';  stimLabels = horzcat(stimLabels, 'faces', 'hands'); label = 'BodiesScene';
+            end
+        end
+      elseif strncmp(stimParts(3),'C',1)
+        label = strjoin(stimParts(3:end));
+      end
+    end
+    
+    % Event based labels, derived from eventData.mat in stim folder.
+    if any(eventPresMat(ii, :))
+      stimLabels = horzcat(stimLabels, eventTitles(eventPresMat(ii, :)));
+    end
+    
+    % Accounts for stimuli with no Labels
+    stimLabels = horzcat(stimLabels, 'allStim'); %#ok<*AGROW>
+    
+    % Generate final structure
+    stimList{ii} = horzcat(stimList{ii}, stimLabels);
+    
+    % Make the picture Label
+    if str2double(code(1)) == 1 % Agents
+      if contextInd == 1 || contextInd == 3
+        eventTag = stimParts{1};
+        cutStartInd = find(isstrprop(eventTag, 'upper'));
+        speciesTag = eventTag(1);
+        eventTag = eventTag(cutStartInd: end);
+        if strcmp(eventTag(end-2:end), 'ing')
+          eventTag = eventTag(1:end-3);
+          if strcmp(eventTag, 'Chas')
+            eventTag = 'Chase';
+          end
+        end
+        pictureLabels{ii} = [eventTag '_' speciesTag '_' stimParts{2}(4:end) modWord label];
+      elseif contextInd == 4
+        pictureLabels{ii} = [motionType{condInd} '_' turnDirection{turnDirInd} '_' cameras{camInd}];
+      elseif contextInd == 5
+        turns = {'noTurn', 'Turn'};
+        turnInd = str2num(code(6)) + 1;
+        pictureLabels{ii} = [scenes{sceneInd} code(4) '_' turns{turnInd}];
+      else
+        pictureLabels{ii} = [stimParts{1} '_' stimParts{2}(end) modWord label];
+      end
     else
       pictureLabels{ii} = [stimParts{1} '_' stimParts{2}(end) modWord label];
     end
   else
-    pictureLabels{ii} = [stimParts{1} '_' stimParts{2}(end) modWord label];
+    % Codes for the FamiliarFace Paradigm
+    
+    if ~isempty(str2num(stimParts{1}(1)))
+      % Room number, preceeds empty
+      stimParts{1} = ['R' stimParts{1}];
+    else
+      % Monkey name, use to ID Familiar
+      unFamiliarMonkeys = {'Barney', 'Calvin', 'Hobbes', 'Luca'};
+      if any(strcmp(unFamiliarMonkeys, stimParts{1}))
+        stimLabels = horzcat(stimLabels , 'unFamiliar');
+      else
+        stimLabels = horzcat(stimLabels , 'familiar');
+      end
+      
+      % Add the picture label to the catagory list
+      stimLabels = horzcat(stimLabels ,[stimParts{1} '_' stimParts{2}]);
+      
+    end
+    
+    stimLabels = horzcat(stimLabels , stimParts{1});
+    pictureLabels{ii} = [stimParts{1} '_' stimParts{2}];
+    
+    if strcmp('Entering', stimParts{2})
+      stimLabels = horzcat(stimLabels , 'Movement');
+    else
+      stimLabels = horzcat(stimLabels , stimParts{2});
+    end
+    
+    stimList{ii} = horzcat(stimList{ii}, stimLabels);
+    
   end
   
 end
 
-%% Adding merged stimuli
+%% Adding combined catagories
+stimList = AddComboCategoryLabels(stimList, comboCat);
 
+%% Adding merged stimuli
+% Function which attaches a label to all of the stimuli variants in the
+% headTurn paradigms with the 'core name'.
 [stimList, pictureLabels] = mergeStimuliParam(stimList, pictureLabels);
 
 %% Adding subEvents
@@ -266,7 +331,7 @@ pictureLabels = [pictureLabels; labelAdd];
 
 %% Package Outputs
 %pictureLabels = pictureLabels(:,1);
-
+% 
 stimLabels = cellfun(@(x) x(2:end), stimList, 'UniformOutput', false);
 catLabels = unique([stimLabels{:}]);
 
@@ -292,95 +357,137 @@ pictureLabels = pictureLabels(uInd);
 save('StimParamFileSocialVids_Full.mat','paramArray','categoryLabels','pictureLabels')
 end
 
-  function [taskEventIDs, pictureLabels] = mergeStimuliParam(taskEventIDs, pictureLabels)
-% Takes in the taskEventID string, relabels variants of a stimuli to the
-% same name.
-
-% Extract stimListName
-stimListNames = cellfun(@(x) x(1), taskEventIDs);
+function [taskEventIDs, pictureLabels] = mergeStimuliParam(taskEventIDs, pictureLabels)
 
 % Identify the paradigm
-paradigm = extractBefore(stimListNames, '_');
+stimuliNames = cellfun(@(x) x(1), taskEventIDs);
 
-% Remove those which aren't headTurn paradigm
-headTurnIsoInd = strcmp(paradigm, 'headTurnIso');
-headTurnConInd = strcmp(paradigm, 'headTurnCon');
+% Identify the headTurning paradigm entries
+headTurnLog = strncmp(stimuliNames, 'headTurn', 8);
+headTurnIsoLog = strncmp(stimuliNames, 'headTurnIso', 11);
+headTurnConLog = xor(headTurnLog, headTurnIsoLog);
 
-headTurnInds = [headTurnIsoInd, headTurnConInd];
+headTurnInds = [headTurnIsoLog, headTurnConLog];
 
-for jj = 1:2
+% Knowing that headTurnCon and headTurnIso follow a specific code,
+% identify ones which are the same.
+
+for paradigm_i = 1:2
+  % Identify the elements of the stimulus name which point out 'unique
+  % stimuli' as opposed to variants of the same stimulus.
   
-  % Knowing that headTurnCon and headTurnIso follow a specific code,
-  % identify ones which are the same.
-  stimListSub = stimListNames(headTurnInds(:,jj));
-  paradigmCode = extractBefore(stimListSub{1}, '_');
-  isolatedCodes = extractBetween(stimListSub, '_1', '.');
+  isolatedCodes = extractBetween(stimuliNames(headTurnInds(:,paradigm_i)), '_1', '.');
   
-  switch paradigmCode
-    case 'headTurnIso'
+  switch paradigm_i
+    case 1 %'headTurnIso'
       % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
       % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
       % skin_i make variants of these stim.
-      stimCode = cellfun(@(x) x(1, [2 4 7 9]), isolatedCodes, 'UniformOutput', false);
-      [A, labels2Add, uniqueStimGroup] = unique(stimCode);
+      uniqueStimID = [2 4 7 9 12];
       
-      % insert these names to json file via "MonkeyPrefabs":"name". use this
-      % index directly into name position 3.
       prefabToSet = {'idle','bioMotion'};
-      prefabCounts = 3;
-      prefabTypes = {'leftFull', 'leftHalf', 'core', 'rightHalf', 'rightFull'};
-      prefabID = {'','_Red', '_Ashe', '_White'}; %The first prefab, 'Beige', doesn't have the color appended.
+      prefabTypes = {'_leftFull', '_leftHalf', '_core', '_rightHalf', '_rightFull'};
+      cameras = {'_leftCam', '_frontCam', '_rightCam'};
+      meshes = {'_Normal', '_LowRes', '_Dots'};
+      timeTurn = {'_Early', '_Late'};
       
-      % insert these names to json file via "CameraName" field. this index goes
-      % into the name in position 4.
-      cameras = {'leftCam', 'frontCam', 'rightCam'};
-      
-      % insert the index - 1 of the desired mesh below, and set
-      % 'OverrideMeshType' to 'true'. Use the index in the name as code position
-      % 5.
-      % meshes = {'Normal', 'LowRes', 'Dots', 'Spheres'};
-      meshes = {'Normal', 'LowRes', 'Dots'};
-      
-      mergeTaskEvent = cell(length(A),1);
-      for ii = 1:length(A)
-        wholeCode = A{ii};
-        intInd = str2num(wholeCode(1));   % Extract int type.
-        turnInd = str2num(wholeCode(2));  % Extract head Turn
-        camInd = str2num(wholeCode(3));
-        meshInd = str2num(wholeCode(4));
-        mergeTaskEvent{ii} = strjoin([prefabToSet(intInd), prefabTypes(turnInd), cameras(camInd), meshes(meshInd)], '_');
-      end
-    case 'headTurnCon'
+      nameElements = {prefabToSet; prefabTypes; cameras; meshes; timeTurn};
+    case 2 %'headTurnCon'
       % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
       % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
       % variants.
-      stimCode = cellfun(@(x) x(1, [2, 3, 5]), isolatedCodes, 'UniformOutput', false);
-      [A, labels2Add, uniqueStimGroup] = unique(stimCode);
+      uniqueStimID = [2, 3, 5];
       
       intArray = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};
+      intNum = {'1', '2', '3', '4', '5', '6'};
       turnArray = {'_noTurn', '_Turn'};
       
-      mergeTaskEvent = cell(length(A),1);
-      for ii = 1:length(A)
-        indCode = A{ii};
-        intInd = str2num(indCode(1));
-        intNum = indCode(2);
-        turnInd = str2num(indCode(3))+1;
-        mergeTaskEvent{ii} = [intArray{intInd} intNum turnArray{turnInd}];
-      end
+      nameElements = {intArray; intNum; turnArray};
   end
   
-  % Generate vector of stimuli w/ the appropriate labels following to add
-  % to the larger stimList
-  stimList2Add = mergeTaskEvent;
-  largerGroupInd = find(headTurnInds(:,jj));
-  labels = cellfun(@(x) x(2:end), taskEventIDs(largerGroupInd(labels2Add)), 'UniformOutput', false);
+  % Extract unique stimuli based on code, saving the membership to each
+  % label.
+  stimCode = cellfun(@(x) x(1, uniqueStimID), isolatedCodes, 'UniformOutput', false);
+  [A, ~, stim2Label] = unique(stimCode);
+  mergeTaskEvent = cell(length(A),1);
   
-  % Combine the stimList w/ the appropriate Labels, and add to the larger
-  % list.
-  stimListAddition = arrayfun(@(x) [stimList2Add(x), labels{x}], 1:length(stimList2Add), 'UniformOutput', false)';
-  taskEventIDs = [taskEventIDs; stimListAddition];
-  pictureLabels = [pictureLabels; stimList2Add]; % Just use normal names as labels.
+  % Need to add 1 to the headTurn number to make it usable as an index.
+  if paradigm_i == 2
+    tmp = str2double(A) + 1;
+    A = num2str(tmp);
+    A = mat2cell(A, ones(size(A,1),1), size(A,2));
+  end
+  
+  % Iterate across the codes, using the previously indicated vectors to turn
+  % them into names.
+  for ii = 1:length(A)
+    wholeCode = A{ii};
+    eventName = cell(size(wholeCode));
+    
+    for jj = 1:length(uniqueStimID)
+      vect = nameElements{jj};
+      vectInd = str2num(wholeCode(jj));
+      if isempty(vectInd)
+        switch wholeCode(jj)
+          case 'E'
+            vectInd = 1;
+          case 'L'
+            vectInd = 2;
+        end
+      end
+      eventName(jj) = vect(vectInd);
+    end
+    
+    % Join the elements
+    mergeTaskEvent{ii} = strjoin(eventName, '');
+  end
+  
+  % Add the mergeTaskEvent label to each stimuli's catagory labels.
+  catagoryLabels2Add = cell(size(stimCode));
+  for ii = 1:length(mergeTaskEvent)
+    labelInd = stim2Label == ii;
+    catagoryLabels2Add(labelInd) = deal(mergeTaskEvent(ii));
+  end
+  
+  headTurnInds2Add = find(headTurnInds(:,paradigm_i));
+  
+  for ii = 1:length(headTurnInds2Add)
+    taskEventIDs{headTurnInds2Add(ii)} = [taskEventIDs{headTurnInds2Add(ii)}, catagoryLabels2Add(ii)];
+  end
+  
+end
+
+
+end
+
+function [stimList] = AddComboCategoryLabels(stimList, comboCat)
+% Adds a combined label to each stimulus per the comboCat struct.
+
+comboCategoryLabels = comboCat.comboCategoryLabels;
+comboCategoryMembers = comboCat.comboCategoryMembers;
+
+for ii = 1:length(comboCategoryLabels)
+  catMembers = comboCategoryMembers{ii}(2:end);
+  catLogic = comboCategoryMembers{ii}{1};
+  comboCatMembers = false(length(stimList), length(catMembers));
+  % Identify all the members
+  for jj = 1:length(catMembers)
+    comboCatMembers(:,jj) = cellfun(@(x) any(strcmp(x, catMembers{jj})), stimList);
+  end
+  
+  % Identify the correct logical combo
+  switch catLogic
+    case '&'
+      comboCatInds = arrayfun(@(rowInd) all(comboCatMembers(rowInd,:)), 1:size(comboCatMembers,1))';
+    case '|'
+      comboCatInds = arrayfun(@(rowInd) any(comboCatMembers(rowInd,:)), 1:size(comboCatMembers,1))';
+  end
+  
+  % Use the vector to add the label
+  comboCatInds2Add = find(comboCatInds);
+  for jj = comboCatInds2Add'
+    stimList{jj} = [stimList{jj}, comboCategoryLabels(ii)];
+  end
   
 end
 

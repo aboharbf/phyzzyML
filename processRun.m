@@ -199,86 +199,88 @@ if ~usePreprocessed
 
 %% Sort trials by image and image category, align data appropriately.
 
-  tmp = load(stimParamsFilename); %loads variables paramArray, categoryLabels,eventLabels
+  %loads variables paramArray, categoryLabels,eventLabels, and extract
+  %eventIDs
+  tmp = load(stimParamsFilename); 
   eventCategories = tmp.paramArray;
   categoryList = tmp.categoryLabels;
   try
     eventLabels = tmp.eventLabels;
   catch
-    eventLabels = tmp.pictureLabels; %implements back-compatibility with previous variable names
+    %implements back-compatibility with previous variable names
+    eventLabels = tmp.pictureLabels; 
   end
-  eventIDs = cell(size(eventCategories,1),1);
-  for event_i = 1:length(eventCategories)
-    eventIDs{event_i} = eventCategories{event_i}{1}; %per the stimParamFile spec, this is the event ID
-  end
-  [onsetsByEvent, offsetsByEvent, trialIDsByEvent] = deal(cell(length(eventIDs),1));
-  eventsNotObserved = zeros(length(eventIDs),1);
+  %per the stimParamFile spec, the first entry of each array is the event ID
+  eventIDs = cellfun(@(x) x(1), eventCategories);   
+
+  % Identify offsets and onsets for each eventID in the stimParam file
+  % during this run.
+  [onsetsByEvent, offsetsByEvent, trialIDsByEvent] = deal(cell(size(eventIDs)));
   for event_i = 1:length(eventIDs)
-    wholeRunEventInd = strcmp(taskData.taskEventIDs,eventIDs{event_i});
+    wholeRunEventInd = strcmp(taskData.taskEventIDs, eventIDs{event_i});
     trialIDsByEvent{event_i} = find(wholeRunEventInd);
     onsetsByEvent{event_i} = taskData.taskEventStartTimes(wholeRunEventInd);
     offsetsByEvent{event_i} = taskData.taskEventEndTimes(wholeRunEventInd);
-    eventsNotObserved(event_i) = isempty(onsetsByEvent{event_i});
+  end
+  eventsObserved = ~cellfun('isempty', onsetsByEvent);
+  assert(any(eventsObserved), 'No Events observed. Confirm correct stimulus Param file is in use.');
+  
+  % Check that the events observed match the reported events from the log
+  % preprocessor. Throw errors for unrepresented events.
+  uniqueEventsInRun = unique(taskData.taskEventIDs);
+  eventsByOnset = eventIDs(eventsObserved);
+  mismatchEvents = setdiff(uniqueEventsInRun, eventsByOnset);
+  if ~isempty(mismatchEvents)
+    disp(mismatchEvents)
+    error('Events missing from stimParamFile');
   end
 
-  assert(~(sum(eventsNotObserved) == length(eventsNotObserved)),'No Events observed. Confirm correct stimulus Param file is in use.');
-  if ~(sum(eventsNotObserved == 0) == length(unique(taskData.taskEventIDs)))
-    uni = unique(taskData.taskEventIDs);
-    for ii = 1:length(uni)
-      chck = sum(strcmp(eventIDs,uni(ii)));
-      if ~chck
-        fprintf('Event %s missing from stimParamFile \n', uni{ii});
-      end
-    end
-    error('Not all Events observed are represented in stimParamFile.')
-  end
   % todo: need defense against image with onset but no offset? 
   % todo: add similar defense for rf map locations here?
   if ~taskData.RFmap
     %disp('No presentations of the following images survived exclusion:');
-    %disp(eventIDs(eventsNotObserved == 1));
-  end
-  if ~keepItemsNotPresented
-    onsetsByEvent = onsetsByEvent(eventsNotObserved == 0);
-    offsetsByEvent = offsetsByEvent(eventsNotObserved == 0);
-    trialIDsByEvent = trialIDsByEvent(eventsNotObserved == 0);
-    eventIDs = eventIDs(eventsNotObserved == 0);
-    eventLabels = eventLabels(eventsNotObserved == 0);
-    eventCategories = eventCategories(eventsNotObserved == 0);
+    %disp(eventIDs(eventsObserved));
   end
   
-  onsetsByCategory = cell(length(categoryList),1);
-  offsetsByCategory = cell(length(categoryList),1);
-  catsNotObserved = zeros(length(categoryList),1);
-  trialIDsByCategory = cell(length(categoryList),1);
+  if ~keepItemsNotPresented
+    onsetsByEvent = onsetsByEvent(eventsObserved);
+    offsetsByEvent = offsetsByEvent(eventsObserved);
+    trialIDsByEvent = trialIDsByEvent(eventsObserved);
+    eventIDs = eventIDs(eventsObserved);
+    eventLabels = eventLabels(eventsObserved);
+    eventCategories = eventCategories(eventsObserved);
+  end
+  
+  % Identify onsets and offsets by Catagory
+  [onsetsByCategory, offsetsByCategory, trialIDsByCategory] = deal(cell(length(categoryList),1));
   for cat_i = 1:length(categoryList)
-    catOnsets = [];
-    catOffsets = [];
-    catTrialIDs = [];
-    for event_i = 1:length(eventIDs)
-      if any(strcmp(eventCategories{event_i},categoryList{cat_i}))
-        catOnsets = vertcat(catOnsets,onsetsByEvent{event_i});
-        catOffsets = vertcat(catOffsets,offsetsByEvent{event_i});
-        catTrialIDs = vertcat(catTrialIDs,trialIDsByEvent{event_i});
-      end
+    [catOnsets, catOffsets, catTrialIDs] = deal([]);
+    eventsWithCat = find(cellfun(@(x) any(strcmp(x, categoryList{cat_i})), eventCategories)); % Find events w/ current catagory label.
+    
+    for event_i = eventsWithCat
+      catOnsets = vertcat(catOnsets, onsetsByEvent{event_i});
+      catOffsets = vertcat(catOffsets, offsetsByEvent{event_i});
+      catTrialIDs = vertcat(catTrialIDs, trialIDsByEvent{event_i});
     end
+    
     onsetsByCategory{cat_i} = catOnsets;
     offsetsByCategory{cat_i} = catOffsets;
-    catsNotObserved(cat_i) = isempty(onsetsByCategory{cat_i});
     trialIDsByCategory{cat_i} = catTrialIDs;
+    
     Output.DEBUG('numel cat onsets');
     Output.DEBUG(numel(catOnsets));
   end
+  catsObserved = ~cellfun('isempty', onsetsByCategory);
   
   if ~keepItemsNotPresented
-    onsetsByCategory = onsetsByCategory(catsNotObserved == 0);
-    offsetsByCategory = offsetsByCategory(catsNotObserved == 0);
-    categoryList = categoryList(catsNotObserved == 0);
-    trialIDsByCategory = trialIDsByCategory(catsNotObserved == 0);
+    onsetsByCategory = onsetsByCategory(catsObserved);
+    offsetsByCategory = offsetsByCategory(catsObserved);
+    categoryList = categoryList(catsObserved);
+    trialIDsByCategory = trialIDsByCategory(catsObserved);
   end
-  
+    
   if taskData.RFmap
-    jumpsByImage = cell(length(eventIDs),1);
+    jumpsByImage = cell(size(eventIDs));
     for i = 1:length(eventIDs)
       jumpsByImage{i} = taskData.stimJumps(strcmp(taskData.taskEventIDs,eventIDs{i}),:);
     end
@@ -289,16 +291,17 @@ if ~usePreprocessed
   % align spikes by trial, and sort by image and category
   spikeAlignParamsToCoverMovingWin.preAlign = lfpAlignParams.msPreAlign; % need to include spikes throughout the window chronux will use to calculate spectra
   spikeAlignParamsToCoverMovingWin.postAlign = lfpAlignParams.msPostAlign;
-  spikeAlignParamsToCoverMovingWin.refOffset = 0;  
+  spikeAlignParamsToCoverMovingWin.refOffset = 0;
   [spikesByEvent, psthEmptyByEvent] = alignSpikes( spikesByChannel, onsetsByEvent, spikeChannels, spikeAlignParamsToCoverMovingWin);
   [spikesByCategory, psthEmptyByCategory] = alignSpikes( spikesByChannel, onsetsByCategory, spikeChannels, spikeAlignParamsToCoverMovingWin);
-
+  
   % align spikes again, but this time reference time to lfp sample number (required for chronux TF, even spike-spike)
   spikeAlignParamsTF.preAlign = lfpAlignParams.msPreAlign;
   spikeAlignParamsTF.postAlign = lfpAlignParams.msPostAlign;
   spikeAlignParamsTF.refOffset = -lfpAlignParams.msPreAlign;
   spikesByEventForTF = alignSpikes( spikesByChannel, onsetsByEvent, spikeChannels, spikeAlignParamsTF );
   spikesByCategoryForTF = alignSpikes( spikesByChannel, onsetsByCategory, spikeChannels, spikeAlignParamsTF );
+  
   % align LFP data  by trial, sort by image and category, and possibly remove DC and linear components
   lfpByEvent = alignLFP(lfpData, onsetsByEvent, lfpChannels, lfpAlignParams);
   lfpByCategory = alignLFP(lfpData, onsetsByCategory, lfpChannels, lfpAlignParams);
@@ -309,7 +312,7 @@ if ~usePreprocessed
     Output.VERBOSE(categoryList{cat_i});
     Output.VERBOSE(size(lfpByCategory{cat_i}));
   end
-
+  
   if savePreprocessed
     save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'psthImDur', 'preAlign', 'postAlign',...
       'categoryList', 'eventLabels', 'eventIDs', 'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByCategory', 'psthEmptyByCategory',...

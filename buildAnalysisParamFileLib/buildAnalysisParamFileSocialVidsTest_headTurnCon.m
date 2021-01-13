@@ -1,10 +1,10 @@
-function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )    
+function [analysisParamFilename] = buildAnalysisParamFileSocialVidsTest_headTurnCon( varargin )    
 %buildAnalysisParamFile saves a mat file of parameters, which control the
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '005';
-dateSubject = '20210102Mo';
+runNum = '002';
+dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -68,14 +68,14 @@ plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH u
 plotSwitch.imagePsth = 0;                   % a PSTH for every stimulus in the file.
 plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
 plotSwitch.analysisGroupsPsth = 1;          % a PSTH for every set of analysisGroups defined below.
-plotSwitch.stimCatANOVA = 0;
+plotSwitch.stimCatANOVA = 1;
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
-plotSwitch.prefImRasterColorCoded = 0;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.
+plotSwitch.prefImRasterColorCoded = 4;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.
 plotSwitch.topStimToPlot = 5;               % Determines number of stimuli for which rasters are plotted.
 plotSwitch.prefImRasterEvokedOverlay = 0;   % Produces images for MUA and Unsorted even if the same. Relies on sometihng in CatPSTH.
-plotSwitch.prefImRasterAverageEvokedOverlay = 0;
+plotSwitch.prefImRasterAverageEvokedOverlay = 1;
 plotSwitch.prefImMultiChRasterEvokedOverlay = 0;
-plotSwitch.imageTuningSorted = 0;           % Barplot per image, Required for stimPSTHoverlay, sigStruct
+plotSwitch.imageTuningSorted = 1;           % Barplot per image, Required for stimPSTHoverlay, sigStruct
 plotSwitch.stimPrefBarPlot = 0;             % Per event bar graph.
 plotSwitch.stimPrefBarPlotEarly = 0;
 plotSwitch.stimPrefBarPlotLate = 0;
@@ -103,7 +103,7 @@ plotSwitch.lfpPowerAcrossChannels = 0;
 plotSwitch.lfpPeakToPeakAcrossChannels = 0;
 plotSwitch.lfpLatencyShiftAcrossChannels = 0;
 plotSwitch.singleTrialLfpByCategory = 0;
-plotSwitch.lfpSpectraByCategory = 0; % LFP Comparison 
+plotSwitch.lfpSpectraByCategory = 1; % LFP Comparison 
 plotSwitch.lfpAutocorrelTfByItem = 0;
 plotSwitch.lfpAutocorrelByItem = 0;
 plotSwitch.spikeSpectraByCategory = 0;
@@ -141,7 +141,7 @@ calcSwitch.spikeTimes = 0;
 calcSwitch.useJacknife = 0;      
 
 %% Parameters
-channels2Read = 1:32;
+channels2Read = 21;
 
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
@@ -150,7 +150,7 @@ autoChannelDetect = 0;
 ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
 ephysParams.lfpChannels = channels2Read;
 ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
-ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read), 1]); %converts raw values to microvolts
+ephysParams.lfpChannelScaleBy = repmat(8191/32764, length(channels2Read)); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
 ephysParams.waveClus = 1;             % Does automated offline sorting using wave_clus.
 ephysParams.paramHandle = @set_parameters; %Function which produces param struct for wave_clus. in wave_clus folder.
@@ -421,22 +421,8 @@ neuroGLMParams.visualizeDesignMat = 1;        % Visualizes a random set of 5 tri
 %% Plotting Params
 assert(length(frEpochsCell) == length(epochLabels), 'Epoch time bins and epochLabel lengths must match')
 %%%% note: all analysisGroups cell arrays are nx1, NOT 1xn
-monkeyIDList = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes'};
-monkeyActList = {'IdleC', 'Movement', 'goalDirected', 'IdleS', 'FearGrimace', 'headTurn'};
-
-monkey_act_List = [];
-for ii = 1:length(monkeyIDList)
-  for jj = 1:length(monkeyActList)
-    monkey_act_List = [monkey_act_List; {[monkeyIDList{ii} '_' monkeyActList{jj}]}];
-  end
-end
-
 analysisGroups.analysisGroupPSTH.turnNoTurn = {'leftFull', 'noTurn', 'rightFull', 'headTurn'};
 analysisGroups.analysisGroupPSTH.socContext = {'socialInteraction', 'nonSocialInteraction'};
-
-analysisGroups.analysisGroupPSTH.Identity = monkeyIDList;
-analysisGroups.analysisGroupPSTH.FamiliarFace_stimuli = monkey_act_List;
-analysisGroups.analysisGroupPSTH.Familair = {'familiar', 'unFamiliar'};
 
 analysisGroups.analysisGroupPSTH.headTurnCon_stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
     'idle1_Turn', 'idle1_noTurn', 'idle2_Turn', 'idle2_noTurn', 'mating1_Turn', 'mating1_noTurn', 'mating2_Turn', 'mating2_noTurn', 'objects1_noTurn', 'goalDirected1_Turn', 'goalDirected1_noTurn', 'goalDirected2_Turn'...                      }

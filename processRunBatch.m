@@ -14,21 +14,23 @@ function [] = processRunBatch(varargin)
 machine = machine(~isspace(machine));
 
 switch machine
-  case 'Alienware_FA'
+  case 'Skytech_FA'
     outputVolumeBatch = 'E:\DataAnalysis';                                            % The output folder for analyses performed.
     dataLog = 'C:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
-    eventDataPath = 'D:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+    eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
   case 'homeDesktopWork'
     outputVolumeBatch = 'H:\Analyzed';                                            % The output folder for analyses performed.
     dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';                        % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
+  otherwise
+    error('Matching machine not found')
 end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
-runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
+runParallel = 0;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
 %% Load Appropriate variables and paths
@@ -82,6 +84,17 @@ if ~replaceAnalysisOut
         for arg_i = 1:size(varargin{2},1)
           eval(sprintf('%s = %s;', varargin{2}{arg_i, 1}, num2str(varargin{2}{arg_i, 2})));
         end
+      end
+      
+      % If Channels have been changed, redefine all the relevant channel
+      % names
+      if any(strcmp(paramTableVars, 'channels2Read'))
+        ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
+        ephysParams.lfpChannels = channels2Read;
+        ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
+        ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read),1]); %converts raw values to microvolts
+        ephysParams.unitsToUnsort = cell(length(channels2Read),1); %these units will be re-grouped with u0
+        ephysParams.unitsToDiscard = cell(length(channels2Read),1); %these units will be considered noise and discarded
       end
       
       % Generate appropriate Paths
@@ -267,7 +280,8 @@ end
 % the loops below
 
 firstEntry = find(~cellfun('isempty', analysisOutFilename), 3);
-firstEntry = firstEntry(3);
+entry2check = min(length(firstEntry), 3);
+firstEntry = firstEntry(entry2check);
 if ~isempty(firstEntry)
   tmp = load(analysisOutFilename{firstEntry},'sigStruct');
   assert(isfield(tmp, 'sigStruct'), 'sigStruct not in this analysis param, likely due to rerunning the single run and stopping prior to this structure being made. Rerun whole or pick different run')

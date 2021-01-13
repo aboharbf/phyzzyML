@@ -142,7 +142,7 @@ for field_i = 1:length(analysisGroupFields)
     end
     newItem_i = 0;
     for item_i = 1:length(analysisGroups.(field).groups{group_i})
-      if ismember(analysisGroups.(field).groups{group_i}{item_i},categoryList) || ismember(analysisGroups.(field).groups{group_i}{item_i},eventLabels)
+      if ismember(analysisGroups.(field).groups{group_i}{item_i}, categoryList) || ismember(analysisGroups.(field).groups{group_i}{item_i}, eventLabels)
         newItem_i = newItem_i + 1;
         for subfield_i = 1:length(itemDelimitedSubfields)
           if iscell(analysisGroups.(field).(itemDelimitedSubfields{subfield_i}){group_i})
@@ -307,6 +307,14 @@ elseif calcSwitch.imagePSTH
   save(analysisOutFilename,'psthByImage','psthErrByImage', '-append');
 end
 
+if calcSwitch.categoryPSTH && calcSwitch.spikeTimes
+  [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategory, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
+  save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
+elseif calcSwitch.categoryPSTH
+  [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategoryBinned, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
+  save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
+end
+
 % Spike, Task data, Eye Data Analysis
 
 if isfield(plotSwitch, 'subEventAnalysis') && plotSwitch.subEventAnalysis
@@ -317,14 +325,6 @@ if isfield(plotSwitch, 'subEventAnalysis') && plotSwitch.subEventAnalysis
   subEventAnalysisParams.eventIDs = eventIDs;
   [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
-end
-
-if calcSwitch.categoryPSTH && calcSwitch.spikeTimes
-  [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategory, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
-  save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
-elseif calcSwitch.categoryPSTH
-  [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategoryBinned, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
-  save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
 end
 
 % save('neuroGLMpre.mat')
@@ -376,6 +376,8 @@ if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
         continue;
       end
       figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
+      
+      eventLabelsPlot = strrep(eventLabels, '_', ' ');
       if isfield(psthParams, 'sortStim') && psthParams.sortStim
         if ~exist('NewStimOrder')
           sortOrder = psthParams.sortOrder;
@@ -393,9 +395,9 @@ if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
           %Sorts based on group membership.
           [~, NewStimOrder] = sort(groupLabelsByImage);
         end
-        plotPSTH(psthByImage{channel_i}{unit_i}(NewStimOrder,:), [], [], psthParams, 'color', psthTitle, eventLabels(NewStimOrder));
+        plotPSTH(psthByImage{channel_i}{unit_i}(NewStimOrder,:), [], [], psthParams, 'color', psthTitle, eventLabelsPlot(NewStimOrder));
       else
-        plotPSTH(psthByImage{channel_i}{unit_i}, [], [], psthParams, 'color', psthTitle, eventLabels);
+        plotPSTH(psthByImage{channel_i}{unit_i}, [], [], psthParams, 'color', psthTitle, eventLabelsPlot);
       end
       clear figData
       title(psthTitle);
@@ -407,14 +409,16 @@ if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
 end
 
 if isfield(plotSwitch,'categoryPsth') && plotSwitch.categoryPsth
+  categoryListPlot = strrep(categoryList, '_', ' ');
   for channel_i = 1:length(channelNames)
     for unit_i = 1:length(channelUnitNames{channel_i})
       if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
         continue;
       end
+     
       psthTitle = sprintf('Per Catagory PSTH %s, %s',channelNames{channel_i}, channelUnitNames{channel_i}{unit_i});
       figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
-      plotPSTH(psthByCategory{channel_i}{unit_i}, [],  [], psthParams, 'color', psthTitle, categoryList);
+      plotPSTH(psthByCategory{channel_i}{unit_i}, [],  [], psthParams, 'color', psthTitle, categoryListPlot);
       clear figData
       title(psthTitle);
       figData.z = psthByCategory{channel_i}{unit_i};
@@ -422,6 +426,41 @@ if isfield(plotSwitch,'categoryPsth') && plotSwitch.categoryPsth
       saveFigure(outDir, sprintf('catPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag);
     end
   end
+end
+
+if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth
+  % Identify which PSTHes to stack.
+  analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
+  categoryListPlot = strrep(categoryList, '_', ' ');
+  
+  for ii = 1:length(analysisPSTH)
+    analysisGroupLogic = false(length(categoryList), 1);
+    categoryListSet = analysisGroups.analysisGroupPSTH.(analysisPSTH{ii});
+    for jj = 1:length(categoryListSet)
+      analysisGroupLogic  = analysisGroupLogic | strcmp(categoryList, categoryListSet(jj))';
+    end
+    
+    if any(analysisGroupLogic)
+      
+      for channel_i = 1:length(channelNames)
+        for unit_i = 1:length(channelUnitNames{channel_i})
+          if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
+            continue;
+          end
+          
+          psthTitle = sprintf('Analysis Group %s PSTH %s, %s', analysisPSTH{ii}, channelNames{channel_i}, channelUnitNames{channel_i}{unit_i});
+          figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
+          plotPSTH(psthByCategory{channel_i}{unit_i}(analysisGroupLogic,:), [],  [], psthParams, 'color', psthTitle, categoryListPlot(analysisGroupLogic));
+          clear figData
+          title(psthTitle);
+          figData.z = psthByCategory{channel_i}{unit_i};
+          figData.x = -psthPre:psthImDur+psthPost;
+          saveFigure(outDir, sprintf('catPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag);
+        end
+      end
+    end
+  end
+  
 end
 
 [spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch] = deal(cell(size(frEpochs,1),1));
