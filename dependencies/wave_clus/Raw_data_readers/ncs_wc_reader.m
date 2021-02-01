@@ -24,7 +24,7 @@ classdef ncs_wc_reader < handle
             tsdiff = diff(TimeStamps);
             obj.dt = median(tsdiff);
             min_dt = min(diff(TimeStamps));
-            if min_dt<=0, %check for corrupt TimeStamps that would violate the monotonic increase
+            if min_dt<=0 %check for corrupt TimeStamps that would violate the monotonic increase
                 warning('corrupt TimeStamps - attempting correction')
                 ind = find(tsdiff <= 0); %corrupt TimeStamps are usually too low
                 TimeStamps(ind+1) = TimeStamps(ind) + obj.dt;
@@ -35,25 +35,28 @@ classdef ncs_wc_reader < handle
                 end
             end
             
+            %remove the following if statement to keep unix time in new
+            %versions
+            if TimeStamps(1) > 1e+15 %reset time to the beggining of the file
+                TimeStamps = TimeStamps - TimeStamps(1); 
+            end
             obj.sr = 512*1e6/obj.dt;            % sampling rate (in Hz).
             time0 = TimeStamps(1); 
             
+            tmin = time0 + par.tmin*1e6; %min time to read (in micro-sec)
+            index_tinitial = find(tmin > TimeStamps);
+            if isempty(index_tinitial) == 1
+                index_tinitial = 0;
+            else
+                index_tinitial = index_tinitial(end)-1;
+            end   
             
             if strcmp(par.tmax,'all')
-                index_tinitial = 0;
                 index_tfinal = length(TimeStamps);
-                tsmax = TimeStamps(end);
-                tsmin = time0;
+                tmax = TimeStamps(end);
             else
-                tsmin = time0 + par.tmin*1e6;                   %min time to read (in micro-sec)
-                tsmax = time0 + par.tmax*1e6;                   %max time to read (in micro-sec)  
-                index_tinitial = find(tsmin > TimeStamps);
-                if isempty(index_tinitial) == 1;
-                    index_tinitial = 0;
-                else
-                    index_tinitial = index_tinitial(end)-1;
-                end    
-                index_tfinal = find(tsmax < TimeStamps);
+                tmax = time0 + par.tmax*1e6;                   %max time to read (in micro-sec)  
+                index_tfinal = find(tmax < TimeStamps);
                 if isempty(index_tfinal) ==1;
                     index_tfinal = length(TimeStamps);
                 else
@@ -64,26 +67,28 @@ classdef ncs_wc_reader < handle
 
             lts = index_tfinal - index_tinitial;
             %Segments the data in par.segments pieces
-            obj.max_segments = ceil((tsmax - tsmin)/ ...
+            obj.max_segments = ceil((tmax - tmin)/ ...
                     (par.segments_length * 1e6 * 60));         %number of segments in which data is cutted
             segmentLength = floor (lts/obj.max_segments);
 
-            tsmin = 1 : segmentLength :lts;
-            tsmin = tsmin(1:obj.max_segments);
-            tsmax = tsmin - 1;
-            tsmax = tsmax (2:end);
-            tsmax = [tsmax, lts];
-            obj.recmax = tsmax;
-            obj.recmin = tsmin;
+            tmin = 1 : segmentLength :lts;
+            tmin = tmin(1:obj.max_segments);
+            tmax = tmin - 1;
+            tmax = tmax (2:end);
+            tmax = [tmax, lts];
+            obj.recmax = tmax;
+            obj.recmin = tmin;
             obj.TimeStamps = TimeStamps;
-            scale_factor = textread(obj.raw_filename,'%s',43);
-
-            if(str2num(scale_factor{41})*1e6 > 0.5)
-                obj.num_scale_factor = 1e6 * str2num(scale_factor{43}); %for the new CSC format
-            else
-                obj.num_scale_factor = 1e6 * str2num(scale_factor{41}); %for the old CSC format
-            end
-            
+            header = textread(obj.raw_filename,'%s',50);
+			obj.num_scale_factor = 1e6 * str2num(header{find(strcmp('-ADBitVolts', header))+1});
+			%for older versions:
+            %scale_factor = textread(obj.raw_filename,'%s',43);
+			%if(str2num(scale_factor{41})*1e6 > 0.5)
+            %    obj.num_scale_factor = 1e6 * str2num(scale_factor{43}); %for the new CSC format
+            %else
+            %    obj.num_scale_factor = 1e6 * str2num(scale_factor{41}); %for the old CSC format
+            %end
+			
         end
         
         function [sr,max_segments,with_raw,with_spikes] = get_info(obj)

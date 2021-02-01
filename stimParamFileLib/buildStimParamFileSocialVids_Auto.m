@@ -67,6 +67,12 @@ end
 %% Turn that list into the appropriate file for phyzzy..
 pictureLabels = cell(size(stimList));
 
+% Variables for assigning category labels
+socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
+for lab_i = 1:length(socCatagoryArray)
+  socCatagory2Find{lab_i} = [upper(socCatagoryArray{lab_i}(1)) socCatagoryArray{lab_i}(2:end)];
+end
+
 for ii = 1:length(stimList)
   stim = stimList{ii};
   modWord = [];
@@ -90,22 +96,27 @@ for ii = 1:length(stimList)
     setInd = str2double(code(1));
     %headTurn isn't labeled correctly here.
     if contextInd < 4
-      stimLabels = firstLabelArray(setInd);
+      stimLabels = [stimLabels, firstLabelArray(setInd)];
     end
     
+    % Little labeling discrepency, where goalDirected is missing a unique
+    % ID
     if strcmp(code(1:3), '110')
       stimLabels = horzcat(stimLabels ,'goalDirected');
     end
     
-    % Make sure to not catch controls for animated stimuli
-    if (((length(stimParts) > 2) && ~strncmp(stimParts(3),'C',1)) || (length(stimParts) == 2)) && ~strcmp(stimParts{1}, 'scramble') && ~code(2) == 4
-      socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
-      stimLabels = [stimLabels, socCatagoryArray(str2num(code(3))), 'socialInteraction'];
-      
-    elseif ((length(stimParts) > 2) && strncmp(stimParts(3),'C',1))
-      stimLabels = horzcat(stimLabels ,'animControl');
+    if any(~cellfun('isempty', regexp(stimParts{1}, socCatagory2Find))) % Are any of the typical action strings in the title?
+      if strcmp(stimParts{2}(end), 'A') % Check for A, signalling animation. 
+        if length(stimParts) > 2 && (strncmp(stimParts(3),'C',1) || strncmp(stimParts(3),'P',1)) % Check if its an animated control
+          stimLabels = horzcat(stimLabels ,'animControl');
+        else
+          stimLabels = horzcat(stimLabels ,'animSocialInteraction');
+        end
+      else
+        stimLabels = [stimLabels, socCatagoryArray(str2double(code(3))), 'socialInteraction']; % socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
+      end
     end
-    
+      
     if code(2) == '4'     % Code in the name of isolated head turning paradigm stim.
       % code = sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
       codeAdd = stimParts{3};
@@ -262,9 +273,9 @@ for ii = 1:length(stimList)
     else
       pictureLabels{ii} = [stimParts{1} '_' stimParts{2}(end) modWord label];
     end
+    
   else
     % Codes for the FamiliarFace Paradigm
-    
     if ~isempty(str2num(stimParts{1}(1)))
       % Room number, preceeds empty
       stimParts{1} = ['R' stimParts{1}];

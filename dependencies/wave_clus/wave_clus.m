@@ -110,7 +110,6 @@ end
 % UIWAIT makes wave_clus wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
-
 % --- Outputs from this function are returned to the command line.
 function varargout = wave_clus_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -127,7 +126,6 @@ clus_colors = [[0.0 0.0 1.0];[1.0 0.0 0.0];[0.0 0.5 0.0];[0.620690 0.0 0.0];[0.4
 
 
 set(0,'DefaultAxesColorOrder',clus_colors)
-
 
 % --- Executes on button press in load_data_button.
 function load_data_button_Callback(hObject, eventdata, handles)
@@ -189,13 +187,23 @@ data_handler = readInData(handles.par);
 handles.par = data_handler.par;
 
 tmpParts = split(data_handler.nick_name, 'Ch');
+ChNum = tmpParts{end};
 
 handles.par.file_path = data_handler.file_path;
-handles.par.fname_in = [data_handler.file_path filesep 'tmp_data_wc' tmpParts{end}];                        % temporary filename used as input for SPC
+handles.par.fname_in = [data_handler.file_path filesep 'tmp_data_wc' ChNum];                        % temporary filename used as input for SPC
 handles.par.fname = ['data_' data_handler.nick_name];
 handles.par.nick_name = data_handler.nick_name;
-handles.par.fnamesave = [data_handler.file_path filesep handles.par.fname];                  %filename if "save clusters" button is pressed
-handles.par.fnamespc = [data_handler.file_path filesep 'data_wc' tmpParts{end}];
+handles.par.fnamesave = fullfile(data_handler.file_path, handles.par.fname);                  %filename if "save clusters" button is pressed
+handles.par.fnamespc = fullfile(data_handler.file_path, ['data_wc' ChNum]);
+
+% Not sure if this is the proper handling, but it seems like this variable
+% being populated prevents the 'spikes' variable from being saved when
+% hitting save.
+if ~isempty(data_handler.spikes_file)
+  handles.par.spikes_file = fullfile(data_handler.file_path, data_handler.spikes_file);
+else
+  handles.par.spikes_file = data_handler.spikes_file;
+end
 
 handles.par = data_handler.update_par(handles.par);
 check_WC_params(handles.par)
@@ -575,7 +583,6 @@ handles.undo = 0;
 handles.minclus = min_clus;
 plot_spikes(handles);
 
-
 % --- Executes on button press in save_clusters_button.
 function save_clusters_button_Callback(hObject, eventdata, handles, developer_mode)
 USER_DATA = get(handles.wave_clus_figure,'userdata');
@@ -615,16 +622,17 @@ cluster_class(:,1) = classes(:);
 cluster_class(:,2) = USER_DATA{3}';
 
 [fpath, ~, ~] = fileparts(handles.file_name.String);
-outfile=[fpath filesep 'times_' used_par.nick_name];
+outfile = fullfile(fpath, ['times_' used_par.nick_name]);
 
 par = struct;
 par = update_parameters(par,used_par,'relevant');
 par = update_parameters(par,used_par,'batch_plot');
 par.sorting_date = datestr(now);
+
 if isfield(par, 'threshold')
-  threshold = par.threshold; %Preserve similarity to batch file output.
+  threshold = par.threshold;  %  Preserve similarity to batch file output.
 elseif isfield(used_par, 'thr')
-  threshold = used_par.thr; %Preserve similarity to batch file output.
+  threshold = used_par.thr;   % Preserve similarity to batch file output.
 end
 gui_status = struct();
 gui_status.current_temp =  gui_classes_data(1,1);
@@ -653,6 +661,13 @@ if developer_mode
 	var_list = strcat(var_list , ' ,''rejected''');
 end
 
+if isempty(handles.par.spikes_file)
+    var_list = strcat(var_list , ' ,''spikes''');
+else
+    spikes_file = handles.par.spikes_file;
+    var_list = strcat(var_list , ' ,''spikes_file''');
+end
+
 ver = '';
 currentver = version;
 if currentver(1) >= 7
@@ -661,7 +676,7 @@ end
 try
 	eval(['save( ''' outfile ''',''' var_list '' ver ');']);
 catch
-	eval(['save( ''' outfile ''',''' var_list '' ver ',''-v7.3'');']);
+	eval(['save( ''' outfile ''',''' var_list ',''-v7.3'');']);
 end
 if exist([handles.par.fnamespc '.dg_01.lab'],'file')
     movefile([handles.par.fnamespc '.dg_01.lab'], [handles.par.fnamesave '.dg_01.lab'], 'f');
@@ -724,7 +739,7 @@ function force_unforce_button_Callback(hObject, eventdata, handles)
             classes(fix_class )= -1;
         end
         % Get fixed clusters from aux figures
-        for i=4:min(par.max_clus,33)
+        for i=4:33
             eval(['fixx = par.fix' num2str(i) ';']);
             if fixx == 1
                 fix_class = USER_DATA{22+i-3}';
@@ -763,30 +778,10 @@ function force_unforce_button_Callback(hObject, eventdata, handles)
 
         new_forced = zeros(size(forced));
         % Fixed clusters are not considered for forcing
-%         if get(handles.fix1_button,'value') ==1
-%             fix_class = USER_DATA{20}';
-%             new_forced(fix_class) =forced(fix_class);
-%         end
-%         if get(handles.fix2_button,'value') ==1
-%             fix_class = USER_DATA{21}';
-%             new_forced(fix_class) =forced(fix_class);
-%         end
-%         if get(handles.fix3_button,'value') ==1
-%             fix_class = USER_DATA{22}';
-%             new_forced(fix_class) =forced(fix_class);
-%         end
-%         % Get fixed clusters from aux figures
-%         for i=4:par.max_clus
-%             eval(['fixx = par.fix' num2str(i) ';']);
-%             if fixx == 1
-%                 fix_class = USER_DATA{22+i-3}';
-%                 new_forced(fix_class) =forced(fix_class);
-%             end
-%         end
         set(handles.fix1_button,'value',0);
         set(handles.fix2_button,'value',0);
         set(handles.fix3_button,'value',0);
-        for i=4:min(par.max_clus,33)
+        for i=4:33
             eval(['par.fix' num2str(i) '=0;']);
         end
         classes(forced(:) & (~new_forced(:)) & (~rejected(:))) = 0;  %the elements that before were forced but it isn't force any more, pass to class 0
@@ -1191,7 +1186,7 @@ if get(handles.fix3_button,'value') ==1
     classes(fix_class )= -1;
 end
 % Get fixed clusters from aux figures
-for i=4:min(par.max_clus,33)
+for i=4:33
     eval(['fixx = par.fix' num2str(i) ';']);
     if fixx == 1
         fix_class = USER_DATA{22+i-3}';
@@ -1254,7 +1249,7 @@ function unforce_button_Callback(hObject, eventdata, handles)
         new_forced(fix_class) =forced(fix_class);
     end
     % Get fixed clusters from aux figures
-    for i=4:min(par.max_clus,33)
+    for i=4:33
         eval(['fixx = par.fix' num2str(i) ';']);
         if fixx == 1
             fix_class = USER_DATA{22+i-3}';

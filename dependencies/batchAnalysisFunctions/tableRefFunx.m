@@ -29,7 +29,7 @@ unitCountStruct = struct();
 % Specifically, if a run has the same date, depth, and channel as a previous
 % recording, do not include it.
 uniqueChannels = unique(logTable.Channel);
-recordingDepth = cellfun(@str2double, logTable.putativeDistance);
+recordingDepth = logTable.putativeDistance;
 taskDateRunNum = logTable.recording;  % Repeats represent multiple channels.
 taskDate = extractBetween(taskDateRunNum,1,8);
 taskDateNum = str2num(cell2mat(taskDate));

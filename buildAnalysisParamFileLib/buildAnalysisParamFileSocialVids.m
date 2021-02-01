@@ -3,25 +3,18 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '005';
-dateSubject = '20210102Mo';
+runNum = '001';
+dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
 machine = machine(~isspace(machine));
 
 switch machine
-  case 'homeDesktopWork'
-    ephysVolume = slashSwap('H:\EphysData\Data');
-    stimulusLogVolume = ephysVolume;
-    outputVolume = 'H:/Analyzed';
-    stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
-    stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
-    neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case 'Skytech_FA'
-    ephysVolume = slashSwap('C:\EphysData\Data');
+    ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
-    outputVolume = slashSwap('E:\DataAnalysis');
+    outputVolume = slashSwap('D:\DataAnalysis');
     stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
     neuroGLMPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
@@ -153,7 +146,7 @@ ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
 ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read), 1]); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
 ephysParams.waveClus = 1;             % Does automated offline sorting using wave_clus.
-ephysParams.paramHandle = @set_parameters; %Function which produces param struct for wave_clus. in wave_clus folder.
+ephysParams.paramHandle = @set_parameters_BatchJan2020; %Function which produces param struct for wave_clus. in wave_clus folder.
 ephysParams.waveClusReclass = 1;      % Reclassify clusters (as defined by mean waveform proximity to threshold) to MUA.
 ephysParams.waveClusMUAThreshold = 1.25; %scaling for reclassification of clusters as MUA. 1 = 0 scaling = no reclassification of clusters.
 ephysParams.waveClusProjPlot = 1;     % Plots all the clusters in higher dimensional space (defined in type and number in wave_clus parameters).
@@ -421,6 +414,8 @@ neuroGLMParams.visualizeDesignMat = 1;        % Visualizes a random set of 5 tri
 %% Plotting Params
 assert(length(frEpochsCell) == length(epochLabels), 'Epoch time bins and epochLabel lengths must match')
 %%%% note: all analysisGroups cell arrays are nx1, NOT 1xn
+
+% familiarFace analysisGroups
 monkeyIDList = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes'};
 monkeyActList = {'IdleC', 'Movement', 'goalDirected', 'IdleS', 'FearGrimace', 'headTurn'};
 
@@ -431,18 +426,21 @@ for ii = 1:length(monkeyIDList)
   end
 end
 
-analysisGroups.analysisGroupPSTH.turnNoTurn = {'leftFull', 'noTurn', 'rightFull', 'headTurn'};
-analysisGroups.analysisGroupPSTH.socContext = {'socialInteraction', 'nonSocialInteraction'};
+analysisGroups.analysisGroupPSTH.familiarFace.Identity = monkeyIDList;
+analysisGroups.analysisGroupPSTH.familiarFace.Action = monkeyActList;
+analysisGroups.analysisGroupPSTH.familiarFace.stimuli = monkey_act_List;
+analysisGroups.analysisGroupPSTH.familiarFace.Familair = {'familiar', 'unFamiliar'};
 
-analysisGroups.analysisGroupPSTH.Identity = monkeyIDList;
-analysisGroups.analysisGroupPSTH.FamiliarFace_stimuli = monkey_act_List;
-analysisGroups.analysisGroupPSTH.Familair = {'familiar', 'unFamiliar'};
-
-analysisGroups.analysisGroupPSTH.headTurnCon_stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
+% headTurnCon analysisGroups
+analysisGroups.analysisGroupPSTH.headTurnCon.stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
     'idle1_Turn', 'idle1_noTurn', 'idle2_Turn', 'idle2_noTurn', 'mating1_Turn', 'mating1_noTurn', 'mating2_Turn', 'mating2_noTurn', 'objects1_noTurn', 'goalDirected1_Turn', 'goalDirected1_noTurn', 'goalDirected2_Turn'...                      }
     'goalDirected2_noTurn', 'objects2_noTurn', 'scene1_noTurn', 'scene2_noTurn'};
+analysisGroups.analysisGroupPSTH.headTurnCon.socContext = {'socialInteraction', 'nonSocialInteraction'};
+analysisGroups.analysisGroupPSTH.headTurnCon.turnNoTurn = {'noTurn', 'headTurn'};
 
-analysisGroups.analysisGroupPSTH.headTurnIso_stimuli = {'idle_core_frontCam_Dots_Early', 'idle_core_frontCam_Dots_Late', 'idle_core_frontCam_LowRes_Early', 'idle_core_frontCam_LowRes_Late', 'idle_core_frontCam_Normal_Early', 'idle_core_frontCam_Normal_Late',...          }
+% headTurnIso analysisGroups
+analysisGroups.analysisGroupPSTH.headTurnIso.turnNoTurn = {'leftFull', 'noTurn', 'rightFull', 'headTurn'};
+analysisGroups.analysisGroupPSTH.headTurnIso.stimuli = {'idle_core_frontCam_Dots_Early', 'idle_core_frontCam_Dots_Late', 'idle_core_frontCam_LowRes_Early', 'idle_core_frontCam_LowRes_Late', 'idle_core_frontCam_Normal_Early', 'idle_core_frontCam_Normal_Late',...          }
         'idle_core_leftCam_Dots_Early', 'idle_core_leftCam_Dots_Late', 'idle_core_leftCam_LowRes_Early', 'idle_core_leftCam_LowRes_Late', 'idle_core_leftCam_Normal_Early', 'idle_core_leftCam_Normal_Late'...
         'idle_core_rightCam_Dots_Early', 'idle_core_rightCam_Dots_Late', 'idle_core_rightCam_LowRes_Early', 'idle_core_rightCam_LowRes_Late', 'idle_core_rightCam_Normal_Early', 'idle_core_rightCam_Normal_Late'...       
         'idle_leftFull_frontCam_Dots_Early', 'idle_leftFull_frontCam_Dots_Late', 'idle_leftFull_frontCam_LowRes_Early', 'idle_leftFull_frontCam_LowRes_Late', 'idle_leftFull_frontCam_Normal_Early'...
@@ -454,8 +452,8 @@ analysisGroups.analysisGroupPSTH.headTurnIso_stimuli = {'idle_core_frontCam_Dots
         'idle_rightFull_rightCam_Dots_Early', 'idle_rightFull_rightCam_Dots_Late', 'idle_rightFull_rightCam_LowRes_Early', 'idle_rightFull_rightCam_LowRes_Late', 'idle_rightFull_rightCam_Normal_Early'...
         'idle_rightFull_rightCam_Normal_Late', 'bioMotion_leftFull_frontCam_Normal_Early', 'bioMotion_leftFull_frontCam_Normal_Late', 'bioMotion_leftFull_leftCam_Normal_Early'...
         'bioMotion_leftFull_leftCam_Normal_Late', 'bioMotion_leftFull_rightCam_Normal_Early', 'bioMotion_leftFull_rightCam_Normal_Late'};
-analysisGroups.analysisGroupPSTH.headTurnIso_turnSubj = {'turnToward', 'turnAway'};
-analysisGroups.analysisGroupPSTH.headTurnIso_mesh = {'fullModel_headTurn', 'fullModel_noTurn', 'smoothModel_headTurn', 'smoothModel_noTurn', 'dotModel_headTurn', 'dotModel_noTurn'};
+analysisGroups.analysisGroupPSTH.headTurnIso.turnSubj = {'turnToward', 'turnAway'};
+analysisGroups.analysisGroupPSTH.headTurnIso.mesh = {'fullModel_headTurn', 'fullModel_noTurn', 'smoothModel_headTurn', 'smoothModel_noTurn', 'dotModel_headTurn', 'dotModel_noTurn'};
   
 %Defined for Groups of 2, A-B/A+B type index.
 analysisGroups.selectivityIndex.groups = {{'socialInteraction';'nonInteraction'},{'socialInteraction';'agents'}};

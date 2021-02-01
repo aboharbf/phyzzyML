@@ -84,8 +84,13 @@ if isfield(params, 'waveClus') && params.waveClus
         Do_clustering(fullfile(previousFile.folder, previousFile.name), 'make_plots', true, 'make_times', false);
       end
     else
-      %Find spikes
-      output_paths = Get_spikes(parsedData(spike_ch_i));
+      %Find spikes - sometimes Do_clustering fails and spike file exists.
+      spikeFileName = dir(fullfile(parsedDir, sprintf('*Ch%d_spikes.mat', chNum)));
+      if isempty(spikeFileName)
+        output_paths = Get_spikes(parsedData(spike_ch_i));
+      else
+        output_paths = fullfile(spikeFileName.folder, spikeFileName.name);
+      end
       
       %Cluster them, based on either a specified param file or the default.
       if isfield(params, 'paramHandle')
@@ -93,27 +98,47 @@ if isfield(params, 'waveClus') && params.waveClus
       else
         clusterResults(spike_ch_i) = Do_clustering(output_paths);
       end
+      
+      % If clustering fails, deliver the _spikes file.
+      if isempty(clusterResults{spike_ch_i})
+        clusterResults{spike_ch_i} = output_paths;
+        
+      end      
     end
   end
   
   %Cycle through cluster results (done per electrode) and load them into
   %a temporary NEV structure.
   [tmpSpikes.TimeStamp, tmpSpikes.Electrode, tmpSpikes.Unit, tmpSpikes.Waveform] = deal([]);
+  electrodeString = extract(clusterResults, digitsPattern);
+  if size(electrodeString,2) == 1
+    electrodes = str2double(electrodeString(end));
+  else
+    electrodes = str2double(electrodeString(:,end));
+  end
   for ii=1:length(clusterResults)
-    if ~isempty(clusterResults{ii})
+    
+    
+    if ~isempty(strfind(clusterResults{ii}, 'times_'))
       WC = load(clusterResults{ii}); %Electrode should actually parse the name of the file.
       tmpSpikes.Unit = vertcat(tmpSpikes.Unit, WC.cluster_class(:,1));
       tmpSpikes.TimeStamp = vertcat(tmpSpikes.TimeStamp, WC.cluster_class(:,2));
       tmpSpikes.Waveform = vertcat(tmpSpikes.Waveform, WC.spikes);
-      electrodeTmp = split(clusterResults{ii},'Ch');
-      electrodes(ii) = str2double(electrodeTmp{2}(1:end-4));
       tmpSpikes.Electrode = vertcat(tmpSpikes.Electrode, ones(length(WC.cluster_class), 1)*electrodes(ii));
-      try
+      if isfield(WC, 'threshold')
         tmpSpikes.Threshold(ii) = WC.threshold;
-      catch
+      else
         warning('threshold in wrong spot');
         tmpSpikes.Threshold(ii) = WC.par.threshold(end);
       end
+    elseif ~isempty(strfind(clusterResults{ii}, '_spikes.mat'))
+      spikeInfo = load(clusterResults{ii}); %Electrode should actually parse the name of the file.
+      spikeCount = size(spikeInfo.spikes, 1);
+      tmpSpikes.Unit = vertcat(tmpSpikes.Unit, zeros(spikeCount, 1));
+      tmpSpikes.TimeStamp = vertcat(tmpSpikes.TimeStamp, spikeInfo.index');
+      tmpSpikes.Waveform = vertcat(tmpSpikes.Waveform, spikeInfo.spikes);
+      tmpSpikes.Electrode = vertcat(tmpSpikes.Electrode, ones(spikeCount, 1)*electrodes(ii));
+      tmpSpikes.Threshold(ii) = spikeInfo.par.threshold;
     end
   end
   
@@ -213,30 +238,43 @@ if isfield(params, 'waveClus') && params.waveClus
   end
 end
 
+% Load the output structure spikesByChannel
 for channel_i = 1:length(params.spikeChannels)
-  %change units from sample index to ms; type from int32 to double
+  % change units from sample index to ms; type from int32 to double
   tmp.times = params.cPtCal*double(NEV.Data.Spikes.TimeStamp(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i)));
   if ~isempty(tmp.times)
+    % Load units, waveforms.
     tmp.units = NEV.Data.Spikes.Unit(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i));
     tmp.waveforms = NEV.Data.Spikes.Waveform(NEV.Data.Spikes.Electrode == params.spikeChannels(channel_i),:);
+    
+    
     if min(tmp.units) > 0 && isempty(params.unitsToUnsort{channel_i})
       unitNamesTmp = unitNames(2:length(unique(tmp.units))+1);
     else
       unitNamesTmp = unitNames(1:length(unique(tmp.units)));
     end
+    
+    % Discard units labeled for discarding in param file.
+    assert(~ismember(0,params.unitsToUnsort{channel_i}),'0 cannot appear in params.unitsToUnsort: cannot unsort unsorted');
     for discard_i = 1:length(params.unitsToDiscard{channel_i})
       tmp.times = tmp.times(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
       tmp.waveforms = tmp.waveforms(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
       tmp.units = tmp.units(tmp.units ~= params.unitsToDiscard{channel_i}(discard_i));
     end
-    assert(~ismember(0,params.unitsToUnsort{channel_i}),'0 cannot appear in params.unitsToUnsort: cannot unsort unsorted');
+    
+    % Unsorted units labeled for unsorting in param file.
     for unsort_i = 1:length(params.unitsToUnsort{channel_i})
       tmp.units(tmp.units == params.unitsToUnsort{channel_i}(unsort_i)) = 0;
     end
+    
+    % Load processed tmp into larger spikesByChannel.
     spikesByChannel(channel_i) = tmp;
+    
+    % Assign channelUnitNames
     if ~isempty(tmp.units)
-      channelUnitNames{channel_i} = [unitNamesTmp(setdiff(0:(length(unitNamesTmp)-1),union(params.unitsToUnsort{channel_i},params.unitsToDiscard{channel_i}))+1),{'MUA'}];
+      channelUnitNames{channel_i} = [unitNamesTmp(setdiff(0:(length(unitNamesTmp)-1), union(params.unitsToUnsort{channel_i}, params.unitsToDiscard{channel_i}))+1), {'MUA'}];
     end
+    
     Output.VERBOSE(channelUnitNames{channel_i});
   end
 end

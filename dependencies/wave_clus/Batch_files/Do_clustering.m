@@ -10,13 +10,14 @@ function output_files = Do_clustering(input, varargin)
 % results (cluster_class).
 %
 %input must be:
-%               A .txt file with the names of the _spikes files to use.
-%               A matlab cell with the names of the _spikesfiles to use.
-%               A vector with channel numbers. In this case the function will proccess all the
-%                   '_spikes.mat' files located in the folder with those
-%                   channel numbers (e.g., CSC1_spikes.mat or NSX4_spikes.mat)
+%               A .txt file with the names of the '*_spikes.mat' files to use.
+%               A matlab cell with the names of the '*_spikes.mat' files to use.
+%               A vector with channel numbers. In this case the function 
+%                   will proccess all the '*_spikes.mat' files located in 
+%                   the folder with those channel numbers (e.g., CSC1_spikes.mat or NSX4_spikes.mat)
 %               'all', in this case the functions will process all the
-%                   '_spikes.mat' files in the folder.
+%                   '*_spikes.mat' files in the folder.
+%               A string with a filename ended in '_spikes.mat'
 % optional argument 'par' and the next input must be a struct with some of
 %       the SPC parameters (the detection parameters are taken from the
 %       XXX_spikes file or the set_parameters file. All the parameters included
@@ -25,6 +26,10 @@ function output_files = Do_clustering(input, varargin)
 % optional argument 'make_times': true for computing the sorting from the XXX_spikes files.
 % optional argument 'make_plots': true for plotting the results based on the save XXX_times files.
 % optional argument 'resolution': resolution string used by the plots (default: '-r150').
+% optional argument 'save_spikes': false for disable saving all the spikes
+% waveforms on the times* file.
+% See also
+% Get_spikes
 
 
 % Example
@@ -50,7 +55,7 @@ parallel = false;
 make_times = true;
 make_plots = true;
 resolution = '-r150';
-
+save_spikes = true;
 %search for optional inputs
 nvar = length(varargin);
 for v = 1:nvar
@@ -84,9 +89,14 @@ for v = 1:nvar
         if (nvar>=v+1) && ischar(varargin{v+1})
             resolution = varargin{v+1};
         else
-            error('Error in ''make_plots'' optional input.')
+            error('Error in ''resolution'' optional input.')
         end
-
+    elseif strcmp(varargin{v},'save_spikes')
+        if (nvar>=v+1) && islogical(varargin{v+1})
+            save_spikes = varargin{v+1};
+        else
+            error('Error in ''save_spikes'' optional input.')
+        end
 
     end
 end
@@ -484,7 +494,7 @@ toc
 
 end
 
-function output_file = do_clustering_single_Orig(filename,min_spikes4SPC, par_file, par_input,fnum)
+function output_file = do_clustering_single(filename,min_spikes4SPC, par_file, par_input,fnum,save_spikes)
 
 par = struct;
 par = update_parameters(par, par_file, 'clus');
@@ -641,6 +651,32 @@ catch
   end
 end
 
+current_par = par;
+par = struct;
+par = update_parameters(par, current_par, 'relevant');
+par = update_parameters(par,current_par,'batch_plot');
+
+par.sorting_date = datestr(now);
+cluster_class = zeros(nspk,2);
+cluster_class(:,2)= index';
+cluster_class(:,1)= classes';
+
+vars = {'cluster_class', 'par','inspk','forced','Temp','gui_status'};
+if exist('ipermut','var')
+  vars{end+1} = 'ipermut';
+end
+if save_spikes
+  vars{end+1} = 'spikes';
+else
+  spikes_file = filename;
+  vars{end+1} = 'spikes_file';
+end
+
+try
+  save(fullfile(data_handler.file_path, ['times_' data_handler.nick_name]), vars{:});
+catch
+  save(fullfile(data_handler.file_path, ['times_' data_handler.nick_name]), vars{:}, '-v7.3');
+end
 
 end
 

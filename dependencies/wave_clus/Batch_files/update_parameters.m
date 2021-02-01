@@ -1,5 +1,5 @@
 
-function new_par = update_parameters(new_par, par, type,NaN_fill)
+function new_par = update_parameters(new_par, par, type, NaN_fill)
 % This function overwrite or create fields from par in new_par. The fields
 %   used will be only the ones with type 'type' present in 'par'.
 % new_par a struct() could be empty.
@@ -20,7 +20,7 @@ detection_params = {'channels','segments_length', 'sr','tmax','tmin','w_pre', ..
 clus_params = {'min_inputs','max_inputs','scales','features','template_sdnum', 'template_k', ...
     'template_k_min','template_type','force_feature','match','threshold' ...
     'max_spk','permut','mintemp', 'maxtemp', 'tempstep','SWCycles',...
-    'KNearNeighb', 'min_clus','max_clus','randomseed','force_auto','sorting_date','elbow_min','c_ov'};
+    'KNearNeighb', 'min_clus','randomseed','force_auto','sorting_date','elbow_min','c_ov'};
 
 batch_ploting_params = {'temp_plot','max_spikes_plot','print2file','plot_feature_stats'};
 
@@ -28,7 +28,7 @@ batch_ploting_params = {'temp_plot','max_spikes_plot','print2file','plot_feature
 new_par_names = fieldnames(new_par);
 load_par_names = fieldnames(par);
 if strcmp(type,'detect') || strcmp(type,'relevant')
-    for i= 1:length(detection_params)
+    for i = 1:length(detection_params)
         if ismember(detection_params(i),load_par_names)
             field = char(detection_params(i));
             new_par.(field ) = par.(field );

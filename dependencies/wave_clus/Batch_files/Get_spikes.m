@@ -15,7 +15,7 @@ function output_files = Get_spikes(input, varargin)
 %               'all', in this case the functions will process all the
 %                   supported files in the folder (except .mat files).
 % optional argument 'par' and the next input must be a struct with some of
-%       the detecction parameters. All the parameters included in the structure 
+%       the detection parameters. All the parameters included in the structure 
 %       par will overwrite the parameters loaded from set_parameters()
 % optional argument 'parallel' : true for use parallel computing
 %
@@ -167,6 +167,7 @@ function output_path = get_spikes_single(filename, par_input)
     par = update_parameters(par,par_input,'detect');
     data_handler.par = par;
     threshold = [];
+    
     if data_handler.with_spikes            %data have some type of _spikes files
         [spikes, index] = data_handler.load_spikes(); 
         if ~data_handler.with_wc_spikes

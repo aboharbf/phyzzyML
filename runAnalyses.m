@@ -29,7 +29,7 @@ eventLabels = eventLabelsTmp; % conclusion of hack
 
 figStruct.channelUnitNames = channelUnitNames;
 figStruct.figDir = outDir;
-figStruct.figTag = sprintf('%s,Run%s',dateSubject,runNum);
+figStruct.figTag = sprintf('%s,Run%s', dateSubject, runNum);
 
 channelNames = ephysParams.channelNames;
 spikeChannels = ephysParams.spikeChannels;
@@ -430,17 +430,26 @@ end
 
 if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth
   % Identify which PSTHes to stack.
-  analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
+%   analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
+  analysisPSTHStruct = analysisGroups.analysisGroupPSTH.(taskData.paradigm);
+  analysisPSTH = fields(analysisPSTHStruct);
   categoryListPlot = strrep(categoryList, '_', ' ');
   
   for ii = 1:length(analysisPSTH)
     analysisGroupLogic = false(length(categoryList), 1);
-    categoryListSet = analysisGroups.analysisGroupPSTH.(analysisPSTH{ii});
+    categoryListSet = analysisPSTHStruct.(analysisPSTH{ii});
     for jj = 1:length(categoryListSet)
       analysisGroupLogic  = analysisGroupLogic | strcmp(categoryList, categoryListSet(jj))';
     end
     
     if any(analysisGroupLogic)
+      
+      if sum(analysisGroupLogic) > 10
+        psthType = 'color';
+      else
+        psthType = 'line';
+      end
+      
       
       for channel_i = 1:length(channelNames)
         for unit_i = 1:length(channelUnitNames{channel_i})
@@ -450,12 +459,14 @@ if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth
           
           psthTitle = sprintf('Analysis Group %s PSTH %s, %s', analysisPSTH{ii}, channelNames{channel_i}, channelUnitNames{channel_i}{unit_i});
           figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
-          plotPSTH(psthByCategory{channel_i}{unit_i}(analysisGroupLogic,:), [],  [], psthParams, 'color', psthTitle, categoryListPlot(analysisGroupLogic));
+
+          plotPSTH(psthByCategory{channel_i}{unit_i}(analysisGroupLogic,:), psthErrByCategory{channel_i}{unit_i}(analysisGroupLogic,:),  [], psthParams, psthType, psthTitle, categoryListPlot(analysisGroupLogic));
+
           clear figData
           title(psthTitle);
           figData.z = psthByCategory{channel_i}{unit_i};
           figData.x = -psthPre:psthImDur+psthPost;
-          saveFigure(outDir, sprintf('catPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag);
+          saveFigure(outDir, sprintf('analysisGroupPSTH_%s_%s_%s_Run%s', analysisPSTH{ii}, channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag);
         end
       end
     end

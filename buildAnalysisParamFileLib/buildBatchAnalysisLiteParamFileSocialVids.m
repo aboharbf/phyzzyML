@@ -1,4 +1,4 @@
-function [batchAnalysisParamFilename] = buildBatchAnalysisParamFileSocialVids( varargin )
+function [batchAnalysisParamFilename] = buildBatchAnalysisLiteParamFileSocialVids( varargin )
 % Generate a file which specifies the parameters for batch analysis. 
 
 [~, machine] = system('hostname');
@@ -6,7 +6,7 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    analysisDirectory = slashSwap('D:\DataAnalysis_Old');
+    analysisDirectory = slashSwap('D:\DataAnalysis');
     outputDir = [analysisDirectory '/batchAnalysis'];
     stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
@@ -14,7 +14,7 @@ switch machine
     batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
     eventDataPath = fullfile(stimDir, 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
-    recordingLogxls = 'D:\EphysData\Data\RecordingsMoUpdated.xlsx';
+    recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
     NDTPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
     NDTAnalysesPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
   case 'homeDesktopWork'
@@ -53,7 +53,22 @@ plotSwitch.slidingWindowANOVA = 0;    %
 plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 
 %% Parameters
+spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
 
+preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList'}; %Variables extracted from preprocessedData.mat
+analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', ...
+                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'spikesByCategoryBinned', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
+AnalysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
+
+
+spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
+spikePathLoadParams.batchAnalysisOutput = fullfile(outputDir, spikePathLoadParams.spikePathFileName);
+spikePathLoadParams.files = {'preprocessedData.mat', 'analyzedData.mat', 'AnalysisParams.mat'};
+spikePathLoadParams.fileVars = [preprocessedDataVars, analyzedDataVars, AnalysisParamVars];
+spikePathLoadParams.fileInds = [ones(size(preprocessedDataVars)), ones(size(analyzedDataVars)) * 2, ones(size(AnalysisParamVars)) * 3];
+clear preprocessedDataVars preprocessedDataVars AnalysisParamVars
+
+stimStructParams.spikePathLoadParams = spikePathLoadParams;
 stimStructParams.outDir = outputDir;
 stimStructParams.figStruct = figStruct;
 stimStructParams.eventDataPath = eventDataPath;
@@ -64,13 +79,7 @@ stimStructParams.xyEventparams.plotTitle = 'Events Per Stimulus Count, Sorted by
 stimStructParams.xyEventparams.XLabel = 'Event Name';
 stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
-preprocessParams.spikeDataFileName = 'spikePathBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
-%3 variables below are not used, as defining the variables in a load
-%command w/ a cell array (or other structures) doesn't work.
-preprocessParams.preprocessedVars = {'spikesByEvent', 'spikesByCategoryBinned', 'categoryList', 'eventIDs','eventCategories','preAlign','postAlign'}; %Variables extracted from preprocessedData.mat
-preprocessParams.analyzedVars = {'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','attendedObjData'}; %Variables extracted from analyzedData.mat
-preprocessParams.analysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
-
+meanPSTHParams.spikePathLoadParams = spikePathLoadParams;
 meanPSTHParams.runInclude = 30;                                     % 0 = everything, N = Nth first runs of the stimulus.
 meanPSTHParams.stimInclude = 2;                                     % 0 = everything, 1 = Only Animations, 2 = Exclude Animations. 
 cellCountParams.excludePhase2 = 0;                                  % a switch which can be used to remove data from the same neuron collected in subsequent runs. Good for getting accurate counts.
@@ -84,12 +93,12 @@ meanPSTHParams.eventData = eventDataPath;
 meanPSTHParams.frameMotionDataPath = frameMotionDataPath;
 meanPSTHParams.plotHist = 0;
 meanPSTHParams.rateThreshold = 0;               % Include only activity with a mean rate of X Hz. 0 for off, over 0 for threshold.
+meanPSTHParams.normalize = 0;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 
 meanPSTHParams.plotTopStim = 0;                 % Only plot stimuli which have been present on at least a certain number of runs.
 meanPSTHParams.topStimPresThreshold = 5;        % At least this many stim presentations to be plotted when plotTopStim is on.
 
 meanPSTHParams.broadLabel = 0;                  % Transitions individual stimuli to broad catagory (e.g. chasing).
-meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 meanPSTHParams.maxStimOnly = 1;                 % The max value and max index taken from the PSTH is only in the area of the stimulus presentation.
 meanPSTHParams.plotLabels = {'chasing','fighting','mounting','grooming','following',...
   'objects','goalDirected','idle','scramble','scene','socialInteraction','animControl','animSocialInteraction','agents','headTurn','allTurn', 'headTurnClassic'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
@@ -116,6 +125,49 @@ load(meanPSTHParams.psthColormapFilename);
 meanPSTHParams.colormap = map;
 meanPSTHParams.tmpFileName = 'tmpStructPrcSigChange.mat';
 
+% Natural video analysisGroups
+meanPSTHParams.analysisGroups.NaturalSocial.socVNonSoc = {'socialInteraction', 'nonSocialInteraction'};
+
+% familiarFace analysisGroups
+monkeyIDList = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes'};
+monkeyActList = {'IdleC', 'Movement', 'goalDirected', 'IdleS', 'FearGrimace', 'headTurn'};
+
+monkey_act_List = [];
+for ii = 1:length(monkeyIDList)
+  for jj = 1:length(monkeyActList)
+    monkey_act_List = [monkey_act_List; {[monkeyIDList{ii} '_' monkeyActList{jj}]}];
+  end
+end
+
+meanPSTHParams.analysisGroups.FamilairFace.Identity = monkeyIDList;
+meanPSTHParams.analysisGroups.FamilairFace.Action = monkeyActList;
+meanPSTHParams.analysisGroups.FamilairFace.stimuli = monkey_act_List;
+meanPSTHParams.analysisGroups.FamilairFace.Familair = {'familiar', 'unFamiliar'};
+
+% headTurnCon meanPSTHParams.analysisGroups
+meanPSTHParams.analysisGroups.headTurnCon.stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
+    'idle1_Turn', 'idle1_noTurn', 'idle2_Turn', 'idle2_noTurn', 'mating1_Turn', 'mating1_noTurn', 'mating2_Turn', 'mating2_noTurn', 'objects1_noTurn', 'goalDirected1_Turn', 'goalDirected1_noTurn', 'goalDirected2_Turn'...                      }
+    'goalDirected2_noTurn', 'objects2_noTurn', 'scene1_noTurn', 'scene2_noTurn'};
+meanPSTHParams.analysisGroups.headTurnCon.socContext = {'socialInteraction', 'nonSocialInteraction'};
+meanPSTHParams.analysisGroups.headTurnCon.turnNoTurn = {'noTurn', 'headTurn'};
+
+% headTurnIso analysisGroups
+meanPSTHParams.analysisGroups.headTurnIso.turnNoTurn = {'leftFull', 'noTurn', 'rightFull', 'headTurn'};
+meanPSTHParams.analysisGroups.headTurnIso.stimuli = {'idle_core_frontCam_Dots_Early', 'idle_core_frontCam_Dots_Late', 'idle_core_frontCam_LowRes_Early', 'idle_core_frontCam_LowRes_Late', 'idle_core_frontCam_Normal_Early', 'idle_core_frontCam_Normal_Late',...          }
+        'idle_core_leftCam_Dots_Early', 'idle_core_leftCam_Dots_Late', 'idle_core_leftCam_LowRes_Early', 'idle_core_leftCam_LowRes_Late', 'idle_core_leftCam_Normal_Early', 'idle_core_leftCam_Normal_Late'...
+        'idle_core_rightCam_Dots_Early', 'idle_core_rightCam_Dots_Late', 'idle_core_rightCam_LowRes_Early', 'idle_core_rightCam_LowRes_Late', 'idle_core_rightCam_Normal_Early', 'idle_core_rightCam_Normal_Late'...       
+        'idle_leftFull_frontCam_Dots_Early', 'idle_leftFull_frontCam_Dots_Late', 'idle_leftFull_frontCam_LowRes_Early', 'idle_leftFull_frontCam_LowRes_Late', 'idle_leftFull_frontCam_Normal_Early'...
+        'idle_leftFull_frontCam_Normal_Late', 'idle_leftFull_leftCam_Dots_Early', 'idle_leftFull_leftCam_Dots_Late', 'idle_leftFull_leftCam_LowRes_Early', 'idle_leftFull_leftCam_LowRes_Late'...
+        'idle_leftFull_leftCam_Normal_Early', 'idle_leftFull_leftCam_Normal_Late', 'idle_leftFull_rightCam_Dots_Early', 'idle_leftFull_rightCam_Dots_Late', 'idle_leftFull_rightCam_LowRes_Early'...
+        'idle_leftFull_rightCam_LowRes_Late', 'idle_leftFull_rightCam_Normal_Early', 'idle_leftFull_rightCam_Normal_Late', 'idle_rightFull_frontCam_Dots_Early', 'idle_rightFull_frontCam_Dots_Late'...
+        'idle_rightFull_frontCam_LowRes_Early', 'idle_rightFull_frontCam_LowRes_Late', 'idle_rightFull_frontCam_Normal_Early', 'idle_rightFull_frontCam_Normal_Late', 'idle_rightFull_leftCam_Dots_Early'...
+        'idle_rightFull_leftCam_Dots_Late', 'idle_rightFull_leftCam_LowRes_Early', 'idle_rightFull_leftCam_LowRes_Late', 'idle_rightFull_leftCam_Normal_Early', 'idle_rightFull_leftCam_Normal_Late'...
+        'idle_rightFull_rightCam_Dots_Early', 'idle_rightFull_rightCam_Dots_Late', 'idle_rightFull_rightCam_LowRes_Early', 'idle_rightFull_rightCam_LowRes_Late', 'idle_rightFull_rightCam_Normal_Early'...
+        'idle_rightFull_rightCam_Normal_Late', 'bioMotion_leftFull_frontCam_Normal_Early', 'bioMotion_leftFull_frontCam_Normal_Late', 'bioMotion_leftFull_leftCam_Normal_Early'...
+        'bioMotion_leftFull_leftCam_Normal_Late', 'bioMotion_leftFull_rightCam_Normal_Early', 'bioMotion_leftFull_rightCam_Normal_Late'};
+meanPSTHParams.analysisGroups.headTurnIso.turnSubj = {'turnToward', 'turnAway'};
+meanPSTHParams.analysisGroups.headTurnIso.mesh = {'fullModel_headTurn', 'fullModel_noTurn', 'smoothModel_headTurn', 'smoothModel_noTurn', 'dotModel_headTurn', 'dotModel_noTurn'};
+
 meanPSTHParams.removeRewardEpoch = 1;           % Removes the reward period activity when generating plots.
 meanPSTHParams.firstXRuns = 0;                  % Removes any runs above this number. 0 = Don't remove any.
 meanPSTHParams.removeFollowing = 1;             % Remove traces related to following due to the ambigious nature of these interactions.
@@ -126,8 +178,9 @@ meanPSTHParams.addSubEventBars = 0;             % for plot 5.0, add bars underne
 
 meanPSTHParams.allStimPSTH = 0;                 % 1.0 - All Stimuli means in the same plot.
 meanPSTHParams.catPSTH = 0;                     % 2.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
-meanPSTHParams.allRunStimPSTH = 0;              % 3.0 - Stimuli Plot - 'All chasing0001 PSTHs, sorted by...'
-meanPSTHParams.lineCatPlot = 0;                 % 4.0 - Line plot with Line per Catagory.
+meanPSTHParams.analysisGroupPSTH = 1;           % 3.0
+meanPSTHParams.allRunStimPSTH = 1;              % 3.0 - Stimuli Plot - 'All chasing0001 PSTHs, sorted by...'
+meanPSTHParams.lineCatPlot = 1;                 % 4.0 - Line plot with Line per Catagory.
 meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
 meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
 
@@ -138,6 +191,7 @@ meanPSTHParams.plotSizeAllRunStimPSTH = [1 1];
 meanPSTHParams.plotSizeLineCatPlot = [.6 .7];           
 meanPSTHParams.plotSizeLineBroadCatPlot = [.6 .7];           
 
+subEventPSTHParams.spikePathLoadParams = spikePathLoadParams;
 subEventPSTHParams.outputDir = fullfile(outputDir,'subEventPSTH');
 subEventPSTHParams.eventData = eventDataPath;
 subEventPSTHParams.stimParamsFilename = stimParamsFilename;
@@ -185,7 +239,7 @@ slidingTestParams.Omega = 1;       %switch to convert ANOVA curves to Omega curv
 slidingTestParams.target = {'socialInteraction','agents','interaction'};  %Labels which must exist in the stimParamFile associated with the runs. 
 slidingTestParams.stimParamFile = stimParamsFilename;
 slidingTestParams.outputDir = fullfile(outputDir,'slidingTest');
-slidingTestParams.spikeDataFileName = preprocessParams.spikeDataFileName;
+slidingTestParams.spikeDataFileName = spikePathLoadParams.spikePathFileName;
 slidingTestParams.exportFig = figStruct.exportFig;
 slidingTestParams.plotSize = [.8 .6];        
 

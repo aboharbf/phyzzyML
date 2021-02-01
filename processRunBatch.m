@@ -15,8 +15,8 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    outputVolumeBatch = 'E:\DataAnalysis';                                            % The output folder for analyses performed.
-    dataLog = 'C:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
+    outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
+    dataLog = 'D:\EphysData\Data\analysisParamTable_2020.xlsx';                            % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
   case 'homeDesktopWork'
@@ -30,7 +30,7 @@ end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
 usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
-runParallel = 0;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
+runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
 %% Load Appropriate variables and paths
@@ -67,11 +67,11 @@ if ~replaceAnalysisOut
       
       % Look through paramTable (if available) and replace variables
       % Load variables from paramTable, if the row is present.
-      if any(strcmp(paramTable.Properties.RowNames, {[dateSubject runNum]}))
+      if exist('paramTable', 'var') && any(strcmp(paramTable.Properties.RowNames, {[dateSubject runNum]}))
         paramTableRow = paramTable([dateSubject runNum], :);
         paramTableVars = paramTable.Properties.VariableNames;
         for param_i = 1:width(paramTableRow)
-          if isa(paramTableRow.(paramTableVars{param_i}), 'double')
+          if isa(paramTableRow.(paramTableVars{param_i}), 'double') && ~isnan(paramTableRow.(paramTableVars{param_i}))
             eval(sprintf('%s = %d;', paramTableVars{param_i}, paramTableRow.(paramTableVars{param_i})))
           elseif isa(paramTableRow.(paramTableVars{param_i}), 'cell')
             eval(sprintf('%s = %s;', paramTableVars{param_i}, paramTableRow.(paramTableVars{param_i}){1}))
@@ -88,7 +88,7 @@ if ~replaceAnalysisOut
       
       % If Channels have been changed, redefine all the relevant channel
       % names
-      if any(strcmp(paramTableVars, 'channels2Read'))
+      if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'channels2Read'))
         ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
         ephysParams.lfpChannels = channels2Read;
         ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);

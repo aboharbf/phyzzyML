@@ -482,6 +482,19 @@ end
 
 % Update: Will be instead performed as catagories.
 
+%% Jan 2021 - Add paradigm tag, based on stimuli present
+
+if any(contains(translationTable, 'headTurnCon'))
+  taskData.paradigm = 'headTurnCon';
+elseif any(contains(translationTable, 'headTurnIso'))
+  taskData.paradigm = 'headTurnIso';
+elseif any(contains(translationTable, 'monkey'))
+  taskData.paradigm = 'naturalStim';
+elseif any(contains(translationTable, 'Barney'))
+  taskData.paradigm = 'familiarFace';
+end
+
+
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.

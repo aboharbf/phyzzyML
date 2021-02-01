@@ -108,6 +108,7 @@ if isfield(taskData, 'eventData')
 end
 
 % Per trial values, which need to be changed
+taskDataValid.paradigm = taskData.paradigm;
 taskDataValid.taskEventIDs = taskData.taskEventIDs(trialValid);
 taskDataValid.stimFramesLost = taskData.stimFramesLost(trialValid);
 taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);

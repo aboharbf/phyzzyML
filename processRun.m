@@ -292,8 +292,8 @@ if ~usePreprocessed
   spikeAlignParamsToCoverMovingWin.preAlign = lfpAlignParams.msPreAlign; % need to include spikes throughout the window chronux will use to calculate spectra
   spikeAlignParamsToCoverMovingWin.postAlign = lfpAlignParams.msPostAlign;
   spikeAlignParamsToCoverMovingWin.refOffset = 0;
-  [spikesByEvent, psthEmptyByEvent] = alignSpikes( spikesByChannel, onsetsByEvent, spikeChannels, spikeAlignParamsToCoverMovingWin);
-  [spikesByCategory, psthEmptyByCategory] = alignSpikes( spikesByChannel, onsetsByCategory, spikeChannels, spikeAlignParamsToCoverMovingWin);
+  [spikesByEvent, psthEmptyByEvent] = alignSpikes(spikesByChannel, onsetsByEvent, spikeChannels, spikeAlignParamsToCoverMovingWin);
+  [spikesByCategory, psthEmptyByCategory] = alignSpikes(spikesByChannel, onsetsByCategory, spikeChannels, spikeAlignParamsToCoverMovingWin);
   
   % align spikes again, but this time reference time to lfp sample number (required for chronux TF, even spike-spike)
   spikeAlignParamsTF.preAlign = lfpAlignParams.msPreAlign;
@@ -342,7 +342,7 @@ runAnalysisInputs.psthEmptyByCategory = psthEmptyByCategory;
 runAnalysisInputs.spikesByEventForTF = spikesByEventForTF;
 runAnalysisInputs.spikesByCategoryForTF = spikesByCategoryForTF;
 runAnalysisInputs.lfpByEvent = lfpByEvent;
-runAnalysisInputs.lfpByCategory = lfpByCategory;
+% runAnalysisInputs.lfpByCategory = lfpByCategory;
 runAnalysisInputs.analogInByEvent = analogInByEvent;
 runAnalysisInputs.analogInByCategory = analogInByCategory;
 runAnalysisInputs.channelUnitNames = channelUnitNames;

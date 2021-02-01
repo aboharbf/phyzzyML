@@ -1,4 +1,4 @@
-function par = set_parameters()
+function par = set_parameters_DEFAULT()
 
 % LOAD PARAMS
 par.segments_length = 5;             % length (in minutes) of segments in which the data is cutted (default 5min).
@@ -22,8 +22,7 @@ par.maxtemp = 0.251;                 % maximum temperature for SPC
 par.tempstep = 0.01;                 % temperature steps
 par.SWCycles = 100;                  % SPC iterations for each temperature (default 100)
 par.KNearNeighb = 11;                % number of nearest neighbors for SPC
-par.min_clus =20;                   % minimum size of a cluster (default 20)
-par.max_clus = 200;                   % maximum number of clusters allowed (default 200)
+par.min_clus = 20;                   % minimum size of a cluster (default 20)
 par.randomseed = 0;                  % if 0, random seed is taken as the clock value (default 0)
 %par.randomseed = 147;               % If not 0, random seed
 %par.temp_plot = 'lin';              % temperature plot in linear scale
@@ -43,10 +42,10 @@ par.stdmin = 5;                      % minimum threshold for detection
 par.stdmax = 50;                     % maximum threshold for detection
 par.detect_fmin = 300;               % high pass filter for detection
 par.detect_fmax = 3000;              % low pass filter for detection (default 3000)
-par.detect_order = 4;                % filter order for detection
+par.detect_order = 4;                % filter order for detection. 0 to disable the filter.
 par.sort_fmin = 300;                 % high pass filter for sorting
 par.sort_fmax = 3000;                % low pass filter for sorting (default 3000)
-par.sort_order = 2;                  % filter order for sorting
+par.sort_order = 2;                  % filter order for sorting. 0 to disable the filter.
 par.ref_ms = 1.5;                    % detector dead time, minimum refractory period (in ms)
 par.detection = 'pos';               % type of threshold ('pos','neg','both')
 % par.detection = 'neg';

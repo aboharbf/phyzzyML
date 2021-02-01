@@ -1,4 +1,4 @@
-function  spikeDataBank_to_rasterData(spikeDataBank, rasterDataPath, params)
+function  spikePathBank_to_rasterData(spikePathBank, rasterDataPath, params)
 % Turns the spikeDataBank struct of processBatchAnalysis into the format
 % needed to process by Neural Decoding Toolbox.
 
@@ -11,7 +11,7 @@ function  spikeDataBank_to_rasterData(spikeDataBank, rasterDataPath, params)
 % raster_site_info - file*1 labels/numbers - session_ID, channel, unit,
 % site.
 
-runList = fields(spikeDataBank);
+runList = spikePathBank.Properties.RowNames;
 
 if ~exist(rasterDataPath, 'dir')
   mkdir(rasterDataPath)
@@ -21,9 +21,14 @@ end
 %rasterDataUnit
 
 % Load the eventData for attaching significance activity to units
-tmp = load(params.subEventBatchStructPath);
-sigUnitGrid = tmp.subEventBatchStruct.sigUnitGrid;
-eventList = tmp.subEventBatchStruct.eventList;
+if exist(params.subEventBatchStructPath, 'file')
+  tmp = load(params.subEventBatchStructPath);
+  sigUnitGrid = tmp.subEventBatchStruct.sigUnitGrid;
+  eventList = tmp.subEventBatchStruct.eventList;
+end
+
+% Load the spike data to be turned into raster data.
+[spikesByEventBinned, spikesByCategoryBinned, psthParams] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'spikesByCategoryBinned', 'psthParams'}, params.spikePathLoadParams);
 
 for run_i = 1:length(runList)
   
@@ -37,7 +42,20 @@ for run_i = 1:length(runList)
   bin_str_len = length(curr_bin_string);
   
   % Collect data for this particular run
-  runData = spikeDataBank.(runList{run_i});
+  runData = struct();
+  runData.start = -psthParams{run_i}.psthPre;
+  runData.end = psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost;
+  switch spikePathBank.paradigmName{run_i}
+    case 'NaturalSocial'
+      runData.spikesByEventBinned = spikesByEventBinned{run_i};
+      runData.eventIDs = spikePathBank.stimuli{run_i};
+    case {'headTurnIso', 'headTurnCon', 'FamilairFace'}
+      runData.spikesByEventBinned = spikesByCategoryBinned{run_i};
+      runData.spikesByEventBinned = spikePathBank.categories{run_i};
+  end
+%   runData.stimPresCount = 1;
+%   runData.gridHoles = 1;
+%   runData.recDepth = 1;
   
   % Indicies for activity, accounting for padding.
   dataLength = abs(runData.start) + runData.end;
@@ -73,12 +91,12 @@ for run_i = 1:length(runList)
   rasterLabel = vertcat(rasterLabelTmp{:});
 
   % Generate a vector of stimulus presentation counts for a particular run.
-  stimPresCountTmp = arrayfun(@(x) repmat(runData.stimPresCount(x), [trialsPerStim(x), 1]), stimCount, 'UniformOutput', 0)';
-  stimPresCountPerTrial = vertcat(stimPresCountTmp{:});
+%   stimPresCountTmp = arrayfun(@(x) repmat(runData.stimPresCount(x), [trialsPerStim(x), 1]), stimCount, 'UniformOutput', 0)';
+%   stimPresCountPerTrial = vertcat(stimPresCountTmp{:});
   
   % Assign to raster labels.
   raster_labels.stimuli = stimuliVec';
-  raster_labels.stimPresCount = stimPresCountPerTrial';
+%   raster_labels.stimPresCount = stimPresCountPerTrial';
   
   % iterate through rasterLabels.
   for label_i = 1:length(params.rasterLabels)
@@ -108,12 +126,11 @@ for run_i = 1:length(runList)
   raster_site_info.alignment_event_time = abs(runData.start);
   raster_site_info.runNum = runData.runNum;
   
-  
   % Construct raster_data and save file per unit.
   for chan_i = 1:length(runData.spikesByEventBinned{1})
     % Information which is consistent per channel
-    raster_site_info.gridHole = num2str(runData.gridHoles{chan_i});
-    raster_site_info.recordingDepth = runData.recDepth{chan_i};
+%     raster_site_info.gridHole = num2str(runData.gridHoles{chan_i});
+%     raster_site_info.recordingDepth = runData.recDepth{chan_i};
     
     for unit_i = 1:length(runData.spikesByEventBinned{1}{chan_i})
       
@@ -154,6 +171,7 @@ for run_i = 1:length(runList)
       
     end
   end
+  
 end
 
 

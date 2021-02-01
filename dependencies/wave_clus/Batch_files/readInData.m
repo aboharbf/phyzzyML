@@ -16,6 +16,7 @@ classdef readInData < handle
         with_wc_spikes  % boolean flag. True if '_spikes' file was found.
         with_psegment   % boolean flag. True if the continuous segment was found in the '_spikes' file.
         with_spc        % boolean flag. True if the '.dg_01' files created for the SPC algorithm were found.
+        spikes_file     % string. *_spikes file when the times_* file doesn't include the spikes variable.
     end 
 	methods 
         function obj = readInData(par_ui)
@@ -32,32 +33,37 @@ classdef readInData < handle
             obj.with_psegment = false;
             obj.with_gui_status = false;
             obj.with_spc = false;
+            obj.spikes_file = '';
             with_par = false;
             results_selected = false;
 
-            if length(fnam)>6 && strcmp(fnam(1:6),'times_') && strcmp(ext,'.mat') %if a 'times' file was selected.
+            % if a 'times' file was selected.
+            if length(fnam)>6 && strcmp(fnam(1:6),'times_') && strcmp(ext,'.mat') 
                 obj.with_results = true;
                 results_selected = true;
                 obj.nick_name = fnam(7:end);
-                obj.with_wc_spikes = true;
             end
-            if length(fnam)>7 && strcmp(fnam(end-6:end),'_spikes') && (strcmp(ext,'.mat') || isempty(ext))%if a 'spikes' file was selected.
+            
+            % if a 'spikes' file was selected.
+            if length(fnam)>7 && strcmp(fnam(end-6:end),'_spikes') && (strcmp(ext,'.mat') || isempty(ext))
                 obj.with_wc_spikes = true;
                 results_selected =true;
                 obj.nick_name = fnam(1:end-7);
             end
             
-            
-            if (~isfield(par_ui,'reset_results')) || (~ par_ui.reset_results) ||  obj.with_results
+            keep_results = (~isfield(par_ui,'reset_results')) || (~ par_ui.reset_results);
+            if  keep_results ||  obj.with_results
                 %Search for previous results
-                if exist([obj.file_path filesep 'times_' obj.nick_name '.mat'],'file')
-                    finfo = whos('-file',[obj.file_path filesep 'times_' obj.nick_name '.mat']);
-                    if ~ismember('spikes',{finfo.name})
-                        ME = MException('MyComponent:FileError', 'Coultn''t find spikes variable in ''_times'' file');
-                        throw(ME)
+                if exist(fullfile(obj.file_path, ['times_' obj.nick_name '.mat']),'file')
+                    finfo = whos('-file',fullfile(obj.file_path, ['times_' obj.nick_name '.mat']));
+                    if ismember('spikes',{finfo.name})
+                        obj.with_wc_spikes = true;
+                    elseif ismember('spikes_file',{finfo.name})
+                        load(fullfile(obj.file_path, ['times_' obj.nick_name '.mat']),'spikes_file');
+                        obj.spikes_file = spikes_file;
                     end
                    
-                    if exist([obj.file_path filesep 'data_' obj.nick_name '.dg_01.lab'],'file') && exist([obj.file_path filesep 'data_' obj.nick_name '.dg_01'],'file')
+                    if exist(fullfile(obj.file_path,['data_' obj.nick_name '.dg_01.lab']),'file') && exist(fullfile(obj.file_path, ['data_' obj.nick_name '.dg_01']),'file')
                         obj.with_spc = true;
                         obj.with_results = true;
                     end
@@ -73,52 +79,66 @@ classdef readInData < handle
                     end
                 end
             end
-            if (~isfield(par_ui,'reset_results')) || (~ par_ui.reset_results) || obj.with_wc_spikes
-
-                %Search for previously detected spikes
-                if exist([obj.file_path filesep obj.nick_name '_spikes.mat'],'file')
-                    obj.with_wc_spikes = true;
-                    obj.with_spikes = true;
-                    finfo = whos('-file', [obj.file_path filesep obj.nick_name '_spikes.mat']);
-                    if ~ismember('spikes',{finfo.name})
-                        ME = MException('MyComponent:FileError', 'Coultn''t find spikes variable in ''_spikes'' file');
-                        throw(ME)
-                    end
-                    if ismember('par',{finfo.name}) && ~ with_par 
-                        load([obj.file_path filesep obj.nick_name '_spikes.mat'],'par'); 
-                        obj.par = update_parameters(obj.par,par,'detect',true);
-                        with_par = true;
-                    end
-                    if ismember('psegment',{finfo.name})
-                    	obj.with_psegment = true;
-                    end
-                    
+            if keep_results || obj.with_wc_spikes
+              %Search for previously detected spikes
+              if isempty(obj.spikes_file)
+                spikes_file = fullfile(obj.file_path, [obj.nick_name '_spikes.mat']);
+              else
+                spikes_file = obj.spikes_file;
+              end
+              if exist(spikes_file, 'file')
+                obj.with_wc_spikes = true;
+                obj.with_spikes = true;
+                finfo = whos('-file', spikes_file);
+                if ~ismember('spikes',{finfo.name})
+                  ME = MException('MyComponent:FileError', 'Coultn''t find spikes variable in ''_spikes'' file');
+                  throw(ME)
                 end
+                if ismember('par',{finfo.name}) && ~ with_par
+                  load(spikes_file, 'par');
+                  obj.par = update_parameters(obj.par,par,'detect',true);
+                  with_par = true;
+                end
+                if ismember('psegment',{finfo.name})
+                  obj.with_psegment = true;
+                end
+                
+              end
             end
-            % Search raw data
-            if exist([ext(2:end) '_wc_reader'],'file')
-                obj.file_reader = eval([ext(2:end) '_wc_reader(obj.par,obj.par.filename)']);
-                [sr, obj.max_segments, obj.with_raw, with_spikes] = obj.file_reader.get_info();
-                obj.with_spikes = obj.with_spikes || with_spikes;
-                if ~with_par                                                                                            %if didn't load sr from previous results 
-                    if isempty(sr)
-                        disp('Wave_clus didn''t find a sampling rate in file. It will use the input parameter or set_parameters.m')  %use default sr (from set_parameters) 
-                    else
-                        obj.par.sr = sr;                                                                                %load sr from raw data
-                    end
-                end
-            else
-                if ~(obj.with_results || obj.with_wc_spikes)
-                    ME = MException('MyComponent:noSuchExt', 'File type ''%s'' isn''t supported',ext);
-                    throw(ME)
-                elseif results_selected
-                    disp ('Wave_clus data selected. Raw data wasn''t loaded.')
-                else
-                    disp ('File type isn''t supported.')
-                    disp ('Using Wave_clus data found.')
-                end
-            end 
+            if obj.with_results && ~obj.with_wc_spikes
+              ME = MException('MyComponent:FileError', 'Coultn''t find spikes variable in ''times_'' file');
+              throw(ME)
+            end
             
+            if ~keep_results || ~(obj.with_wc_spikes ||  obj.with_results)
+                % Search raw data
+                if exist([ext(2:end) '_wc_reader'],'file')
+                    try
+                        obj.file_reader = eval([ext(2:end) '_wc_reader(obj.par,obj.par.filename)']);
+                        [sr, obj.max_segments, obj.with_raw, with_spikes] = obj.file_reader.get_info();
+                        obj.with_spikes = obj.with_spikes || with_spikes;
+                        if ~with_par                                                                                            %if didn't load sr from previous results 
+                            if isempty(sr)
+                                disp('Wave_clus didn''t find a sampling rate in file. It will use the input parameter or set_parameters.m')  %use default sr (from set_parameters) 
+                            else
+                                obj.par.sr = sr;                                                                                %load sr from raw data
+                            end
+                        end
+                    catch
+
+                    end
+                else
+                    if ~(obj.with_results || obj.with_wc_spikes)
+                        ME = MException('MyComponent:noSuchExt', 'File type ''%s'' isn''t supported',ext);
+                        throw(ME)
+                    elseif results_selected
+                        disp ('Wave_clus data selected. Raw data wasn''t loaded.')
+                    else
+                        disp ('File type isn''t supported.')
+                        disp ('Using Wave_clus data found.')
+                    end
+                end 
+            end
             if ~isfield(obj.par,'channels')
                  obj.par.channels = 1;
             end
@@ -145,7 +165,12 @@ classdef readInData < handle
             end
             
             if obj.with_wc_spikes                               %wc data have priority
-                load([obj.file_path filesep obj.nick_name '_spikes.mat']);
+                if isempty(obj.spikes_file)
+                    spikes_file = fullfile(obj.file_path, [obj.nick_name '_spikes.mat']);
+                else
+                    spikes_file = obj.spikes_file;
+                end
+                load(spikes_file,'spikes','index');
                 if ~ exist('index_ts','var')                    %for retrocompatibility
                     index_ts = index;
                 end
@@ -169,7 +194,9 @@ classdef readInData < handle
             if ~exist('forced','var')
             	forced = false(size(spikes,1), 1);
             end
-           
+            if ~exist('spikes','var')
+                load(obj.spikes_file,'spikes')
+            end
             
             % cluster_class(:,1);
             index = cluster_class(1:end,2);
@@ -189,32 +216,33 @@ classdef readInData < handle
         
         % method for load boolean vector for rejected spikes. Vector only used in develop mode.
         function [rejected] = load_rejected(obj)
-        	
-            if ~ obj.with_results
-            	ME = MException('MyComponent:noClusFound', 'This file don''t have a associated ''times_%s.mat'' file',obj.nick_name);
-            	throw(ME)
-            end
-            load([obj.file_path filesep 'times_' obj.nick_name '.mat']);
-            if ~exist('rejected','var')
-            	rejected = false(1,size(spikes,1));
-            end
+          
+          if ~ obj.with_results
+            ME = MException('MyComponent:noClusFound', 'This file don''t have a associated ''times_%s.mat'' file',obj.nick_name);
+            throw(ME)
+          end
+          finfo = whos('-file', fullfile(obj.file_path, ['times_' obj.nick_name '.mat']),'rejected','cluster_class');
+          if ~ismember('rejected',{finfo.name})
+            rejected = false(1,finfo.size(1));
+          end
+          
         end
         
-
+        
         function [original_classes, current_temp,auto_sort_info] = get_gui_status(obj)
-            load([obj.file_path filesep 'times_' obj.nick_name '.mat'],'gui_status','cluster_class');
-            current_temp = gui_status.current_temp;
-            if isempty(current_temp) || (current_temp == -1 && obj.with_spc)
-                current_temp=1;
-            end
-            original_classes = gui_status.original_classes;
-            auto_sort_info = [];
-            if isfield(gui_status,'auto_sort_info')
-                auto_sort_info = gui_status.auto_sort_info;
-            end
+          load([obj.file_path filesep 'times_' obj.nick_name '.mat'],'gui_status');
+          current_temp = gui_status.current_temp;
+          if isempty(current_temp) || (current_temp == -1 && obj.with_spc)
+            current_temp=1;
+          end
+          original_classes = gui_status.original_classes;
+          auto_sort_info = [];
+          if isfield(gui_status,'auto_sort_info')
+            auto_sort_info = gui_status.auto_sort_info;
+          end
         end
-            
-            
+        
+        
         function x = get_segment(obj)
             
             if ~ obj.with_raw
@@ -252,8 +280,14 @@ classdef readInData < handle
         
         
         function [xd_sub, sr_sub] = get_signal_sample(obj)
+                if isempty(obj.spikes_file)
+                    spikes_file = fullfile(obj.file_path, [obj.nick_name '_spikes.mat']);
+                else
+                    spikes_file = obj.spikes_file;
+                end
             if obj.with_psegment
-                load([obj.file_path filesep obj.nick_name '_spikes.mat'],'psegment','sr_psegment');
+                load(spikes_file,'psegment','sr_psegment');
+
                 xd_sub = psegment;
                 sr_sub = sr_psegment;
             else
