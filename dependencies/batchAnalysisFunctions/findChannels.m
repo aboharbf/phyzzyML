@@ -14,7 +14,7 @@ normalTimes = [800 2800 500];
 shortTimes = [500; 1000; 500];
 
 % Load in the Excel document
-analysisParamTable = readtable(path2Excel,'ReadRowNames', true, 'PreserveVariableNames', true);
+analysisParamTable = readtable(path2Excel,'ReadRowNames', true, 'PreserveVariableNames', true,'Format','auto');
 tableColumns = analysisParamTable.Properties.VariableNames;
 
 % Identify all the runs to find
@@ -27,10 +27,15 @@ MLFileNames = extractBefore(MLFileNamesExt, '.bhv2');
 MLFullPath = fullfile({MonkeyLogicFiles.folder}, {MonkeyLogicFiles.name})';
 [~, MLrunList, ~] = fileparts(MLFullPath);
 
+% % Do only for 2021.
+% MLFullPath = MLFullPath(contains(MLrunList, '2021012'));
+% MLrunList = MLrunList(contains(MLrunList, '2021012'));
+% channel2AddByHand = cell(length(MLrunList),1);
+
 for ii = 1:length(MLrunList)
   
   % See if the existing excel doc has a row for that.
-  fileInd = strcmp(runList, MLFileNames{ii});
+  fileInd = strcmp(runList, MLrunList{ii});
 
   if any(fileInd) && isnan(analysisParamTable(fileInd, :).(fields2Update(1)))
     addTimes = true;
@@ -43,7 +48,7 @@ for ii = 1:length(MLrunList)
   else
     % The run isn't represented on the excel sheet, add it.
     newRow = analysisParamTable(ii,:); % Copy the first row
-    newRow.Properties.RowNames =  MLFileNames(ii);  % Add the name.
+    newRow.Properties.RowNames =  MLrunList(ii);  % Add the name.
     addTimes = true;
     rowInd = size(analysisParamTable,1)+1;
     analysisParamTable = [analysisParamTable; newRow];  % Add the Row.    
@@ -78,21 +83,22 @@ for ii = 1:length(MLrunList)
     end
   end
   
-%   if isnan(analysisParamTable.Channel(rowInd))
-%     % Find the spike file, fill this in correctly.
-%     [dirPath, fileN, ~] = fileparts(MLFullPath{ii});
-%     ns5File = dir(fullfile(dirPath, [fileN '.ns5']));
-%     ns5path = fullfile(ns5File.folder, ns5File.name);
-%     
-%     % find channel numbers
-%     ns5Data = openNSx(ns5path);
-%     ns5Chan = double([ns5Data.ElectrodesInfo.ElectrodeID]);
-%     ns5Chan = ns5Chan(ns5Chan < 129);
-%     
-%     % Add to the row
-%     analysisParamTable.Channel(rowInd) = ns5Chan;
-%     
-%   end
+  if isnan(analysisParamTable.Channel(rowInd))
+    % Find the spike file, fill this in correctly.
+    [dirPath, fileN, ~] = fileparts(MLFullPath{ii});
+    ns5File = dir(fullfile(dirPath, [fileN '.ns5']));
+    if ~isempty(ns5File)
+      ns5path = fullfile(ns5File.folder, ns5File.name);
+      
+      % find channel numbers
+      ns5Data = openNSx(ns5path);
+      ns5Chan = double([ns5Data.ElectrodesInfo.ElectrodeID]);
+      ns5Chan = ns5Chan(ns5Chan < 129);
+      
+      % Add to the row
+      channel2AddByHand{ii} = ns5Chan;
+    end
+  end
   
 end
 

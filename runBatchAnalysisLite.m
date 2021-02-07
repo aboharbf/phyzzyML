@@ -265,6 +265,7 @@ function [spikePathBank, params] = pullPSTH(spikePathBank, params)
 disp('Generating Normalized/Thresholded version of PSTHes, if desired...');
 
 psthParams = params.meanPSTHParams;
+processedVarFileInd = length(params.spikePathLoadParams.files) + 1;
 
 if psthParams.normalize || psthParams.rateThreshold
   
@@ -340,10 +341,10 @@ if psthParams.normalize || psthParams.rateThreshold
   
   % Update the parameters passed in, so downstream functions will know how
   % to find these variables.
-  
+  procVarList = {'psthByImageProc', 'psthErrByImageProc', 'psthByCategoryProc', 'psthErrByCategoryProc'};
   params.spikePathLoadParams.files = [params.spikePathLoadParams.files, procFileName];
-  params.spikePathLoadParams.fileVars = [params.spikePathLoadParams.fileVars, 'psthByImageProc', 'psthErrByImageProc', 'psthByCategoryProc', 'psthErrByCategoryProc'];
-  params.spikePathLoadParams.fileInds = [params.spikePathLoadParams.fileInds, ones(1,4)*4];
+  params.spikePathLoadParams.fileVars = [params.spikePathLoadParams.fileVars, procVarList];
+  params.spikePathLoadParams.fileInds = [params.spikePathLoadParams.fileInds, ones(1,length(procVarList))*processedVarFileInd];
   
 end
 
@@ -406,7 +407,7 @@ if params.meanPSTHParams.removeRewardEpoch
       params.spikePathLoadParams.files = [params.spikePathLoadParams.files, params.spikePathLoadParams.batchAnalysisOutputName];
     end
     params.spikePathLoadParams.fileVars = [params.spikePathLoadParams.fileVars, variables2Save];
-    params.spikePathLoadParams.fileInds = [params.spikePathLoadParams.fileInds, repmat(4, [1,length(variables2Save)])];
+    params.spikePathLoadParams.fileInds = [params.spikePathLoadParams.fileInds, ones(1,length(variables2Save))*processedVarFileInd];
     batchAnalysisParams = params;
     spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;
     save(spikePathFile, 'batchAnalysisParams', '-append')

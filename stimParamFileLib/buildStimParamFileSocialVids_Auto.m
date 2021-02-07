@@ -162,7 +162,7 @@ for ii = 1:length(stimList)
     
     if code(2) == '5'     % Code in the name of context head turning paradigm stim.
       % code = sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
-      scenes = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};    % Observed Scenes
+      scenes = {'chasing', 'grooming', 'mounting', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};    % Observed Scenes
       
       % Entirely too many cameras.
       cameraNum = {'CamRing_Chase1_1', 'CamRing_Chase1_2', 'CamRing_Chase1_3', 'CamRing_Chase1_4','CamRing_Chase2_1', 'CamRing_Chase2_2',...
@@ -409,7 +409,7 @@ for paradigm_i = 1:2
       % variants.
       uniqueStimID = [2, 3, 5];
       
-      intArray = {'chasing', 'grooming', 'mating', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};
+      intArray = {'chasing', 'grooming', 'mounting', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};
       intNum = {'1', '2', '3', '4', '5', '6'};
       turnArray = {'_noTurn', '_Turn'};
       

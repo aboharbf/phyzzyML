@@ -37,8 +37,6 @@ end
 
 
 %% Function
-%To-do - use this function to initialize all matching size and format
-%arrays above.
 
 if depth == 0 || ~strcmp(class(inCell), originalInput) || isempty(inCell)
   switch fill
@@ -66,9 +64,4 @@ else
         OutCellArray{inCell_ind} = initNestedCellArray(inCell(2:end), fill, fillSize, depth-1, originalInput);
       end
   end
-end
-end
-
-function OutCellArray = fillOutput(fill, fillSize)
-
 end

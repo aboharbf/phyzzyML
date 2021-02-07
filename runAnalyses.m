@@ -296,7 +296,9 @@ end
 if ~calcSwitch.spikeTimes %use 1 ms bins for spikes
   spikesByEventBinned = calcSpikeTimes(spikesByEvent, psthParams);
   spikesByCategoryBinned = calcSpikeTimes(spikesByCategory, psthParams);
-  save(analysisOutFilename,'spikesByEventBinned','spikesByCategoryBinned', '-append');
+  save(analysisOutFilename,'spikesByEventBinned', '-append');
+  analysisOutFilenameBig = fullfile(fileparts(analysisOutFilename), 'analyzedDataBig.mat');
+  save(analysisOutFilenameBig,'spikesByCategoryBinned', '-v7.3');
 end
 
 if calcSwitch.imagePSTH && calcSwitch.spikeTimes
@@ -428,7 +430,7 @@ if isfield(plotSwitch,'categoryPsth') && plotSwitch.categoryPsth
   end
 end
 
-if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth
+if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth && isfield(analysisGroups.analysisGroupPSTH, taskData.paradigm)
   % Identify which PSTHes to stack.
 %   analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
   analysisPSTHStruct = analysisGroups.analysisGroupPSTH.(taskData.paradigm);

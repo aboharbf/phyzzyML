@@ -169,7 +169,7 @@ else % Means Blackrock/MKL Communication was intact, correct
     trueStart = trueStart(trueStartTrials);
   end
   trueStart = trueStart(1);
-  trueEnd = find(packetData == trialEndMarker,1,'last');
+  trueEnd = find(packetData == trialEndMarker, 1, 'last');
   
   packetData = packetData(trueStart:trueEnd);
   packetTimes = packetTimes(trueStart:trueEnd);

@@ -4,7 +4,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20201115Mo';
+dateSubject = '20201120Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -134,20 +134,21 @@ calcSwitch.spikeTimes = 0;
 calcSwitch.useJacknife = 0;      
 
 %% Parameters
-channels2Read = 1:32;
+Channel = 1:32;
+% channels2Read = 33:64;
 
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
 ephysParams.needSpikes = 1;
 autoChannelDetect = 0;
-ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
-ephysParams.lfpChannels = channels2Read;
-ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
-ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read), 1]); %converts raw values to microvolts
+ephysParams.spikeChannels = Channel; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
+ephysParams.lfpChannels = Channel;
+ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, Channel);
+ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(Channel), 1]); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
 ephysParams.waveClus = 1;             % Does automated offline sorting using wave_clus.
 ephysParams.paramHandle = @set_parameters_BatchJan2020; %Function which produces param struct for wave_clus. in wave_clus folder.
-ephysParams.waveClusReclass = 1;      % Reclassify clusters (as defined by mean waveform proximity to threshold) to MUA.
+ephysParams.waveClusReclass = 0;      % Reclassify clusters (as defined by mean waveform proximity to threshold) to MUA.
 ephysParams.waveClusMUAThreshold = 1.25; %scaling for reclassification of clusters as MUA. 1 = 0 scaling = no reclassification of clusters.
 ephysParams.waveClusProjPlot = 1;     % Plots all the clusters in higher dimensional space (defined in type and number in wave_clus parameters).
 ephysParams.waveClusClear = 1;        % 1 deletes all files associated with analysis (leaves processed NSX files), 2 deletes the entire associated '_parsed' folder.
@@ -158,8 +159,8 @@ ephysParams.decimateFactorPass1 = 6;  % note: product of the two decimate factor
 ephysParams.decimateFactorPass2 = 5;
 ephysParams.samPerMS = 1; %THIS IS AFTER DECIMATION, and applies to LFP (should be raw rate/productOfDecimateFactors)
 %note: use Blackrock indexing for unitsToUnsort and unitsToDiscard, so unsorted is 0, first defined unit is 1, etc.
-ephysParams.unitsToUnsort = cell(length(channels2Read),1); %these units will be re-grouped with u0
-ephysParams.unitsToDiscard = cell(length(channels2Read),1); %these units will be considered noise and discarded
+ephysParams.unitsToUnsort = cell(length(Channel),1); %these units will be re-grouped with u0
+ephysParams.unitsToDiscard = cell(length(Channel),1); %these units will be considered noise and discarded
 ephysParams.spikeWaveformPca = 0;
 ephysParams.plotSpikeWaveforms = 2; %0, 1 to build then close, 2 to build and leave open
 ephysParams.spikeWaveformsColors = [[0.0 0.0 1.0];[1.0 0.0 0.0];[0.0 0.5 0.0];[0.620690 0.0 0.0];[0.413793 0.0 0.758621];[0.965517 0.517241 0.034483]];

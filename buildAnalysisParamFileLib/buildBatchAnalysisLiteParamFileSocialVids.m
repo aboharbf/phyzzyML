@@ -57,15 +57,15 @@ spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, n
 
 preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList'}; %Variables extracted from preprocessedData.mat
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', ...
-                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'spikesByCategoryBinned', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
+                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
 AnalysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
-
+analyzedDataBigVars = {'spikesByCategoryBinned'};
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
 spikePathLoadParams.batchAnalysisOutput = fullfile(outputDir, spikePathLoadParams.spikePathFileName);
-spikePathLoadParams.files = {'preprocessedData.mat', 'analyzedData.mat', 'AnalysisParams.mat'};
-spikePathLoadParams.fileVars = [preprocessedDataVars, analyzedDataVars, AnalysisParamVars];
-spikePathLoadParams.fileInds = [ones(size(preprocessedDataVars)), ones(size(analyzedDataVars)) * 2, ones(size(AnalysisParamVars)) * 3];
+spikePathLoadParams.files = {'preprocessedData.mat', 'analyzedData.mat', 'AnalysisParams.mat', 'analyzedDataBig.mat'};
+spikePathLoadParams.fileVars = [preprocessedDataVars, analyzedDataVars, AnalysisParamVars, analyzedDataBigVars];
+spikePathLoadParams.fileInds = [ones(size(preprocessedDataVars)), ones(size(analyzedDataVars)) * 2, ones(size(AnalysisParamVars)) * 3, ones(size(analyzedDataBigVars)) * 4];
 clear preprocessedDataVars preprocessedDataVars AnalysisParamVars
 
 stimStructParams.spikePathLoadParams = spikePathLoadParams;
@@ -146,7 +146,7 @@ meanPSTHParams.analysisGroups.FamilairFace.Familair = {'familiar', 'unFamiliar'}
 
 % headTurnCon meanPSTHParams.analysisGroups
 meanPSTHParams.analysisGroups.headTurnCon.stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
-    'idle1_Turn', 'idle1_noTurn', 'idle2_Turn', 'idle2_noTurn', 'mating1_Turn', 'mating1_noTurn', 'mating2_Turn', 'mating2_noTurn', 'objects1_noTurn', 'goalDirected1_Turn', 'goalDirected1_noTurn', 'goalDirected2_Turn'...                      }
+    'idle1_Turn', 'idle1_noTurn', 'idle2_Turn', 'idle2_noTurn', 'mounting1_Turn', 'mounting1_noTurn', 'mounting2_Turn', 'mounting2_noTurn', 'objects1_noTurn', 'goalDirected1_Turn', 'goalDirected1_noTurn', 'goalDirected2_Turn'...                      }
     'goalDirected2_noTurn', 'objects2_noTurn', 'scene1_noTurn', 'scene2_noTurn'};
 meanPSTHParams.analysisGroups.headTurnCon.socContext = {'socialInteraction', 'nonSocialInteraction'};
 meanPSTHParams.analysisGroups.headTurnCon.turnNoTurn = {'noTurn', 'headTurn'};
@@ -252,11 +252,20 @@ NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilen
 NDTParams.spikeToRasterParams.subEventBatchStructPath = subEventBatchStructPath; % a full path to a subEventStruct produced by processRunBatch.
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
-%  spikeDataBank to rasterData Parameters, should be as inclusive as
-%  possible, as changes require deleting previously generated files.
-NDTParams.spikeToRasterParams.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
-NDTParams.spikeToRasterParams.plotIndParams.plotLabels = {'socialInteraction', 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
+%  spikeDataBank to rasterData Parameters.
+NDTParams.spikeToRasterParams.NaturalSocial.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
+NDTParams.spikeToRasterParams.NaturalSocial.plotIndParams.plotLabels = {'socialInteraction', 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
   'scramble', 'foraging', 'following', 'observing','animControl', 'animSocialInteraction'}}; % a cell array list of labels for inclusion.
+
+NDTParams.spikeToRasterParams.headTurnCon.rasterLabels = {'headTurn', 'social', 'socialCat'};
+NDTParams.spikeToRasterParams.headTurnCon.plotIndParams.plotLabels = {'headTurn', 'socialInteraction', {'chasing', 'fighting' ,'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}};
+
+NDTParams.spikeToRasterParams.headTurnIso.rasterLabels = {'stimuli', 'turnDirection', 'turnSubj', 'mesh', 'meshTurn'};
+NDTParams.spikeToRasterParams.headTurnIso.plotIndParams.plotLabels = {meanPSTHParams.analysisGroups.headTurnIso.stimuli, {'leftFull', 'noTurn', 'rightFull', 'headTurn'}, {'turnToward', 'turnAway', 'noTurn'}, {'fullModel', 'smoothModel', 'dotModel'}, meanPSTHParams.analysisGroups.headTurnIso.mesh};
+
+NDTParams.spikeToRasterParams.FamilairFace.rasterLabels = {'identity', 'action', 'identityAction', 'familiar'};
+NDTParams.spikeToRasterParams.FamilairFace.plotIndParams.plotLabels = {monkeyIDList, monkeyActList, monkey_act_List, {'familiar', 'unFamiliar'}};
+
 NDTParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
 NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 

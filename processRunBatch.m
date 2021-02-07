@@ -16,7 +16,7 @@ machine = machine(~isspace(machine));
 switch machine
   case 'Skytech_FA'
     outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
-    dataLog = 'D:\EphysData\Data\analysisParamTable_2020.xlsx';                            % Only used to find recording log, used to overwrite params.
+    dataLog = 'D:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
   case 'homeDesktopWork'
@@ -29,7 +29,7 @@ switch machine
 end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
+usePreprocessed = 1;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
@@ -57,7 +57,7 @@ if ~replaceAnalysisOut
   
   % Load in a page from an excel sheet in the data directory.
   if exist(dataLog, 'file')
-    paramTable = readtable(dataLog,'ReadRowNames', true, 'PreserveVariableNames', true);
+    paramTable = readtable(dataLog,'ReadRowNames', true, 'PreserveVariableNames', true,'Format','auto');
   end
   
   for dateSubj_i = 1:length(runList)

@@ -57,7 +57,7 @@ function NSx = saveChNSx_Simple(NSxSource, NSxDestination, channels, resetFlag)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-[path, ~, ~] = fileparts(NSxSource);
+[path, fname, fext] = fileparts(NSxSource);
 newFilename = NSxDestination;
 
 % 
@@ -161,7 +161,8 @@ end
 
 % Opening the original file
 disp('Openning the original file...');
-NSx = openNSx(fullfile(path, [fname fext]), ['c:' num2str(channels)], 'read');
+% NSx = openNSx(fullfile(path, [fname fext]), ['c:' num2str(channels)], 'read');
+NSx = openNSx(fullfile(path, [fname fext]), 'read');
 
 if NSx.RawData.PausedFile
     disp('At this time it is not possible to extract channels from files that have pauses in them.');
