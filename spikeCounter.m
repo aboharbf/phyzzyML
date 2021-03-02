@@ -31,7 +31,7 @@ for channel_i = 1:numChannels
       n = length(s.rates);
       %channelSpikeRatesTrialErr(unit_i, item_i) = (std(s.rates)/sqrt(n))*sqrt(2/(n-1))*(gamma(n/2)/gamma((n-1)/2));
       
-      if n < 26
+      if n < 26 && n > 1
         c4 = sqrt(2/(n-1))*(gamma(n/2)/gamma((n-1)/2)); %std small-n estimator bias correction, see
       else
         c4 = 1; % for n >= 26, this correction is <1%, and at large n, gamma function ratio becomes numerically unstable

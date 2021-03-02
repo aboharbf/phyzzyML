@@ -308,11 +308,11 @@ if ~usePreprocessed
   analogInByEvent = alignAnalogIn(analogInData, onsetsByEvent, analogInChannels, lfpAlignParams);
   analogInByCategory = alignAnalogIn(analogInData, onsetsByCategory, analogInChannels, lfpAlignParams);
   
-  for cat_i = 1:length(categoryList)
-    Output.VERBOSE(categoryList{cat_i});
-    Output.VERBOSE(size(lfpByCategory{cat_i}));
-  end
-  
+%   for cat_i = 1:length(categoryList)
+%     Output.VERBOSE(categoryList{cat_i});
+%     Output.VERBOSE(size(lfpByCategory{cat_i}));
+%   end
+%   
   if savePreprocessed
     save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'psthImDur', 'preAlign', 'postAlign',...
       'categoryList', 'eventLabels', 'eventIDs', 'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByCategory', 'psthEmptyByCategory',...

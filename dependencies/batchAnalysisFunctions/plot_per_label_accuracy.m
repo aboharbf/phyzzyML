@@ -10,6 +10,7 @@ function figh = plot_per_label_accuracy(decoding_results, ds, analysisStruct, pa
 
 points_to_label = params.plotParams.points_to_label;
 points_for_lines = params.plotParams.points_for_lines;
+shift = params.plotParams.shift;
 the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1);
 
 figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
@@ -63,7 +64,7 @@ linePlotHandles = [linePlotHandles; sigBarHands];
 legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
 
 % Label axes correctly
-the_bin_start_times_shift = the_bin_start_times - 800;
+the_bin_start_times_shift = the_bin_start_times - shift;
 bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
 x_for_lines = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
 

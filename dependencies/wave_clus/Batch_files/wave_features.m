@@ -29,19 +29,19 @@ switch feature
 			for cf = 2:length(nc)
 				cc(:,nccum(cf-1)+1:nccum(cf)) = reshape(c_l(wccum(cf-1)+1:wccum(cf)),nc(cf),nspk)';
 			end
-    catch
-      if exist('wavedec')                             % Looks for Wavelets Toolbox
-        for i=1:nspk                                % Wavelet decomposition
-          [c,l] = wavedec(spikes(i,:),scales,'haar');
-          cc(i,1:ls) = c(1:ls);
-        end
-      else
-        for i=1:nspk                                % Replaces Wavelets Toolbox, if not available
-          [c,l] = fix_wavedec(spikes(i,:),scales);
-          cc(i,1:ls) = c(1:ls);
-        end
-      end
-      
+		catch
+		    if exist('wavedec')                             % Looks for Wavelets Toolbox
+				for i=1:nspk                                % Wavelet decomposition
+					[c,l] = wavedec(spikes(i,:),scales,'haar');
+					cc(i,1:ls) = c(1:ls);
+				end
+			else
+				for i=1:nspk                                % Replaces Wavelets Toolbox, if not available
+					[c,l] = fix_wavedec(spikes(i,:),scales);
+					cc(i,1:ls) = c(1:ls);
+				end
+			end
+		
 		end
 		
         for i=1:ls
@@ -107,7 +107,7 @@ switch feature
         coeff(1:inputs)=ind(ls:-1:ls-inputs+1);
     case 'pca'
         if exist('pca','file')
-            [C,S] = pca(spikes);
+        	[C,S] = pca(spikes);
         else
             [C,S] = princomp(spikes);
         end

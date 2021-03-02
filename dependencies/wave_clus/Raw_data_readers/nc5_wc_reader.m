@@ -27,9 +27,7 @@ classdef nc5_wc_reader < handle
     end 
 	methods 
         function obj = nc5_wc_reader(par, raw_filename)
-            [tmpPath, filename_end, ~] = fileparts(raw_filename);
-            filesplit = split(filename_end, '_');
-            stamps_name = fullfile(tmpPath, [filesplit{1} '_NSX_TimeStamps.mat']);
+            stamps_name = [raw_filename(1:regexp(raw_filename,'_\d*.NC5')) '_TimeStamps.mat'];
             if exist(stamps_name,'file')
                 load(stamps_name ,'lts', 'sr');
             else

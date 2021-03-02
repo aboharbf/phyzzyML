@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '001';
-dateSubject = '20201120Mo';
+runNum = '002';
+dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -14,7 +14,7 @@ switch machine
   case 'Skytech_FA'
     ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
-    outputVolume = slashSwap('D:\DataAnalysis');
+    outputVolume = slashSwap('D:\DataAnalysis_Zscore');
     stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
     neuroGLMPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
@@ -36,7 +36,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct = struct();
 figStruct.saveFig = 1;                
-figStruct.closeFig = 0;               
+figStruct.closeFig = 1;               
 figStruct.exportFig = 0;             
 figStruct.saveFigData = 0;            
 figStruct.figPos = [0 0 .6 0.7];      % Normalized units for figure position
@@ -46,11 +46,11 @@ verbosity = 'INFO';               % other options, 'DEBUG', 'VERBOSE';
 
 %% Plot switches
 plotSwitch.pupilDilation = 0;               % plots image which illustrates continuous values for pupil dilation. 
-plotSwitch.eyeStatsAnalysis = 0;            % use ClusterFix to generate a vector characterizing eye movements. used by subEventAnalysis.
-plotSwitch.subEventAnalysis = 0;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
-plotSwitch.imageEyeMap = 0;                 
-plotSwitch.eyeCorralogram = 0;              % Eye Gram
-plotSwitch.attendedObject = 0;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
+plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements. used by subEventAnalysis.
+plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
+plotSwitch.imageEyeMap = 1;                 
+plotSwitch.eyeCorrelogram = 1;              % Eye Gram
+plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli.
@@ -58,8 +58,8 @@ plotSwitch.spikePupilCorr = 0;              % see the correlation between single
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
-plotSwitch.imagePsth = 0;                   % a PSTH for every stimulus in the file.
-plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
+plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
+plotSwitch.categoryPsth = 1;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
 plotSwitch.analysisGroupsPsth = 1;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.stimCatANOVA = 0;
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
@@ -69,7 +69,7 @@ plotSwitch.prefImRasterEvokedOverlay = 0;   % Produces images for MUA and Unsort
 plotSwitch.prefImRasterAverageEvokedOverlay = 0;
 plotSwitch.prefImMultiChRasterEvokedOverlay = 0;
 plotSwitch.imageTuningSorted = 0;           % Barplot per image, Required for stimPSTHoverlay, sigStruct
-plotSwitch.stimPrefBarPlot = 0;             % Per event bar graph.
+plotSwitch.stimPrefBarPlot = 1;             % Per event bar graph.
 plotSwitch.stimPrefBarPlotEarly = 0;
 plotSwitch.stimPrefBarPlotLate = 0;
 plotSwitch.tuningCurves = 0;
@@ -134,20 +134,21 @@ calcSwitch.spikeTimes = 0;
 calcSwitch.useJacknife = 0;      
 
 %% Parameters
-Channel = 1:32;
+channels2Read = 1:32;
 % channels2Read = 33:64;
+% channels2Read = [5 13];
 
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
 ephysParams.needSpikes = 1;
 autoChannelDetect = 0;
-ephysParams.spikeChannels = Channel; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
-ephysParams.lfpChannels = Channel;
-ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, Channel);
-ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(Channel), 1]); %converts raw values to microvolts
+ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
+ephysParams.lfpChannels = channels2Read;
+ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
+ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read), 1]); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
 ephysParams.waveClus = 1;             % Does automated offline sorting using wave_clus.
-ephysParams.paramHandle = @set_parameters_BatchJan2020; %Function which produces param struct for wave_clus. in wave_clus folder.
+ephysParams.paramHandle = @set_parameters_batchFeb2020; %Function which produces param struct for wave_clus. in wave_clus folder.
 ephysParams.waveClusReclass = 0;      % Reclassify clusters (as defined by mean waveform proximity to threshold) to MUA.
 ephysParams.waveClusMUAThreshold = 1.25; %scaling for reclassification of clusters as MUA. 1 = 0 scaling = no reclassification of clusters.
 ephysParams.waveClusProjPlot = 1;     % Plots all the clusters in higher dimensional space (defined in type and number in wave_clus parameters).
@@ -159,8 +160,8 @@ ephysParams.decimateFactorPass1 = 6;  % note: product of the two decimate factor
 ephysParams.decimateFactorPass2 = 5;
 ephysParams.samPerMS = 1; %THIS IS AFTER DECIMATION, and applies to LFP (should be raw rate/productOfDecimateFactors)
 %note: use Blackrock indexing for unitsToUnsort and unitsToDiscard, so unsorted is 0, first defined unit is 1, etc.
-ephysParams.unitsToUnsort = cell(length(Channel),1); %these units will be re-grouped with u0
-ephysParams.unitsToDiscard = cell(length(Channel),1); %these units will be considered noise and discarded
+ephysParams.unitsToUnsort = cell(length(channels2Read),1); %these units will be re-grouped with u0
+ephysParams.unitsToDiscard = cell(length(channels2Read),1); %these units will be considered noise and discarded
 ephysParams.spikeWaveformPca = 0;
 ephysParams.plotSpikeWaveforms = 2; %0, 1 to build then close, 2 to build and leave open
 ephysParams.spikeWaveformsColors = [[0.0 0.0 1.0];[1.0 0.0 0.0];[0.0 0.5 0.0];[0.620690 0.0 0.0];[0.413793 0.0 0.758621];[0.965517 0.517241 0.034483]];
@@ -318,18 +319,24 @@ tfParams.movingWin = [300 5];
 tfParams.specgramRowAve = 0;
 
 psthParams.type = 'normal'; %options are 'normal', 'baselineSub', 'meanWhite'
-psthParams.psthPre = 800; % if e.g. +200, then start psth 200ms before trial onset; 
+psthParams.ITI = 500; % if e.g. +200, then start psth 200ms before trial onset; 
+psthParams.psthPre = 800 + psthParams.ITI; % if e.g. +200, then start psth 200ms before trial onset; 
 psthParams.psthImDur = 2800;  % only need to set this for variable length stim runs; else, comes from log file
 psthParams.psthPost = 500;
 psthParams.latency = 0;
 psthParams.movingWin = tfParams.movingWin;
 psthParams.smoothingWidth = 40;  %psth smoothing width, in ms
-psthParams.Zscore = 0;  % 0: raw PSTH, 1: pre-trial baseline subtraction Z Scored PSTH, 2: whole trial baseline subtracted Z Scored PSTH
-psthParams.errorType = 2; % chronux convention: 1 is poisfStimson, 2 is trialwise bootstrap, 3 is across trial std for binned spikes, bootstrap for spike times 
+psthParams.Zscore = 1;  % 0: raw PSTH, 1: pre-trial baseline subtraction Z Scored PSTH, 2: whole trial baseline subtracted Z Scored PSTH
+psthParams.errorType = 3; % chronux convention: 1 is poisfStimson, 2 is trialwise bootstrap, 3 is across trial std for binned spikes, bootstrap for spike times 
 psthParams.errorRangeZ = 1; % how many standard errors to show
-psthParams.bootstrapSamples = 100;
+psthParams.bootstrapSamples = 10;
 psthParams.sortStim = 1;
-psthParams.sortOrder = {'socialInteraction';'goalDirected';'idle';'objects';'scene';'scramble';'headTurn';'subEvents';'allStim'};
+
+% sortOrder is referenced via .(taskData.paradigm).sortOrder. 
+psthParams.headTurnIso.sortOrder = {'leftFull', 'noTurn', 'rightFull', 'headTurn'};
+psthParams.familiarFace.sortOrder = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes', 'Empty'};
+psthParams.headTurnCon.sortOrder = {'socialInteraction';'goalDirected';'idle';'objects';'scene'};
+psthParams.naturalStim.sortOrder = {'socialInteraction';'goalDirected';'idle';'objects';'scene';'scramble';'headTurn';'subEvents'};
 psthParams.psthColormapFilename = 'cocode2.mat'; % a file with one variable, a colormap called 'map'
 load(psthParams.psthColormapFilename);
 psthParams.colormap = map;
@@ -346,6 +353,7 @@ genStatsParams.ANOVAParams.target = 'socialInteraction';    % When performing a 
 subEventAnalysisParams.preAlign = 300;
 subEventAnalysisParams.postAlign = 800;
 subEventAnalysisParams.nullAllStim = 1;
+subEventAnalysisParams.RewardEvent = 1;
 subEventAnalysisParams.nullSampleMult = 10;       % For every n stimuli with the event, sample all other stimuli this number of times for the null distribution.
 subEventAnalysisParams.psthParams = psthParams;
 subEventAnalysisParams.psthParams.psthPre = 100;
@@ -460,13 +468,13 @@ analysisGroups.analysisGroupPSTH.headTurnIso.mesh = {'fullModel_headTurn', 'full
 analysisGroups.selectivityIndex.groups = {{'socialInteraction';'nonInteraction'},{'socialInteraction';'agents'}};
 
 %Barplots showing average activity across all members of a catagory
-analysisGroups.stimPrefBarPlot.groups = {{{'socialInteraction';'goalDirected';'idle';'objects';'scene'}}};
-analysisGroups.stimPrefBarPlot.colors  = {{{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]; [0 0.5 0.5]}}};
+analysisGroups.stimPrefBarPlot.groups = {{{'noTurn', 'headTurn'}, {'chasing', 'grooming', 'mounting', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'}}};
+analysisGroups.stimPrefBarPlot.colors  = {{{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]; [0 0.5 0.5]}, {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]; [0 0.5 0.5]}}};
 analysisGroups.stimPrefBarPlot.names = {'Barplots per label'};
 analysisGroups.stimPrefBarPlot.groupDepth = 2; %2 subplots, each figure is defined by a cell array in the first item (groups).
 
 %
-analysisGroups.stimulusLabelGroups.groups = {{'socialInteraction';'goalDirected';'idle';'objects';'scene';'scramble'; 'headTurn'}};
+analysisGroups.stimulusLabelGroups.groups = {{'socialInteraction'; 'goalDirected'; 'idle'; 'objects'; 'scene'; 'scramble'; 'headTurn'}};
 analysisGroups.stimulusLabelGroups.names = {'Preferred Stimulus', 'Preferred Stimulus'};
 analysisGroups.stimulusLabelGroups.colors = {{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}};
 

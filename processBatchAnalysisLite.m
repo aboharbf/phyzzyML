@@ -73,15 +73,8 @@ else
   spikePathBank.analyzedDir = {preprocessedList.folder}';
   
   for ii = 1:length(preprocessedList)
-       
-%     preprocessedData = load(fullfile(preprocessedList(ii).folder, preprocessedList(ii).name),'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList');
-%     analyzedData = load(fullfile(analyzedList(ii).folder, analyzedList(ii).name), 'analysisParamFilename','dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', ...
-%       'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'psthByCategory', 'psthErrByCategory');
     analyzedData = load(analyzedListPathList{ii}, 'analysisParamFilename','dateSubject', 'runNum');
-%     analysisParams = load(fullfile(analyzedList(ii).folder, 'AnalysisParams.mat'), 'psthParams');
-    
     [~, sessionList{ii}] = deal(['S' analyzedData.dateSubject analyzedData.runNum]);
-    
   end
   
   % Add session List as the row names.

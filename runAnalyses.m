@@ -40,6 +40,7 @@ analogInChannelNames = analogInParams.channelNames;
 analogInChannelUnits = analogInParams.channelUnits;
 
 psthPre = psthParams.psthPre;
+ITI = psthParams.ITI;
 psthPost = psthParams.psthPost;
 smoothingWidth = psthParams.smoothingWidth;
 psthErrorType = psthParams.errorType;
@@ -260,38 +261,39 @@ catIndStruct.categoryList = categoryList;
 
 %% Analyses
 
-% Eye Signal Processing
+%% Eye Signal Processing
 eyeStatsParams.eventIDs = eventIDs;
 eyeStatsParams.eventLabels = eventLabels;
 eyeDataStruct = struct();
 
-if isfield(plotSwitch, 'pupilDilation') && plotSwitch.pupilDilation
+if plotSwitch.pupilDilation
   eyeDataStruct = pupilDilation(analogInByEvent, eyeStatsParams, eyeDataStruct, catIndStruct, figStruct);
 end
 
-if isfield(plotSwitch, 'eyeStatsAnalysis') && plotSwitch.eyeStatsAnalysis
+if plotSwitch.eyeStatsAnalysis
   [eyeDataStruct, eyeBehStatsByStim, eyeInByEvent] = eyeStatsAnalysis(analogInByEvent, eyeStatsParams, taskData, eyeDataStruct);
-  save(analysisOutFilename, 'eyeBehStatsByStim', '-append');
+  save(analysisOutFilename, 'eyeBehStatsByStim', 'eyeInByEvent', '-append');
 else
   % Reshapes analogInByEvent into eye signal. not smoothed
   eyeInByEvent = cellfun(@(n) squeeze(n(:,1:2,:,lfpPaddedBy+1:length(n)-(lfpPaddedBy+1))), analogInByEvent, 'UniformOutput', false);
+  save(analysisOutFilename, 'eyeInByEvent', '-append');
 end
 
-if isfield(plotSwitch, 'attendedObject') && plotSwitch.attendedObject
+if plotSwitch.attendedObject
   eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct);
 end
 
 save(analysisOutFilename,'eyeDataStruct','-append');
 
-if isfield(plotSwitch, 'eyeStimOverlay') && plotSwitch.eyeStimOverlay
+if plotSwitch.eyeStimOverlay
   eyeStimOverlay(eyeInByEvent, stimDir, outDir, psthParams, eventIDs, taskData, eyeDataStruct);
 end
 
-if isfield(plotSwitch, 'eyeCorrelogram') && plotSwitch.eyeCorrelogram 
+if plotSwitch.eyeCorrelogram 
   eyeCorrelogram(eyeInByEvent, psthParams, eventLabels, figStruct)
 end
 
-% Spike Processing
+%% Spike Processing
 
 if ~calcSwitch.spikeTimes %use 1 ms bins for spikes
   spikesByEventBinned = calcSpikeTimes(spikesByEvent, psthParams);
@@ -319,12 +321,15 @@ end
 
 % Spike, Task data, Eye Data Analysis
 
-if isfield(plotSwitch, 'subEventAnalysis') && plotSwitch.subEventAnalysis
+if plotSwitch.subEventAnalysis
   ephysParams.spikeTimes = calcSwitch.spikeTimes;
   ephysParams.channelUnitNames = channelUnitNames;
   subEventAnalysisParams.outDir = outDir;
   subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
   subEventAnalysisParams.eventIDs = eventIDs;
+  if ~exist('eyeBehStatsByStim', 'var')
+    eyeBehStatsByStim = [];
+  end
   [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
 end
@@ -344,7 +349,7 @@ end
 
 % error('Done neuroGLM')
 
-if isfield(plotSwitch, 'spikePupilCorr') && plotSwitch.spikePupilCorr
+if plotSwitch.spikePupilCorr
   if calcSwitch.spikeTimes
     spikePupilCorrStruct = spikePupilCorr(spikesByEvent, eyeDataStruct, taskData, calcSwitch.spikeTimes, psthParams, eventIDs, spikeAlignParams, figStruct);
   else
@@ -357,16 +362,45 @@ end
 
 %% Plotting and further analyses
 
-if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
+if plotSwitch.imagePsth
   for channel_i = 1:length(channelNames)
     for unit_i = 1:length(channelUnitNames{channel_i})
+      
+      % if no isolated unit defined, plot just MUA, (unsorted is identical)
+      if length(channelUnitNames{channel_i}) == 2 && unit_i == 1
+        continue;
+      end
+      
+      % figure out stimOrder
+      if isfield(psthParams, 'sortStim') && psthParams.sortStim
+        if ~exist('NewStimOrder')
+          sortOrder = psthParams.(taskData.paradigm).sortOrder;
+          for image_i = 1:length(eventLabels)
+            for item_i = 1:length(sortOrder)
+              if any(strcmp(eventCategories{image_i},sortOrder{item_i})) || strcmp(eventLabels{image_i}, sortOrder{item_i})
+                groupLabelsByImage(image_i) = item_i;
+                break
+              end
+            end
+            if groupLabelsByImage(image_i) == 0
+              Output.VERBOSE(sprintf('no stim category match found for %s\n',eventLabels{image_i}));
+            end
+          end
+          %Sorts based on group membership.
+          [~, NewStimOrder] = sort(groupLabelsByImage);
+        end
+      else
+        NewStimOrder = 1:length(eventLabels);
+      end
+      
+      % If you want to Z-score the data before it runs, do so here.
       psthTitle = sprintf('Per Image PSTH %s, %s',channelNames{channel_i}, channelUnitNames{channel_i}{unit_i});
       if isfield(psthParams,'Zscore') && psthParams.Zscore
         %Calculate Baseline in PSTH by taking the average of all bins in the Pre-stimulus period
         psthTitle = [psthTitle ' - Z scored'];
         for ii = 1:size(psthByImage{channel_i}{unit_i},1)
           if psthParams.Zscore == 1
-            preStimBaseline = mean(psthByImage{channel_i}{unit_i}(ii,1:psthPre)); %(Baseline) Mean Subtraction.
+            preStimBaseline = mean(psthByImage{channel_i}{unit_i}(ii,1:ITI)); %(Baseline) Mean Subtraction, during pre-fixation period (pre-successful fixation).
             psthByImage{channel_i}{unit_i}(ii,:) = (psthByImage{channel_i}{unit_i}(ii,:) - preStimBaseline)/std(psthByImage{channel_i}{unit_i}(ii,:)); %Z score.
           else
             stimBaseline = mean(psthByImage{channel_i}{unit_i}(ii,:)); % Mean Subtraction.
@@ -374,51 +408,53 @@ if isfield(plotSwitch,'imagePsth') && plotSwitch.imagePsth
           end
         end
       end
-      if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
-        continue;
-      end
-      figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
       
+      % Plot 
+      figure('Name', psthTitle, 'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
       eventLabelsPlot = strrep(eventLabels, '_', ' ');
-      if isfield(psthParams, 'sortStim') && psthParams.sortStim
-        if ~exist('NewStimOrder')
-          sortOrder = psthParams.sortOrder;
-          %Copied from below, gives each stim a group membership.
-          for image_i = 1:length(eventLabels)
-            for item_i = 1:length(sortOrder)
-              if any(strcmp(eventCategories{image_i},sortOrder{item_i})) || strcmp(eventLabels{image_i},sortOrder{item_i})
-                groupLabelsByImage(image_i,group_i) = item_i;
-              end
-            end
-            if groupLabelsByImage(image_i,group_i) == 0
-              Output.VERBOSE(sprintf('no stim category match found for %s\n',eventLabels{image_i}));
-            end
-          end
-          %Sorts based on group membership.
-          [~, NewStimOrder] = sort(groupLabelsByImage);
-        end
-        plotPSTH(psthByImage{channel_i}{unit_i}(NewStimOrder,:), [], [], psthParams, 'color', psthTitle, eventLabelsPlot(NewStimOrder));
-      else
-        plotPSTH(psthByImage{channel_i}{unit_i}, [], [], psthParams, 'color', psthTitle, eventLabelsPlot);
-      end
+      plotPSTH(psthByImage{channel_i}{unit_i}(NewStimOrder,:), [], [], psthParams, 'color', psthTitle, eventLabelsPlot(NewStimOrder));
       clear figData
       title(psthTitle);
       figData.z = psthByImage{channel_i}{unit_i};
       figData.x = -psthPre:psthImDur+psthPost;
       saveFigure(outDir, sprintf('imPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}, runNum), figData, figStruct, figStruct.figTag);
+      
     end
   end
 end
 
-if isfield(plotSwitch,'categoryPsth') && plotSwitch.categoryPsth
+% If you want to Z-score Catagory data before it runs, do so here.
+if psthParams.Zscore
+  %Calculate Baseline in PSTH by taking the average of all bins in the Pre-stimulus period
+  zTag = ' Z scored';
+  for channel_i = 1:length(channelNames)
+    for unit_i = 1:length(channelUnitNames{channel_i})
+      for ii = 1:size(psthByCategory{channel_i}{unit_i},1)
+        if psthParams.Zscore == 1
+          preStimBaseline = mean(psthByCategory{channel_i}{unit_i}(ii,1:ITI)); %(Baseline) Mean Subtraction, during pre-fixation period (pre-successful fixation).
+          psthByCategory{channel_i}{unit_i}(ii,:) = (psthByCategory{channel_i}{unit_i}(ii,:) - preStimBaseline)/std(psthByCategory{channel_i}{unit_i}(ii,:)); %Z score.
+        else
+          stimBaseline = mean(psthByCategory{channel_i}{unit_i}(ii,:)); % Mean Subtraction.
+          psthByCategory{channel_i}{unit_i}(ii,:) = (psthByCategory{channel_i}{unit_i}(ii,:) - stimBaseline)/std(psthByCategory{channel_i}{unit_i}(ii,:)); %Z score.
+        end
+      end
+    end
+  end
+else
+  zTag = '';
+end
+
+if plotSwitch.categoryPsth
   categoryListPlot = strrep(categoryList, '_', ' ');
   for channel_i = 1:length(channelNames)
     for unit_i = 1:length(channelUnitNames{channel_i})
-      if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
+      
+      %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
+      if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 
         continue;
       end
-     
-      psthTitle = sprintf('Per Catagory PSTH %s, %s',channelNames{channel_i}, channelUnitNames{channel_i}{unit_i});
+           
+      psthTitle = sprintf('Per Catagory PSTH %s, %s, %s',channelNames{channel_i}, channelUnitNames{channel_i}{unit_i}, zTag);
       figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
       plotPSTH(psthByCategory{channel_i}{unit_i}, [],  [], psthParams, 'color', psthTitle, categoryListPlot);
       clear figData
@@ -430,7 +466,7 @@ if isfield(plotSwitch,'categoryPsth') && plotSwitch.categoryPsth
   end
 end
 
-if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth && isfield(analysisGroups.analysisGroupPSTH, taskData.paradigm)
+if plotSwitch.analysisGroupsPsth && isfield(analysisGroups.analysisGroupPSTH, taskData.paradigm)
   % Identify which PSTHes to stack.
 %   analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
   analysisPSTHStruct = analysisGroups.analysisGroupPSTH.(taskData.paradigm);
@@ -438,15 +474,17 @@ if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth && 
   categoryListPlot = strrep(categoryList, '_', ' ');
   
   for ii = 1:length(analysisPSTH)
-    analysisGroupLogic = false(length(categoryList), 1);
+    stimOrder = [];
     categoryListSet = analysisPSTHStruct.(analysisPSTH{ii});
+    
+    % Pick the members which belong in this group
     for jj = 1:length(categoryListSet)
-      analysisGroupLogic  = analysisGroupLogic | strcmp(categoryList, categoryListSet(jj))';
+      stimOrder = [stimOrder; find(strcmp(categoryList, categoryListSet(jj))')];
     end
     
-    if any(analysisGroupLogic)
+    if ~isempty(stimOrder)
       
-      if sum(analysisGroupLogic) > 10
+      if sum(stimOrder) > 10
         psthType = 'color';
       else
         psthType = 'line';
@@ -459,10 +497,10 @@ if isfield(plotSwitch,'analysisGroupsPsth') && plotSwitch.analysisGroupsPsth && 
             continue;
           end
           
-          psthTitle = sprintf('Analysis Group %s PSTH %s, %s', analysisPSTH{ii}, channelNames{channel_i}, channelUnitNames{channel_i}{unit_i});
+          psthTitle = sprintf('Analysis Group %s PSTH %s, %s, %s', analysisPSTH{ii}, channelNames{channel_i}, channelUnitNames{channel_i}{unit_i}, zTag);
           figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
 
-          plotPSTH(psthByCategory{channel_i}{unit_i}(analysisGroupLogic,:), psthErrByCategory{channel_i}{unit_i}(analysisGroupLogic,:),  [], psthParams, psthType, psthTitle, categoryListPlot(analysisGroupLogic));
+          plotPSTH(psthByCategory{channel_i}{unit_i}(stimOrder,:), psthErrByCategory{channel_i}{unit_i}(stimOrder,:),  [], psthParams, psthType, psthTitle, categoryListPlot(stimOrder));
 
           clear figData
           title(psthTitle);
@@ -830,8 +868,7 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
   save(analysisOutFilename,'selectivityIndices','-append');
   
   % category preference bar plot
-  calcSwitches = [isfield(plotSwitch,'stimPrefBarPlot') && plotSwitch.stimPrefBarPlot, isfield(plotSwitch,'stimPrefBarPlotEarly') && plotSwitch.stimPrefBarPlotEarly,...
-    isfield(plotSwitch,'stimPrefBarPlotLate') && plotSwitch.stimPrefBarPlotLate];
+  calcSwitches = [plotSwitch.stimPrefBarPlot, plotSwitch.stimPrefBarPlotEarly, plotSwitch.stimPrefBarPlotLate];
   for calc_i = 1:length(calcSwitches)
     if ~calcSwitches(calc_i)
       continue
@@ -892,7 +929,7 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           end
         end
         suptitle(sprintf('%s spikes category tuning, %dms-%dms post-onset',channelNames{channel_i},frCalcOn,frCalcOff));
-        saveFigure(outDir, sprintf('catPrefBars_%s_%s_%dms-%dms_Run%s',groupName,channelNames{channel_i},frCalcOn,frCalcOff,runNum), figData, figStruct, figStruct.figTag );
+        saveFigure(outDir, sprintf('catPrefBars_%s_%s_%dms-%dms_Run%s',groupName,channelNames{channel_i},frCalcOn,frCalcOff,runNum), [], figStruct, figStruct.figTag );
       end
     end
   end
@@ -4461,7 +4498,7 @@ function [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsB
 % subEventParams - has path to eventData, stimDir, and variables used to
 % plot PSTHes.
 
-specSubEvent = 1;     % Analyze individual instances of subEvents in eventData.
+specSubEvent = 0;     % Analyze individual instances of subEvents in eventData.
 
 % Unpack Variables, some preprocessing. Generate an index for individual 
 % trials that take place during the run, matching them to the stimuli as 
@@ -4478,146 +4515,148 @@ assert(max(taskEventIDInd) == length(eventIDs))
 
 % Initialize a list of all the events present in the code.
 subEventNames = [];
+onsetsByEvent = {};
+onsetsByEventNull = {};
 
 % Event Type 1 - Find events which take place in the stimuli presented,
 % defined in the eventData file.
 eventDataFile = dir([subEventParams.stimDir '/**/eventData.mat']);
-if ~isempty(eventDataFile)
-  % If we find a file, load it.
-  load(fullfile(eventDataFile(1).folder, eventDataFile(1).name), 'eventData');
+% If we find a file, load it.
+load(fullfile(eventDataFile(1).folder, eventDataFile(1).name), 'eventData');
+eventsInData = intersect(eventIDs, eventData.Row);
+
+% If all the events in the run are in the eventData
+if length(eventsInData) == length(eventIDs)
   eventDataRun = eventData(eventIDs, :);
   emptyEntryInd = cellfun(@(x) size(x,1) ~= 0, table2cell(eventDataRun));
   presentEventInd = any(emptyEntryInd);
   emptyEntryInd = emptyEntryInd(:,presentEventInd);
   eventsInEventData = eventDataRun.Properties.VariableNames(presentEventInd);
-  
   eventStimTable = cell2table(cell(0,4), 'VariableNames', {'eventName', 'stimName', 'startFrame', 'endFrame'});
   
   % If our run has eventData specific events
-  if ~isempty(eventsInEventData)
-    subEventNames = [subEventNames; eventsInEventData'];
-    cell2table(cell(0,4), 'VariableNames', {'eventName', 'stimName', 'startFrame', 'endFrame'})
+  %   if ~isempty(eventsInEventData)
+  subEventNames = [subEventNames; eventsInEventData'];
+  
+  % Cycle through events, generating table to be used as reference for
+  % collecting event specific times (has startTime, endTime, stim name).
+  for event_i = 1:length(eventsInEventData)
     
-    % Cycle through events, generating table to be used as reference for
-    % collecting event specific times (has startTime, endTime, stim name).
-    for event_i = 1:length(eventsInEventData)
-      
-      subEventRunData = eventDataRun(:, eventsInEventData{event_i});
-      subEventRunData = subEventRunData(emptyEntryInd(:, event_i),:);
-      stimSourceArray = subEventRunData.Properties.RowNames;
-      
-      for stim_i = 1:length(stimSourceArray)
-        
-        %Identify time per frame, shift event frames to event times. 
-        frameMotionDataInd = strcmp({frameMotionData.stimVid}, stimSourceArray(stim_i));
-        
-        if ~any(frameMotionDataInd)
-          stimVid = dir([subEventParams.stimDir '/**/' stimSourceArray{stim_i}]);
-          vidObj = VideoReader(fullfile(stimVid(1).folder, stimVid(1).name));
-          msPerFrame = (vidObj.Duration/vidObj.NumFrames) * 1000;
-          clear vidObj
-        else
-          msPerFrame = frameMotionData(frameMotionDataInd).timePerFrame;
-        end
-        
-        % Add events to larger table
-        eventTable = subEventRunData{stimSourceArray(stim_i),:}{1};
-        eventTable.startFrame = eventTable.startFrame * msPerFrame;
-        eventTable.endFrame = eventTable.endFrame * msPerFrame;
-        entryCount = size(eventTable,1);
-        entryStarts = table2cell(eventTable(:,'startFrame'));
-        entryEnds =  table2cell(eventTable(:,'endFrame'));
-        
-        eventStimTable = [eventStimTable; [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(stim_i), [entryCount, 1]), entryStarts, entryEnds]];
-          
-      end
-    end 
+    subEventRunData = eventDataRun(:, eventsInEventData{event_i});
+    subEventRunData = subEventRunData(emptyEntryInd(:, event_i),:);
+    stimSourceArray = subEventRunData.Properties.RowNames;
     
-    % Generate a vector of spikeTimes in the conventional structure.
-    [onsetsByEvent, onsetsByEventNull, stimSourceByEvent] = deal(cell(size(eventsInEventData')));
-    stimPSTHDur = subEventParams.stimPlotParams.psthPre + subEventParams.stimPlotParams.psthImDur + subEventParams.stimPlotParams.psthPost;
-    stimEventMat = initNestedCellArray(length(eventsInEventData), 'zeros', [length(eventIDs) stimPSTHDur]);
-    
-    for event_i = 1:length(eventsInEventData)
-      % Identify spaces with the events in the presented stimuli.
-      eventData = eventStimTable(strcmp(eventStimTable.eventName, eventsInEventData{event_i}),2:end);
-      stimWithEvent = unique(eventData.stimName);
+    for stim_i = 1:length(stimSourceArray)
       
-      % Identify trials of stimuli without this event, for null sampling
-      [~, stimWOEventInd] = setdiff(eventIDs, stimWithEvent);
-      [~, stimWEventInd] = intersect(eventIDs, stimWithEvent);
-      taskEventNullSampling = false(size(taskEventIDInd));
-      for sti_i = stimWOEventInd'
-        taskEventNullSampling(taskEventIDInd == sti_i) = true;
+      %Identify time per frame, shift event frames to event times.
+      frameMotionDataInd = strcmp({frameMotionData.stimVid}, stimSourceArray(stim_i));
+      
+      if ~any(frameMotionDataInd)
+        stimVid = dir([subEventParams.stimDir '/**/' stimSourceArray{stim_i}]);
+        vidObj = VideoReader(fullfile(stimVid(1).folder, stimVid(1).name));
+        msPerFrame = (vidObj.Duration/vidObj.NumFrames) * 1000;
+        clear vidObj
+      else
+        msPerFrame = frameMotionData(frameMotionDataInd).timePerFrame;
       end
       
-      [eventStartTimes, eventEndTimes, eventStartTimesNull, eventEndTimesNull, eventStimSource] = deal([]);
-      for stim_i = stimWEventInd'
-        % Get the appropriate start and end frames, convert to
-        stimTrialInd = (taskEventIDInd == stim_i);
-        stimEventData = eventData(strcmp(eventData.stimName, eventIDs{stim_i}), :);
-        
-        % Cycle through and find event occurance times
-        for tab_i = 1:size(stimEventData,1)
-          startTime = round(stimEventData.startFrame(tab_i));
-          endTime = round(stimEventData.endFrame(tab_i));
-          eventTitle = {[eventsInEventData{event_i}, '|', extractBefore(eventIDs{stim_i}, strfind(eventIDs{stim_i}, '.')) '-' num2str(startTime) '-' num2str(endTime)]};
-
-          % Label the stimEventMat to highlight sampled region.
-          startEventInd = (startTime + subEventParams.stimPlotParams.psthPre);
-          endEventInd = (startEventInd + subEventParams.psthParams.psthImDur);
-          stimEventMat{event_i}(stim_i, startEventInd:endEventInd) = deal(1);
-          
-          % Label the beginning to make lines easier to see stim.
-          stimEventMat{event_i}(stim_i, 1:100) = deal(1);
-          
-          % Find out when the stimulus happens, and add these structures to
-          % the larger ones
-          eventStartTimes = [eventStartTimes; taskData.taskEventStartTimes(stimTrialInd) + startTime];
-          eventEndTimes = [eventEndTimes; taskData.taskEventStartTimes(stimTrialInd) + endTime];
-          eventStimSource = [eventStimSource; repmat(eventTitle, [length(taskData.taskEventStartTimes(stimTrialInd)), 1])];
-          
-          % Generate a matrix which can be used to determine a null
-          % distribution
-          %stimEventMat(stimMatIndex, startTime:endTime) = deal(1);
-          nullTimesStart = taskData.taskEventStartTimes(taskEventNullSampling) + startTime;
-          nullTimesEnd = taskData.taskEventStartTimes(taskEventNullSampling) + endTime;
-          
-          eventStartTimesNull = [eventStartTimesNull; nullTimesStart];
-          eventEndTimesNull = [eventEndTimesNull; nullTimesEnd];
-          
-        end
-        %eventStimSource = [eventStimSource; repmat(stimWithEvent(stim_i), [length(eventStartTimes), 1])];
-      end
-      onsetsByEvent{event_i} = eventStartTimes;
-      onsetsByEventNull{event_i} = eventStartTimesNull;
-      stimSourceByEvent{event_i} = eventStimSource;
+      % Add events to larger table
+      eventTable = subEventRunData{stimSourceArray(stim_i),:}{1};
+      eventTable.startFrame = eventTable.startFrame * msPerFrame;
+      eventTable.endFrame = eventTable.endFrame * msPerFrame;
+      entryCount = size(eventTable,1);
+      entryStarts = table2cell(eventTable(:,'startFrame'));
+      entryEnds =  table2cell(eventTable(:,'endFrame'));
+      
+      eventStimTable = [eventStimTable; [repmat(eventsInEventData(event_i), [entryCount, 1]), repmat(stimSourceArray(stim_i), [entryCount, 1]), entryStarts, entryEnds]];
+      
     end
-    
-    % If we want, we can parse the events into individual instances, incase
-    % there is some effect taking place for 'head turns during idle'
-    if specSubEvent
-      onsetsByEventAll = vertcat(onsetsByEvent{:});
-      stimSourceByEventAll = vertcat(stimSourceByEvent{:});
-      uniqueSubEvents = unique(stimSourceByEventAll);
-      % Grab times of the individual events.
-      onsetsByEventSpec = cell(length(uniqueSubEvents),1);
-      onsetsByEventSpecCounts = zeros(length(uniqueSubEvents),1);
-      for ii = 1:length(uniqueSubEvents)
-        onsetsByEventSpec{ii} = onsetsByEventAll(strcmp(stimSourceByEventAll, uniqueSubEvents{ii}));
-        onsetsByEventSpecCounts(ii) = length(onsetsByEventSpec{ii});
-      end
-      
-      specEventInds = [length(onsetsByEvent) + 1; length(onsetsByEvent) + length(onsetsByEventSpec)];
-      onsetsByEvent = [onsetsByEvent; onsetsByEventSpec];
-      subEventNames = [subEventNames; uniqueSubEvents];
-    end
-    
-  else
-    % If there are no events in the data
-    subEventSigStruct = struct();
-    subEventSigStruct.noSubEvent = 1;
   end
+  
+  % Generate a vector of spikeTimes in the conventional structure.
+  [onsetsByEvent, onsetsByEventNull, stimSourceByEvent] = deal(cell(size(eventsInEventData')));
+  stimPSTHDur = subEventParams.stimPlotParams.psthPre + subEventParams.stimPlotParams.psthImDur + subEventParams.stimPlotParams.psthPost;
+  stimEventMat = initNestedCellArray(length(eventsInEventData), 'zeros', [length(eventIDs) stimPSTHDur]);
+  
+  for event_i = 1:length(eventsInEventData)
+    % Identify spaces with the events in the presented stimuli.
+    eventData = eventStimTable(strcmp(eventStimTable.eventName, eventsInEventData{event_i}),2:end);
+    stimWithEvent = unique(eventData.stimName);
+    
+    % Identify trials of stimuli without this event, for null sampling
+    [~, stimWOEventInd] = setdiff(eventIDs, stimWithEvent);
+    [~, stimWEventInd] = intersect(eventIDs, stimWithEvent);
+    taskEventNullSampling = false(size(taskEventIDInd));
+    for sti_i = stimWOEventInd'
+      taskEventNullSampling(taskEventIDInd == sti_i) = true;
+    end
+    
+    [eventStartTimes, eventEndTimes, eventStartTimesNull, eventEndTimesNull, eventStimSource] = deal([]);
+    for stim_i = stimWEventInd'
+      % Get the appropriate start and end frames, convert to
+      stimTrialInd = (taskEventIDInd == stim_i);
+      stimEventData = eventData(strcmp(eventData.stimName, eventIDs{stim_i}), :);
+      
+      % Cycle through and find event occurance times
+      for tab_i = 1:size(stimEventData,1)
+        startTime = round(stimEventData.startFrame(tab_i));
+        endTime = round(stimEventData.endFrame(tab_i));
+        eventTitle = {[eventsInEventData{event_i}, '|', extractBefore(eventIDs{stim_i}, strfind(eventIDs{stim_i}, '.')) '-' num2str(startTime) '-' num2str(endTime)]};
+        
+        % Label the stimEventMat to highlight sampled region.
+        startEventInd = (startTime + subEventParams.stimPlotParams.psthPre);
+        endEventInd = (startEventInd + subEventParams.psthParams.psthImDur);
+        stimEventMat{event_i}(stim_i, startEventInd:endEventInd) = deal(1);
+        
+        % Label the beginning to make lines easier to see stim.
+        stimEventMat{event_i}(stim_i, 1:100) = deal(1);
+        
+        % Find out when the stimulus happens, and add these structures to
+        % the larger ones
+        eventStartTimes = [eventStartTimes; taskData.taskEventStartTimes(stimTrialInd) + startTime];
+        eventEndTimes = [eventEndTimes; taskData.taskEventStartTimes(stimTrialInd) + endTime];
+        eventStimSource = [eventStimSource; repmat(eventTitle, [length(taskData.taskEventStartTimes(stimTrialInd)), 1])];
+        
+        % Generate a matrix which can be used to determine a null
+        % distribution
+        %stimEventMat(stimMatIndex, startTime:endTime) = deal(1);
+        nullTimesStart = taskData.taskEventStartTimes(taskEventNullSampling) + startTime;
+        nullTimesEnd = taskData.taskEventStartTimes(taskEventNullSampling) + endTime;
+        
+        eventStartTimesNull = [eventStartTimesNull; nullTimesStart];
+        eventEndTimesNull = [eventEndTimesNull; nullTimesEnd];
+        
+      end
+      %eventStimSource = [eventStimSource; repmat(stimWithEvent(stim_i), [length(eventStartTimes), 1])];
+    end
+    onsetsByEvent{event_i} = eventStartTimes;
+    onsetsByEventNull{event_i} = eventStartTimesNull;
+    stimSourceByEvent{event_i} = eventStimSource;
+  end
+  
+  % If we want, we can parse the events into individual instances, incase
+  % there is some effect taking place for 'head turns during idle'
+  stimSourceByEventAll = vertcat(stimSourceByEvent{:});
+  uniqueSubEvents = unique(stimSourceByEventAll);
+  if specSubEvent
+    onsetsByEventAll = vertcat(onsetsByEvent{:});
+    % Grab times of the individual events.
+    onsetsByEventSpec = cell(length(uniqueSubEvents),1);
+    onsetsByEventSpecCounts = zeros(length(uniqueSubEvents),1);
+    for ii = 1:length(uniqueSubEvents)
+      onsetsByEventSpec{ii} = onsetsByEventAll(strcmp(stimSourceByEventAll, uniqueSubEvents{ii}));
+      onsetsByEventSpecCounts(ii) = length(onsetsByEventSpec{ii});
+    end
+    
+    specEventInds = [length(onsetsByEvent) + 1; length(onsetsByEvent) + length(onsetsByEventSpec)];
+    onsetsByEvent = [onsetsByEvent; onsetsByEventSpec];
+    subEventNames = [subEventNames; uniqueSubEvents];
+  end
+  
+else
+  % If there are no events in the data
+  subEventSigStruct = struct();
+  subEventSigStruct.noSubEvent = 1;
 end
 
 % Event Type 2 - Generate/Organize Event times for eye movements here, concatonate onto
@@ -4689,14 +4728,52 @@ if ~isempty(eyeBehStatsByStim)
     eyeEventNullTimes{eyeEvent_i} = nullTimesForEvent;
   end
   
-  % Save to larger structures
-  if ~exist('onsetsByEvent', 'var')
-    onsetsByEvent = [];
-    onsetsByEventNull = [];
-  end
-  
   onsetsByEvent = [onsetsByEvent; eyeEventTimes];
   onsetsByEventNull = [onsetsByEventNull; eyeEventNullTimes];
+end
+
+% Event Type 3 - add the Reward as an event
+if subEventParams.RewardEvent
+  
+  % Generate a distribution of null times for both blinks and saccades
+  rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
+  firstTime = min(rewardTimes);
+  lastTime = max(rewardTimes);
+  
+  % Generate Null times Take the Reward times, add a number (100 - 1000), shuffle them and check
+  % if its close to a number on the list. If not, its a null value.
+  maxShift = 500;
+  minShift = 100;
+  minEventDist = 200;
+  
+  shiftCount = length(rewardTimes);
+  shifts = [randi([minShift, maxShift],[ceil(shiftCount/2),1]); randi([-maxShift, -minShift],[floor(shiftCount/2),1])];
+  shifts = shifts(randperm(length(shifts)));
+  nullTimesForEvent = rewardTimes + shifts; %repmat(eyeEventTimes{eyeEvent_i}, [shuffleMult,1]) + shifts;
+  
+  % check if any of these null times are close to event times, if not,
+  % remove.
+  nullTimesForEventCheck = repmat(nullTimesForEvent, [1, length(nullTimesForEvent)]);
+  
+  nullTimesForEventCheck = (nullTimesForEventCheck' - rewardTimes)';
+  nullTimesForEventCheckRemoveInd = abs(nullTimesForEventCheck) > minEventDist;
+  keepInd = ~any(~nullTimesForEventCheckRemoveInd,2);
+  nullTimesForEvent = nullTimesForEvent(keepInd);
+  
+  % Remove ones that are after the last time stamp or before the first
+  keepInd = ~logical((nullTimesForEvent < firstTime) + (nullTimesForEvent > lastTime));
+  nullTimesForEvent = nullTimesForEvent(keepInd);
+  
+  % Store into appropriate cell array
+  rewardTimesNull = nullTimesForEvent;
+  
+  onsetsByEvent = [onsetsByEvent; rewardTimes];
+  onsetsByEventNull = [onsetsByEventNull; rewardTimesNull];
+  if isempty(subEventNames)
+    subEventNames = {'reward'};
+  else
+    subEventNames = [subEventNames; 'reward'];
+  end
 end
 
 %Ideally this would happen in some form after alignSpikes, instead of
@@ -4706,155 +4783,167 @@ end
 % Sample the null times, expand each onsertsByEventNull cell by the
 % parameter below (subEventParams.nullSampleMult).
 % onsetsByEventNull = cellfun(@(x) repmat(x, [subEventParams.nullSampleMult,1]), onsetsByEventNull, 'UniformOutput', false);
-subEventParams.refOffset = 0;
-[spikesBySubEvent, spikesEmptyBySubEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ones(length(spikesByChannel),1), subEventParams);
-[spikesBySubEventNull, spikesEmptyBySubEventNull] = alignSpikes(spikesByChannel, onsetsByEventNull, ones(length(spikesByChannel),1), subEventParams);
-
-% follow with putting spikesBySubEvent into calcPSTH.
-if ~ephysParams.spikeTimes
-  spikesBySubEventBinned = calcSpikeTimes(spikesBySubEvent, subEventParams.psthParams);
-  spikesBySubEventNullBinned = calcSpikeTimes(spikesBySubEventNull, subEventParams.psthParams);
+if exist('onsetsByEvent', 'var')
+  subEventParams.refOffset = 0;
+  [spikesBySubEvent, spikesEmptyBySubEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ones(length(spikesByChannel),1), subEventParams);
+  [spikesBySubEventNull, spikesEmptyBySubEventNull] = alignSpikes(spikesByChannel, onsetsByEventNull, ones(length(spikesByChannel),1), subEventParams);
   
-  [psthBySubEvent, psthErrBySubEvent] = calcStimPSTH(spikesBySubEventBinned, spikesEmptyBySubEvent, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
-  [psthBySubEventNull, psthErrBySubEventNull] = calcStimPSTH(spikesBySubEventNullBinned, spikesEmptyBySubEventNull, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
-else
-  [psthBySubEvent, psthErrBySubEvent] = calcStimPSTH(spikesBySubEvent, spikesEmptyBySubEvent, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
-  [psthBySubEventNull, psthErrBySubEventNull] = calcStimPSTH(spikesBySubEventNull, spikesEmptyBySubEventNull, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
-end
-
-if specSubEvent
-  % Remove the subEvents which are specific instances, they need to be
-  % processed differently.
-  subEventInd = false(length(subEventNames),1);
-  % In case there are only saccades and blinks.
-  if exist('specEventInds', 'var')
-    subEventInd(specEventInds(1):specEventInds(2)) = true;
+  % follow with putting spikesBySubEvent into calcPSTH.
+  if ~ephysParams.spikeTimes
+    spikesBySubEventBinned = calcSpikeTimes(spikesBySubEvent, subEventParams.psthParams);
+    spikesBySubEventNullBinned = calcSpikeTimes(spikesBySubEventNull, subEventParams.psthParams);
+    
+    [psthBySubEvent, psthErrBySubEvent] = calcStimPSTH(spikesBySubEventBinned, spikesEmptyBySubEvent, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
+    [psthBySubEventNull, psthErrBySubEventNull] = calcStimPSTH(spikesBySubEventNullBinned, spikesEmptyBySubEventNull, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
+  else
+    [psthBySubEvent, psthErrBySubEvent] = calcStimPSTH(spikesBySubEvent, spikesEmptyBySubEvent, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
+    [psthBySubEventNull, psthErrBySubEventNull] = calcStimPSTH(spikesBySubEventNull, spikesEmptyBySubEventNull, ephysParams.spikeTimes, subEventParams.psthParams, subEventParams);
   end
   
-  % Copy the structure generated
-  specSubEventPSTH = psthBySubEvent;
-  for chan_i = 1:length(specSubEventPSTH)
-    for unit_i = 1:length(specSubEventPSTH{chan_i})
-      % Go to the base layer, segregate info for specific subEvents and general ones. 
-      specSubEventPSTH{chan_i}{unit_i} = specSubEventPSTH{chan_i}{unit_i}(subEventInd,:);
-      psthBySubEvent{chan_i}{unit_i} = psthBySubEvent{chan_i}{unit_i}(~subEventInd,:);
+  if specSubEvent
+    % Remove the subEvents which are specific instances, they need to be
+    % processed differently.
+    subEventInd = false(length(subEventNames),1);
+    % In case there are only saccades and blinks.
+    if exist('specEventInds', 'var')
+      subEventInd(specEventInds(1):specEventInds(2)) = true;
+    end
+    
+    % Copy the structure generated
+    specSubEventPSTH = psthBySubEvent;
+    for chan_i = 1:length(specSubEventPSTH)
+      for unit_i = 1:length(specSubEventPSTH{chan_i})
+        % Go to the base layer, segregate info for specific subEvents and general ones.
+        specSubEventPSTH{chan_i}{unit_i} = specSubEventPSTH{chan_i}{unit_i}(subEventInd,:);
+        psthBySubEvent{chan_i}{unit_i} = psthBySubEvent{chan_i}{unit_i}(~subEventInd,:);
+      end
+    end
+    
+    % Modify other structures where event is at the top layer
+    spikesBySubEvent = spikesBySubEvent(~subEventInd);
+    subEventNames = subEventNames(~subEventInd);
+    % uniqueSubEvents for specificSubEvents
+  end
+  
+  % Statistics
+  % Method 1 - perform T test on spike rates for the period from 0 to 200
+  % ms post event. See if the Non-event and event differ in this period.
+  testPeriod = [0 200];
+  [spikeCounts, ~, ~] = spikeCounter(spikesBySubEvent, testPeriod(1), testPeriod(2));
+  [spikeCountsNull, ~, ~] = spikeCounter(spikesBySubEventNull, testPeriod(1), testPeriod(2));
+  [testResults, cohensD] = deal(initNestedCellArray(spikeCounts, 'ones', [1 1], 3));
+  for chan_i = 1:length(testResults)
+    for unit_i = 1:length(testResults{chan_i})
+      for event_i = 1:length(testResults{chan_i}{unit_i})
+        eventSpikes = [spikeCounts{chan_i}{unit_i}{event_i}.rates];
+        nullSpikes = [spikeCountsNull{chan_i}{unit_i}{event_i}.rates];
+        [~, testResults{chan_i}{unit_i}{event_i}, ~, tmpStats] = ttest2(eventSpikes,  nullSpikes);
+        cohensD{chan_i}{unit_i}{event_i} = (mean(eventSpikes) - mean(nullSpikes))/tmpStats.sd;
+      end
     end
   end
   
-  % Modify other structures where event is at the top layer
-  spikesBySubEvent = spikesBySubEvent(~subEventInd);
-  subEventNames = subEventNames(~subEventInd);
-  % uniqueSubEvents for specificSubEvents
-end
-
-% Statistics
-% Method 1 - perform T test on spike rates for the period from 0 to 200
-% ms post event. See if the Non-event and event differ in this period.
-testPeriod = [0 200];
-[spikeCounts, ~, ~] = spikeCounter(spikesBySubEvent, testPeriod(1), testPeriod(2));
-[spikeCountsNull, ~, ~] = spikeCounter(spikesBySubEventNull, testPeriod(1), testPeriod(2));
-[testResults, cohensD] = deal(initNestedCellArray(spikeCounts, 'ones', [1 1], 3));
-for chan_i = 1:length(testResults)
-  for unit_i = 1:length(testResults{chan_i})
-    for event_i = 1:length(testResults{chan_i}{unit_i})
-      eventSpikes = [spikeCounts{chan_i}{unit_i}{event_i}.rates];
-      nullSpikes = [spikeCountsNull{chan_i}{unit_i}{event_i}.rates];
-      [~, testResults{chan_i}{unit_i}{event_i}, ~, tmpStats] = ttest2(eventSpikes,  nullSpikes);
-      cohensD{chan_i}{unit_i}{event_i} = (mean(eventSpikes) - mean(nullSpikes))/tmpStats.sd;
-    end
-  end
-end
-
-% Plotting Below
-tabPerEvent = 1; % Plot line PSTHes for each event.
-
-% Generate an array for referencing subEvents correctly.
-if exist('uniqueSubEvents', 'var')
-  tmp = cellfun(@(x) strsplit(x, '|'), uniqueSubEvents, 'UniformOutput', 0);
-  specSubEventNamesSorted = cellfun(@(x) x{1}, tmp, 'UniformOutput', 0);
+  % Plotting Below
+  tabPerEvent = 1; % Plot line PSTHes for each event.
+  
+  % Generate an array for referencing subEvents correctly.
   eventsInEventDataPlot = strrep(subEventNames, '_',' ');
+  if exist('uniqueSubEvents', 'var') && specSubEvent
+    tmp = cellfun(@(x) strsplit(x, '|'), uniqueSubEvents, 'UniformOutput', 0);
+    specSubEventNamesSorted = cellfun(@(x) x{1}, tmp, 'UniformOutput', 0);
+    %   eventsInEventDataPlot = strrep(subEventNames, '_',' ');
+  end
   
   for chan_i = 1:length(psthBySubEvent)
-    for unit_i = 1:length(psthBySubEvent{chan_i})
+    unitCount = length(psthBySubEvent{chan_i});
+    for unit_i = 1:unitCount
+      
+      if unit_i == 1 && unitCount == 2
+        continue % Only make plot for MUA.
+      end
       
       % Create per unit figure
-      psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, ephysParams.channelUnitNames{chan_i}{unit_i});
-      figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
-      if ~tabPerEvent
-        sgtitle(psthTitle)
-      end
-      plotLabels = [{'Event'}, {'Null'}];
-      
-      % Cycle through events
-      for event_i = 1:length(subEventNames)
+      if ~isempty(ephysParams.channelUnitNames{chan_i})
+        psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, ephysParams.channelUnitNames{chan_i}{unit_i});
+        figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
         if ~tabPerEvent
-          axesH = subplot(length(subEventNames), 1, event_i);
-        else
-          objTab = uitab('Title', subEventNames{event_i});
-          axesH = axes('parent', objTab);
+          sgtitle(psthTitle)
         end
+        plotLabels = [{'Event'}, {'Null'}];
         
-        plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
-        plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
-        plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
-        [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
-        hold on
-        if event_i ~= length(subEventNames)
-          axesH.XLabel.String = '';
-        end
-        
-        % Plot individual traces
-        if specSubEvent
-          relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
-          newLines = gobjects(length(relevantEventInd),1);
-          psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + subEventParams.psthParams.psthPost;
-          for ii = 1:length(relevantEventInd)
-            newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
+        % Cycle through events
+        for event_i = 1:length(subEventNames)
+          if ~tabPerEvent
+            axesH = subplot(length(subEventNames), 1, event_i);
+          else
+            objTab = uitab('Title', subEventNames{event_i});
+            axesH = axes('parent', objTab);
           end
           
-          % Expand vertical bars to capture new traces
-          [vertLineHands(1).YData, vertLineHands(2).YData] = deal(ylim());
+          plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
+          plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
+          plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
+          [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
+          hold on
+          if event_i ~= length(subEventNames)
+            axesH.XLabel.String = '';
+          end
           
-          % Update the legend
-          handles = [psthHand.mainLine, newLines'];
-          labels = [plotLabels, uniqueSubEvents(relevantEventInd)'];
-          legend(handles, labels);
+          % Plot individual traces
+          if specSubEvent
+            relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
+            newLines = gobjects(length(relevantEventInd),1);
+            psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + subEventParams.psthParams.psthPost;
+            for ii = 1:length(relevantEventInd)
+              newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
+            end
+            
+            % Expand vertical bars to capture new traces
+            [vertLineHands(1).YData, vertLineHands(2).YData] = deal(ylim());
+            
+            % Update the legend
+            handles = [psthHand.mainLine, newLines'];
+            labels = [plotLabels, uniqueSubEvents(relevantEventInd)'];
+            legend(handles, labels);
+          end
+          
         end
-        
+        saveFigure(figStruct.figDir, psthTitle, [], figStruct, [])
       end
-      saveFigure(figStruct.figDir, psthTitle, [], figStruct, [])
     end
   end
   
   % SubEvent Occurances for stimulus visual events, not saccades/blinks.
-  plotName = 'SubEvent Occurances';
-  h = figure('Name', plotName,'NumberTitle','off','units','normalized');
-  for event_i = 1:length(stimEventMat)
-    axesH = subplot(length(stimEventMat), 1, event_i);
-    [~, colorbarH] = plotPSTH(stimEventMat{event_i}, [], [], subEventParams.stimPlotParams, 'color', eventsInEventDataPlot(event_i) , strrep(eventIDs, '_', ' '));
-    delete(colorbarH)
-    axesH.FontSize = 10;
-    if event_i ~= length(eventsInEventData)
-      axesH.XLabel.String = '';
+  
+  if ~isempty(eventsInData)
+    plotName = 'SubEvent Occurances';
+    h = figure('Name', plotName,'NumberTitle','off','units','normalized');
+    for event_i = 1:length(stimEventMat)
+      axesH = subplot(length(stimEventMat), 1, event_i);
+      [~, colorbarH] = plotPSTH(stimEventMat{event_i}, [], [], subEventParams.stimPlotParams, 'color', eventsInEventDataPlot(event_i) , strrep(eventIDs, '_', ' '));
+      delete(colorbarH)
+      axesH.FontSize = 10;
+      if event_i ~= length(eventsInEventData)
+        axesH.XLabel.String = '';
+      end
     end
+    saveFigure(figStruct.figDir, plotName, [], figStruct, [])
   end
-  saveFigure(figStruct.figDir, plotName, [], figStruct, [])
-  if figStruct.closeFig
-    close(h)
-  end
+  
+  % Package outputs
+  subEventSigStruct = struct();
+  subEventSigStruct.subEventPSTH = [psthBySubEvent, psthErrBySubEvent];
+  subEventSigStruct.subEventNullPSTH = [psthBySubEventNull, psthErrBySubEventNull];
+  subEventSigStruct.testResults = testResults;
+  subEventSigStruct.testPeriod = testPeriod;
+  subEventSigStruct.psthWindow = [-subEventParams.psthParams.psthPre subEventParams.psthParams.psthImDur];
+  subEventSigStruct.cohensD = cohensD;
+  subEventSigStruct.sigInd = "{channel}{unit}{event}";
+  subEventSigStruct.events = subEventNames;
+  subEventSigStruct.noSubEvent = 0;
+  
 end
 
-% Package outputs
-subEventSigStruct = struct();
-subEventSigStruct.subEventPSTH = [psthBySubEvent, psthErrBySubEvent];
-subEventSigStruct.subEventNullPSTH = [psthBySubEventNull, psthErrBySubEventNull];
-subEventSigStruct.testResults = testResults;
-subEventSigStruct.testPeriod = testPeriod;
-subEventSigStruct.psthWindow = [-subEventParams.psthParams.psthPre subEventParams.psthParams.psthImDur];
-subEventSigStruct.cohensD = cohensD;
-subEventSigStruct.sigInd = "{channel}{unit}{event}";
-subEventSigStruct.events = subEventNames;
-subEventSigStruct.noSubEvent = 0;
 specSubEventStruct = struct();
 
 if specSubEvent && exist('uniqueSubEvents', 'var')
@@ -5225,7 +5314,7 @@ attendedObjData = eyeDataStruct.attendedObjData;
 
 shapeOverlay = 1;         % Switch for shape overlay.
 trialNumberOverlay = 1;   % Switch for trial number overlay on eye signal.
-colorCodedTrace = 2;      % Trace changes colors corresponding to what is being looked at. 1 = per target of gaze, 2 = Saccade vs fixation.
+colorCodedTrace = 1;      % Trace changes colors corresponding to what is being looked at. 1 = per target of gaze, 2 = Saccade vs fixation.
 frameCountOverlay = 1;    % Places the frame number in the lower left.
 eyeSig.shape = 'Circle';  
 eyeSig.color = {{[1. 0. 0.];[0 .4 1.];[.1 .8 .1];[.1 .8 .1];[0 0 0];[1 .4 0]; ...
@@ -5248,6 +5337,7 @@ origInd = 1:psthParams.psthImDur+1;
 stimPresSec = (psthParams.psthImDur/1000);
 PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
 dvaOrigin =  taskData.eyeCal.origin;
+scaleFactor = taskData.scaleFactor;
 
 %Run each stimuli presented
 for stim_i = 1:length(eventIDs)
@@ -5299,7 +5389,7 @@ for stim_i = 1:length(eventIDs)
   pixelOrigin = [stimFrameMotionData.width/2 stimFrameMotionData.height/2];
   for eye_ind = 1:size(eyeInByEventDS,1)
     tmp = eyeInByEventDS(eye_ind, :, :) + dvaOrigin(eye_ind);
-    eyeInByEventDS(eye_ind, :, :) = tmp * PixelsPerDegree(eye_ind) + pixelOrigin(eye_ind);
+    eyeInByEventDS(eye_ind, :, :) = tmp * (PixelsPerDegree(eye_ind)/scaleFactor) + pixelOrigin(eye_ind); % scaleFactor makes the videos larger, meaning functionally, fewer pixels of video per degree.
   end
   
   %Open a new video to save the results
@@ -5408,6 +5498,7 @@ plotType = 'none'; %'trace'; %'area';%
 PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
 dvaOrigin =  taskData.eyeCal.origin;
 frameMotionData = taskData.frameMotionData;
+scaleFactor = taskData.scaleFactor;
 frameMotionDataNames = {frameMotionData(:).stimVid}';
 
 % psthParams.psthPre
@@ -5424,6 +5515,17 @@ extractStimEye = @(x) x(:,:, psthParams.psthPre:psthParams.psthPre+psthParams.ps
 eyeInByEvent = cellfun(extractStimEye, eyeInByEvent, 'UniformOutput', 0);
 origInd = 1:psthParams.psthImDur+1;
 stimPresSec = (psthParams.psthImDur/1000);
+
+if all(contains(eventIDs, 'headTurnCon'))
+  paradigm = 1;
+elseif all(contains(eventIDs, 'headTurnIso'))
+  paradigm = 2;
+else
+  paradigm = 3;
+end
+
+IDMapDir = 'C:\Videos\headTurnIDVideos\**\';
+objArray = {'Face1', 'HandR1', 'Body1'};
 
 for stim_i = 1:length(eventIDs)
   % find the correct frameMotionData
@@ -5453,50 +5555,120 @@ for stim_i = 1:length(eventIDs)
     pixelOrigin = [stimFrameMotionData.width/2 stimFrameMotionData.height/2];
     for eye_ind = 1:size(eyeInByEventDS,1)
       tmp = eyeInByEventDS(eye_ind, :, :) + dvaOrigin(eye_ind);
-      eyeInByEventDS(eye_ind, :, :) = tmp * PixelsPerDegree(eye_ind) + pixelOrigin(eye_ind);
+      eyeInByEventDS(eye_ind, :, :) = tmp * (PixelsPerDegree(eye_ind)/scaleFactor) + pixelOrigin(eye_ind);
     end
     
     % Initialize the output cell array.
     attendedObjVect{stim_i} = cell(size(eyeInByEventDS, 2), size(eyeInByEventDS, 3));
     
-    if ~isempty(stimFrameMotionData.objNames) % Landscapes/Scrambles
-      
-      % Make variables for each object. Not a clean way of doing this
-      objects = stimFrameMotionData.objNames;
-      for obj_i = 1:length(objects)
-        eval(sprintf('%s = stimFrameMotionData.objLoc{%d};', objects{obj_i}, obj_i));
-      end
-      
-      % Reshape the info to make it easy to compare
-      objRads = stimFrameMotionData.objRadii;
-      objLocStack = [stimFrameMotionData.objLoc{:}];
-      
-      for frame_i = 1:size(eyeInByEventDS, 3)
-        %for each frame, pull and reshape the apporpriate shape coords and
-        %compare to the eye signal across trials.
-        objLoc = reshape(objLocStack(frame_i,:)', 2,12);
-        eyeCoord = [eyeInByEventDS(1, :, frame_i); eyeInByEventDS(2, :, frame_i)];
-        for trial_i = 1:length(eyeCoord)
-          % Calculate distances
-          trialEye = eyeCoord(:,trial_i);
-          objDist = sqrt(sum((objLoc - trialEye).^2, 1));
-          objInd = objDist < objRads;
-          % Assign the correct object. None = bkg, 1 = object, 2 = closest.
-          if sum(objInd) == 0
-            attendedObjVect{stim_i}(trial_i, frame_i) = {'bkg'};
-          elseif sum(objInd) == 1
-            attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
-          elseif sum(objInd) > 1
-            [~,I] = min(objDist(objInd));
-            indArray = find(objInd);
-            objInd = indArray(I);
-            attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
+    switch paradigm
+      case 3
+        % For natural videos.
+        if ~isempty(stimFrameMotionData.objNames) % Landscapes/Scrambles
+          
+          % Make variables for each object. Not a clean way of doing this
+          objects = stimFrameMotionData.objNames;
+          for obj_i = 1:length(objects)
+            eval(sprintf('%s = stimFrameMotionData.objLoc{%d};', objects{obj_i}, obj_i));
+          end
+          
+          % Reshape the info to make it easy to compare
+          objRads = stimFrameMotionData.objRadii;
+          objLocStack = [stimFrameMotionData.objLoc{:}];
+          
+          for frame_i = 1:size(eyeInByEventDS, 3)
+            %for each frame, pull and reshape the apporpriate shape coords and
+            %compare to the eye signal across trials.
+            objLoc = reshape(objLocStack(frame_i,:)', 2,12);
+            eyeCoord = [eyeInByEventDS(1, :, frame_i); eyeInByEventDS(2, :, frame_i)];
+            for trial_i = 1:length(eyeCoord)
+              % Calculate distances
+              trialEye = eyeCoord(:,trial_i);
+              objDist = sqrt(sum((objLoc - trialEye).^2, 1));
+              objInd = objDist < objRads;
+              % Assign the correct object. None = bkg, 1 = object, 2 = closest.
+              if sum(objInd) == 0
+                attendedObjVect{stim_i}(trial_i, frame_i) = {'bkg'};
+              elseif sum(objInd) == 1
+                attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
+              elseif sum(objInd) > 1
+                [~,I] = min(objDist(objInd));
+                indArray = find(objInd);
+                objInd = indArray(I);
+                attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
+              end
+            end
+            
+          end
+        else
+          attendedObjVect{stim_i}(:) = {'bkg'}; %Landscapes/Scrambles
+        end
+      case {1, 2}
+        % For the headTurn paradigm, load the video
+        if paradigm == 1
+          %headTurnCon videos each have their own video (unless there are
+          %no agents, in which case there are no labels.
+          
+          % find and load the ID video for the stimuli
+          idVid = dir(fullfile(IDMapDir, [extractBefore(eventIDs{stim_i}, '.avi') '*']));
+          
+          % If the idVid is empty, and the eventID contains the code for
+          % scenes and objects, just skip this object.
+          if isempty(idVid)
+            idString = extractAfter(eventIDs{stim_i}, '15');
+            intNum = str2num(idString(1));
+            
+            if intNum == 7 || intNum == 8
+              attendedObjVect{stim_i}(:, :) = deal({'bkg'});
+              continue
+            else
+              error('No ID Video found for %s', eventIDs{stim_i});
+            end
+            
+          end
+          
+        else
+          %headTurnIso video ID generalize across skin
+          idVidName = [extractBefore(eventIDs{stim_i}, '.avi') '_ID*'];
+          idVidName(24) = num2str(1);
+
+          idVid = dir(fullfile(IDMapDir, idVidName));
+                    
+        end
+        
+        % Load the video
+        idVidObj = VideoReader(fullfile(idVid(1).folder, idVid(1).name));
+        
+        % run through and identify if the pixel where the eye signal was
+        % looking at was black, red, green, or blue.
+        frameSize = [idVidObj.Width idVidObj.Height];
+        for frame_i = 1:size(attendedObjVect{stim_i}, 2)
+          frameData = read(idVidObj, frame_i);
+          for trial_i = 1:size(attendedObjVect{stim_i}, 1)
+            eyeDataInd = round(eyeInByEventDS(:, trial_i, frame_i))';
+            
+            % If the eyeData is out of the video (either negative or above
+            % the frame size) then just leave.
+            if any(eyeDataInd > frameSize) || any(eyeDataInd <= 0)
+              attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
+              continue
+            end
+            pixelValue = squeeze(frameData(eyeDataInd(2), eyeDataInd(1), :))';
+            
+            % If one of the values is above the threshold, select its
+            % object. Otherwise, remove it.
+            if any(pixelValue > 100)
+              objInd = find(pixelValue > 100, 1);
+              % Identify if it is Red, Green, or Blue, and use that to pick
+              % an object attended.
+              attendedObjVect{stim_i}{trial_i, frame_i} =  objArray{objInd};
+            else
+              attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
+            end
+            
           end
         end
         
-      end
-    else
-      attendedObjVect{stim_i}(:) = {'bkg'}; %Landscapes/Scrambles
     end
     
   end
@@ -5671,6 +5843,7 @@ switch plotType
     end
     
 end
+
 %Package outputs
 attendedObjData.eventIDs = eventIDs;
 attendedObjData.attendedObjVect = attendedObjVect;
@@ -5681,6 +5854,7 @@ attendedObjData.frameStartInd = frameStartInd;
 attendedObjData.frameEndInd = frameEndInd;
 attendedObjData.handleArray = handleArray;
 eyeDataStruct.attendedObjData = attendedObjData;
+
 end
 
 function [updatedByImageGroup, updatedEventIDs, resortInd] = clusterPaths(byImageGroup, psthParams, lfpPaddedBy, analogInByEvent, eventIDs, taskData)
@@ -5757,8 +5931,13 @@ for epoch_i = 1:length(spikeCountsByImageByEpoch)
       
       %Calculate the Null model
       mu = mean(imageSortedUnit);
-      rawSigmas = imFrErrSorted(trialCountsByImageSorted > 1).*sqrt(trialCountsByImageSorted(trialCountsByImageSorted > 1))';
-      mixSEs = horzcat(imFrErrSorted(trialCountsByImageSorted > 1),randsample(rawSigmas,sum(trialCountsByImageSorted == 1),true));
+      if any(trialCountsByImageSorted > 3)
+        rawSigmas = imFrErrSorted(trialCountsByImageSorted > 1).*sqrt(trialCountsByImageSorted(trialCountsByImageSorted > 1))';
+        mixSEs = horzcat(imFrErrSorted(trialCountsByImageSorted > 1),randsample(rawSigmas,sum(trialCountsByImageSorted == 1),true));
+      else
+        mixSEs = zeros(1, size(trialCountsByImageSorted, 1));
+      end
+      
       nulltrials = 100;
       nullDistSortsMix = zeros(nulltrials,length(imageSortedUnit));
       for i = 1:length(imageSortedUnit)
@@ -6044,8 +6223,14 @@ lfpPaddedBy = eyeStatsParams.lfpPaddedBy+1;
 stimStartInd = lfpPaddedBy;
 stimEndInd = size(analogInByEvent{1},4) - lfpPaddedBy;
 
-extractEye = @(n) squeeze(n(:,1:2,:,stimStartInd:stimEndInd)); %Reshapes analogInByEvent into eye signal.
-eyeInByEventAll = cellfun(extractEye, analogInByEvent, 'UniformOutput', false);
+% Reshape the analogInByEvent into eye data. Can not use cellfun w/ squeeze
+% due to single trial stimuli paradigms.
+eyeInByEventAll = cell(size(analogInByEvent));
+for event_i = 1:length(analogInByEvent)
+  eyeTmp = analogInByEvent{event_i}(:,1:2,:,stimStartInd:stimEndInd); %Reshapes analogInByEvent into eye signal.
+  eyeSize = size(eyeTmp);
+  eyeInByEventAll{event_i} = reshape(eyeTmp, [eyeSize(2:4)]); 
+end
 
 [fixStats, eyeInByEventTrialFiltered, blinkTimes] = deal(cell(size(analogInByEvent)));
 
@@ -6065,7 +6250,7 @@ for stim_i = 1:length(eyeInByEventAll)
         for blink_i = 1:size(blinkTimesTmp,2)
           % find a start value - mean of 10 prior values
           startInds = (blinkTimesTmp(1,blink_i)-12 : blinkTimesTmp(1,blink_i) - 2);
-          if any(startInds < 0)
+          if any(startInds <= 0)
             startVal = trace(blinkTimesTmp(2,blink_i)+5);
             trace(blinkTimesTmp(1,blink_i):blinkTimesTmp(2,blink_i)+5) = deal(startVal);
           else
@@ -6329,7 +6514,8 @@ for channel_i = 1:length(spikesByStim{1})
             %note: the factor of sqrt(1000) appears because we need to convert to spks/ms to get poisson error, then back to Hz
             paddedPsthErr = sqrt(paddedPsth)*(sqrt(1000)*psthErrorRangeZ/sqrt(size(spikeData, 1)));
           elseif psthErrorType == 2
-            paddedPsthErr = std(bootstrp(psthBootstrapSamples, @(x) mean(x,1), convn(spikeData, smoothingFilter,'same')), [], 1) * psthErrorRangeZ * 1000;
+            opt = statset('UseParallel',true);
+            paddedPsthErr = std(bootstrp(psthBootstrapSamples, @(x) mean(x,1), convn(spikeData, smoothingFilter,'same'), 'Options', opt), [], 1) * psthErrorRangeZ * 1000;
           elseif psthErrorType == 3
             paddedPsthErr = std(convn(spikeData, smoothingFilter,'same'),[],1) * psthErrorRangeZ * 1000/sqrt(size(spikeData,1));
           else

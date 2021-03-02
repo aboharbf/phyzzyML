@@ -1,15 +1,7 @@
 function [clu, tree] = run_cluster(par, multi_files)
 dim = par.inputs;
-%fname = [par.file_path filesep par.fnamespc];
-%fname_in = [par.file_path filesep par.fname_in];
-
 fname = par.fnamespc;
 fname_in = par.fname_in;
-
-%temporary path shorting (SPC seems to have issue w/ longer paths)
-[~, fname_in, ~] = fileparts(fname_in);
-[tmpDir, fname, ~] = fileparts(fname);
-oldDir = cd(tmpDir);
 
 % DELETE PREVIOUS FILES
 if exist([fname '.dg_01.lab'],'file')
@@ -17,9 +9,9 @@ if exist([fname '.dg_01.lab'],'file')
     delete([fname '.dg_01']);
 end
 
-dat = load(par.fname_in); %Don't add path here, it needs to be added before.
+dat = load(fname_in);
 n = length(dat);
-fid = fopen(sprintf('%s.run',[par.file_path filesep fname]),'wt');
+fid = fopen(sprintf('%s.run',fname),'wt');
 fprintf(fid,'NumberOfPoints: %s\n',num2str(n));
 fprintf(fid,'DataFile: %s\n',fname_in);
 fprintf(fid,'OutFile: %s\n',fname);
@@ -111,35 +103,33 @@ if status ~= 0
     disp(result)
 end
 
+
+
 if exist('multi_files','var') && multi_files==true
-  [A B C] = fileparts(par.filename);
-	log_name = [A filesep B '_spc_log.txt'];
+	log_name = [par.filename 'spc_log.txt'];
 	f = fopen(log_name,'w');
 	fprintf(f,'----------\nSPC result of file: %s\n', par.filename);
 	fprintf(f,result);
 	fclose(f);
 else
-  [A B C] = fileparts(par.filename);
-	log_name = [A filesep B '_spc_log.txt'];
+	log_name = 'spc_log.txt';
 	f = fopen(log_name,'w');
 	fprintf(f,result);
 	fclose(f);
 end
 
-clu = load([A filesep fname '.dg_01.lab']);
-tree = load([A filesep fname '.dg_01']); 
+clu = load([fname '.dg_01.lab']);
+tree = load([fname '.dg_01']); 
 
 try
-  delete(sprintf('%s.run',fname));
-  delete([A filesep fname '*.mag']);
-  delete([A filesep fname '*.edges']);
-  delete([A filesep fname '*.param']);
+delete(sprintf('%s.run',fname));    
+delete([fname '*.mag']);
+delete([fname '*.edges']);
+delete([fname '*.param']);
 end
 
-if exist([A filesep fname '.knn'],'file')
-    delete([A filesep fname '.knn']);
+if exist([fname '.knn'],'file')
+    delete([fname '.knn']);
 end
 
-delete([A filesep fname_in]);
-
-cd(oldDir);
+delete(fname_in); 

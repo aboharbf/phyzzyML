@@ -38,9 +38,12 @@ mergeTurning = true;
 eventDataPath = fullfile(StimFolder{1}, 'eventData.mat');
 tmp = load(eventDataPath);
 eventDataCell = table2cell(tmp.eventData);
+emptyTable = eventDataCell(1);
+replaceInd = cellfun(@(x) size(x, 2) == 8, eventDataCell);
+eventDataCell(~replaceInd) = emptyTable;
+
 eventDataStim = tmp.eventData.Properties.RowNames;
 eventTitles = tmp.eventData.Properties.VariableNames;
-
 eventPresMat = false(length(stimList), size(eventDataCell,2));
 eventDataLog = cellfun(@(x) ~isempty(x.startFrame), eventDataCell);
 
@@ -69,6 +72,7 @@ pictureLabels = cell(size(stimList));
 
 % Variables for assigning category labels
 socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
+nonSocCatagoryArray = {'goalDirected', 'Idle', 'objects', 'landscape', 'scramble'};
 for lab_i = 1:length(socCatagoryArray)
   socCatagory2Find{lab_i} = [upper(socCatagoryArray{lab_i}(1)) socCatagoryArray{lab_i}(2:end)];
 end
@@ -105,7 +109,9 @@ for ii = 1:length(stimList)
       stimLabels = horzcat(stimLabels ,'goalDirected');
     end
     
-    if any(~cellfun('isempty', regexp(stimParts{1}, socCatagory2Find))) % Are any of the typical action strings in the title?
+    % Adding 'social interaction' tag to Natural Stim paradigm
+    socIntInd = ~cellfun('isempty', regexp(stimParts{1}, socCatagory2Find));
+    if any(socIntInd) % Are any of the typical action strings in the title?
       if strcmp(stimParts{2}(end), 'A') % Check for A, signalling animation. 
         if length(stimParts) > 2 && (strncmp(stimParts(3),'C',1) || strncmp(stimParts(3),'P',1)) % Check if its an animated control
           stimLabels = horzcat(stimLabels ,'animControl');
@@ -113,10 +119,15 @@ for ii = 1:length(stimList)
           stimLabels = horzcat(stimLabels ,'animSocialInteraction');
         end
       else
-        stimLabels = [stimLabels, socCatagoryArray(str2double(code(3))), 'socialInteraction']; % socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
+        stimLabels = [stimLabels, socCatagoryArray(socIntInd), 'socialInteraction']; % socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
       end
     end
-      
+    
+    % Adding 'nonSocialInteraction' tag ot Natural Stim paradigm
+    if any(~cellfun('isempty', regexp(stimParts{1}, nonSocCatagoryArray))) % Are any of the typical action strings in the title?
+      stimLabels = [stimLabels, 'nonSocialInteraction'];
+    end
+    
     if code(2) == '4'     % Code in the name of isolated head turning paradigm stim.
       % code = sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
       codeAdd = stimParts{3};
@@ -275,6 +286,12 @@ for ii = 1:length(stimList)
     end
     
   else
+    
+    % Replace the Entering part w/ Movement.
+    if strcmp('Entering', stimParts{2})
+      stimParts{2} = 'Movement';
+    end
+    
     % Codes for the FamiliarFace Paradigm
     if ~isempty(str2num(stimParts{1}(1)))
       % Room number, preceeds empty
@@ -294,13 +311,9 @@ for ii = 1:length(stimList)
     end
     
     stimLabels = horzcat(stimLabels , stimParts{1});
+    stimLabels = horzcat(stimLabels , stimParts{2});
+
     pictureLabels{ii} = [stimParts{1} '_' stimParts{2}];
-    
-    if strcmp('Entering', stimParts{2})
-      stimLabels = horzcat(stimLabels , 'Movement');
-    else
-      stimLabels = horzcat(stimLabels , stimParts{2});
-    end
     
     stimList{ii} = horzcat(stimList{ii}, stimLabels);
     
@@ -350,7 +363,7 @@ catLabels = unique([stimLabels{:}]);
 %   'goalDirected', 'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing','animated', 'animControl',...
 %   'foraging','sitting','faces','bodies','hands','background', 'subEvents', 'headTurn', 'bodyTurn', 'allTurn', 'eyeContact', 'allStim'};
 
-categoryLabels = catLabels;
+categoryLabels = catLabels';
 
 paramArray = stimList;
 

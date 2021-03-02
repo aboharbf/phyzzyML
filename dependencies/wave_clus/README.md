@@ -5,8 +5,6 @@ Wave_clus is a fast and unsupervised algorithm for spike detection and sorting t
 
 To install, download this repository into a folder. In MATLAB (R2009b or higher) go to *Set Path* and add the directory `wave_clus` with the subfolders to the MATLAB path.
 
-Branched towards the end of making compatabile with the phyzzy pipeline - https://github.com/freiwaldlab/phyzzy
-
 How to use
 ------
 

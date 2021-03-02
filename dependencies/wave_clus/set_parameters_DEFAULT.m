@@ -1,4 +1,4 @@
-function par = set_parameters_DEFAULT()
+function par = set_parameters()
 
 % LOAD PARAMS
 par.segments_length = 5;             % length (in minutes) of segments in which the data is cutted (default 5min).
@@ -16,7 +16,6 @@ par.plot_feature_stats = false;
 
 
 % SPC PARAMETERS
-par.clusThr = 'n';                   % Determines whether only spikes beyond a certain amplitude are used to cluster.
 par.mintemp = 0.00;                  % minimum temperature for SPC
 par.maxtemp = 0.251;                 % maximum temperature for SPC
 par.tempstep = 0.01;                 % temperature steps

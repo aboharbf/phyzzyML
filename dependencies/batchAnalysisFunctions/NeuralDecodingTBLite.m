@@ -11,26 +11,37 @@ if ~exist(params.outputDir, 'dir')
 end
 
 params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
-
 paradigmList = unique(spikePathBank.paradigmName);
 
-if ~exist(params.rasterDir, 'dir')
-  spikePathBank_to_rasterData(spikePathBank, params.rasterDir, params.spikeToRasterParams);
-end
-
 % Generate the appropriate binned data
-for paradigm_i = 2:length(paradigmList)
+for paradigm_i = 1:length(paradigmList)
   pName = paradigmList{paradigm_i};
-  binnedFileName = fullfile(params.rasterDir, pName, 'rasterData_binned');
-  rasterDataPath = fullfile(params.rasterDir, pName, 'S20*');
-  binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedFileName, params.binWidth, params.stepSize);
+  spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
+  pFolder = fullfile(params.outputDir, pName);
+  pRasterDir = fullfile(pFolder, 'rasterData');
+  
+  if ~exist(pFolder, 'dir')
+    mkdir(pFolder);
+  end
+  
+  % Check if Raster data is present, if not, generate.
+  if ~exist(pRasterDir, 'dir')
+    paradigmParams = params.spikeToRasterParams;
+    paradigmParams.rasterParams = params.spikeToRasterParams.(pName);
+    spikePathBank_to_rasterData(spikePathBankParadigm, pRasterDir, paradigmParams);
+  end
+
+  % Check if the raster data is present, if not, make it 
+  binnedDirName = fullfile(pRasterDir, 'rasterData_binned');
+  rasterDataPath = fullfile(pRasterDir, 'S20*');
+  binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedDirName, params.binWidth, params.stepSize);
   
   if ~exist(binnedFileNameOut, 'file')
-    binnedFileName = create_binned_data_from_raster_data(rasterDataPath, binnedFileName, params.binWidth, params.stepSize);
+    binnedFileName = create_binned_data_from_raster_data(rasterDataPath, binnedDirName, params.binWidth, params.stepSize);
   else
     binnedFileName = binnedFileNameOut;
   end
-  
+
   % Grab a variable which will be useful later
   tmp = dir(rasterDataPath);
   tmp = tmp(1);
@@ -39,8 +50,11 @@ for paradigm_i = 2:length(paradigmList)
   
   % Analyses specified by k_aid app in NDTB, stored in phyzzy folder.
   analysesFiles = dir(fullfile(params.NDTAnalysesPath, pName, '*.mat'));
+  % clear anything there before
+  params.Analyses = struct();
   
   for ii = 1:length(analysesFiles)
+    
     % Step 1 - Load the specified parameters
     tmp = load(fullfile(analysesFiles(ii).folder, analysesFiles(ii).name));
     tmp = tmp.analysisStruct;
@@ -101,7 +115,7 @@ for paradigm_i = 2:length(paradigmList)
     end
     
     % Create Paths
-    save_file_dir = deal(fullfile(params.outputDir, pName, sprintf('results_%s', analysesToRun{analysis_i})));
+    save_file_dir = deal(fullfile(pFolder, sprintf('results_%s', analysesToRun{analysis_i})));
     if ~exist(save_file_dir, 'dir')
       mkdir(save_file_dir);
     end
@@ -171,10 +185,13 @@ for paradigm_i = 2:length(paradigmList)
     decoding_results = tmp_decoding.decoding_results;
     
     % Step 8 - Plotting
+    % Assign params for correct plotting.
+    params.plotParams = params.(pName).plotParams;
+    
     % Per Label Accuracy Trace, Figure 1
     figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
     plot_per_label_accuracy(decoding_results, ds, analysisStruct, params);
-    saveFigure(fullfile(params.outputDir, pName), ['1. ' figTitle], analysisStruct, params.figStruct, [])
+    saveFigure(pFolder, ['1. ' figTitle], analysisStruct, params.figStruct, [])
     
     % TCT Matrix, Figure 2
     params.figTitle = sprintf('Cross Temporal Decoding of %s', analysisStruct.plotTitle);
@@ -182,8 +199,8 @@ for paradigm_i = 2:length(paradigmList)
       sigStr = sprintf(', %s%% threshold', num2str(100 - (params.p_val_threshold * 100)));
       params.figTitle = horzcat([params.figTitle, sigStr]);
     end
-    generate_TCT_plot(analysisStruct, save_file_name, saved_results_struct_name, params)
-    saveFigure(fullfile(params.outputDir, pName), ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
+    generate_TCT_plot(analysisStruct, save_file_name, saved_results_struct_name, params) 
+    saveFigure(pFolder, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
     
   end
 end

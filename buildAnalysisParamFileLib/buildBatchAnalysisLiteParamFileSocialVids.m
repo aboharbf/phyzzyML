@@ -6,7 +6,7 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    analysisDirectory = slashSwap('D:\DataAnalysis');
+    analysisDirectory = slashSwap('D:\DataAnalysis_Zscore');
     outputDir = [analysisDirectory '/batchAnalysis'];
     stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
@@ -36,7 +36,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
@@ -45,7 +45,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
@@ -56,7 +56,7 @@ plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
 
 preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList'}; %Variables extracted from preprocessedData.mat
-analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', ...
+analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
                                   'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
 AnalysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned'};
@@ -92,8 +92,8 @@ meanPSTHParams.stimParamsFilename = stimParamsFilename;
 meanPSTHParams.eventData = eventDataPath;
 meanPSTHParams.frameMotionDataPath = frameMotionDataPath;
 meanPSTHParams.plotHist = 0;
-meanPSTHParams.rateThreshold = 0;               % Include only activity with a mean rate of X Hz. 0 for off, over 0 for threshold.
-meanPSTHParams.normalize = 0;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
+meanPSTHParams.rateThreshold = 2;               % Include only activity with a mean rate of X Hz. 0 for off, over 0 for threshold.
+meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 
 meanPSTHParams.plotTopStim = 0;                 % Only plot stimuli which have been present on at least a certain number of runs.
 meanPSTHParams.topStimPresThreshold = 5;        % At least this many stim presentations to be plotted when plotTopStim is on.
@@ -139,10 +139,10 @@ for ii = 1:length(monkeyIDList)
   end
 end
 
-meanPSTHParams.analysisGroups.FamilairFace.Identity = monkeyIDList;
-meanPSTHParams.analysisGroups.FamilairFace.Action = monkeyActList;
-meanPSTHParams.analysisGroups.FamilairFace.stimuli = monkey_act_List;
-meanPSTHParams.analysisGroups.FamilairFace.Familair = {'familiar', 'unFamiliar'};
+meanPSTHParams.analysisGroups.FamiliarFace.Identity = monkeyIDList;
+meanPSTHParams.analysisGroups.FamiliarFace.Action = monkeyActList;
+meanPSTHParams.analysisGroups.FamiliarFace.stimuli = monkey_act_List;
+meanPSTHParams.analysisGroups.FamiliarFace.Familair = {'familiar', 'unFamiliar'};
 
 % headTurnCon meanPSTHParams.analysisGroups
 meanPSTHParams.analysisGroups.headTurnCon.stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
@@ -176,7 +176,7 @@ meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, inclu
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
 meanPSTHParams.addSubEventBars = 0;             % for plot 5.0, add bars underneath for subEvents.
 
-meanPSTHParams.allStimPSTH = 0;                 % 1.0 - All Stimuli means in the same plot.
+meanPSTHParams.allStimPSTH = 1;                 % 1.0 - All Stimuli means in the same plot.
 meanPSTHParams.catPSTH = 0;                     % 2.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
 meanPSTHParams.analysisGroupPSTH = 1;           % 3.0
 meanPSTHParams.allRunStimPSTH = 1;              % 3.0 - Stimuli Plot - 'All chasing0001 PSTHs, sorted by...'
@@ -263,8 +263,8 @@ NDTParams.spikeToRasterParams.headTurnCon.plotIndParams.plotLabels = {'headTurn'
 NDTParams.spikeToRasterParams.headTurnIso.rasterLabels = {'stimuli', 'turnDirection', 'turnSubj', 'mesh', 'meshTurn'};
 NDTParams.spikeToRasterParams.headTurnIso.plotIndParams.plotLabels = {meanPSTHParams.analysisGroups.headTurnIso.stimuli, {'leftFull', 'noTurn', 'rightFull', 'headTurn'}, {'turnToward', 'turnAway', 'noTurn'}, {'fullModel', 'smoothModel', 'dotModel'}, meanPSTHParams.analysisGroups.headTurnIso.mesh};
 
-NDTParams.spikeToRasterParams.FamilairFace.rasterLabels = {'identity', 'action', 'identityAction', 'familiar'};
-NDTParams.spikeToRasterParams.FamilairFace.plotIndParams.plotLabels = {monkeyIDList, monkeyActList, monkey_act_List, {'familiar', 'unFamiliar'}};
+NDTParams.spikeToRasterParams.FamiliarFace.rasterLabels = {'identity', 'action', 'identityAction', 'familiar'};
+NDTParams.spikeToRasterParams.FamiliarFace.plotIndParams.plotLabels = {monkeyIDList, monkeyActList, monkey_act_List, {'familiar', 'unFamiliar'}};
 
 NDTParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
 NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
@@ -279,9 +279,21 @@ NDTParams.AnalysesDefault.cross_validator_num_resample = 10;  % Number of times 
 
 NDTParams.figStruct = figStruct;
 NDTParams.plotParams = figStruct;
-NDTParams.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
-NDTParams.plotParams.points_for_lines = [0, 2800];
-NDTParams.plotParams.shift = 800; % prePSTH in the code elsewhere.
+NDTParams.NaturalSocial.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.NaturalSocial.plotParams.points_for_lines = [0, 2800];
+NDTParams.NaturalSocial.plotParams.shift = 800; % prePSTH in the code elsewhere.
+
+NDTParams.headTurnCon.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.headTurnCon.plotParams.points_for_lines = [0, 2800];
+NDTParams.headTurnCon.plotParams.shift = 800; % prePSTH in the code elsewhere.
+
+NDTParams.FamiliarFace.plotParams.points_to_label = [-250, 0, 250, 500, 750, 1000, 1250];
+NDTParams.FamiliarFace.plotParams.points_for_lines = [0, 1000];
+NDTParams.FamiliarFace.plotParams.shift = 500; % prePSTH in the code elsewhere.
+
+NDTParams.headTurnIso.plotParams.points_to_label = [-250, 0, 250, 500, 750, 1000, 1250];
+NDTParams.headTurnIso.plotParams.points_for_lines = [0, 1000];
+NDTParams.headTurnIso.plotParams.shift = 500; % prePSTH in the code elsewhere.
 
 NDTParams.p_val_threshold = 0.05;
 NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;    % The thrshold to use for determining significant regions

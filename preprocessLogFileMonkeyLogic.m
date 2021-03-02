@@ -40,29 +40,34 @@ assert(logical(exist(logfile,'file')),'The logfile you requested does not exist.
 [data,MLConfig,TrialRecord] = mlread(logfile);
 % assert(length(unique(TrialRecord.ConditionsPlayed)) < ceil((length(TrialRecord.ConditionsPlayed))/2) , 'MonkeyLogic file reports each condition was not repeated at least 2 times')
 
-%Find stimulus timing range - in ML, we have no range within valid trials.
-stimTiming.shortest = 2800; %Making this 0 for now
-stimTiming.longest = 2800; %setting this to 2800 for now, but maybe save as an editable variable.
-stimTiming.ISI = MLConfig.InterTrialInterval;
+% Find out experiment length
+tmp = datevec(TrialRecord.TaskInfo.EndTime - TrialRecord.TaskInfo.StartTime);
+runTimeMins = tmp(end-1) + (tmp(end)/60);
 
 %Construct the translation table from the logfile
 %Find the Conditions that need to be connected to codes, and loop through
 %the trials until each of those numbers has a stim attached.
 allConditions = unique(TrialRecord.ConditionsPlayed); %Pull unique members of this list
-translationTable = cell(length(allConditions),1); %Initialize translation table
-trial_ind = 1;
+translationTable = repmat({''}, [max(allConditions),1]); %Initialize translation table
 
 % Find out which TaskObject is the Fixation point (this changes)
 trialHolder = data(1);
 stimName = {trialHolder.TaskObject.Attribute.Name}; %Pull the string containing the stimulus name.
 stimInd = find(~strcmp(stimName, 'Fixation Point'));
 
+% Extract the scale factor
+try
+  scaleFactor = [data(1).ObjectStatusRecord.SceneParam.Scale];
+  scaleFactor = scaleFactor(stimInd);
+catch
+  error('SCALE FACTOR NOT FOUND!') % Temporary, just for the first run.
+  scaleFactor = 1;
+end
 % Use that to generate a table of stimuli
-while sum(find(cellfun('isempty', translationTable))) ~= 0
+for trial_ind = 1:length(data)
   trialHolder = data(trial_ind);
   stimName = trialHolder.TaskObject.Attribute(stimInd).Name; %Pull the string containing the stimulus name.
   translationTable{trialHolder.Condition} = stimName(~isspace(stimName));
-  trial_ind = trial_ind + 1;
 end
 
 if strcmp(TrialRecord.TaskInfo.Stimuli{1}(2), ':') % new version of ML might show full path?
@@ -76,7 +81,7 @@ else
 end
 %Check to see if what you collected by cycling through the stim matches
 %this table.
-assert(sum(strcmp(logFileStimTable,translationTable)) == length(translationTable), 'Stim table from MonkeyLogic doesnt match collected table');
+% assert(sum(strcmp(logFileStimTable,translationTable)) == length(translationTable), 'Stim table from MonkeyLogic doesnt match collected table');
 
 %Pull Behavioral codes for other events
 behavioralCodes = TrialRecord.TaskInfo.BehavioralCodes;
@@ -494,6 +499,16 @@ elseif any(contains(translationTable, 'Barney'))
   taskData.paradigm = 'familiarFace';
 end
 
+%Find stimulus timing range - in ML, we have no range within valid trials.
+switch taskData.paradigm
+  case {'headTurnIso', 'familiarFace'}
+    stimTiming.shortest = 1000; %Making this 0 for now
+    stimTiming.longest = 1000; %setting this to 2800 for now, but maybe save as an editable variable.
+  case {'headTurnCon', 'naturalStim'}
+    stimTiming.shortest = 2800; %Making this 0 for now
+    stimTiming.longest = 2800; %setting this to 2800 for now, but maybe save as an editable variable.
+end
+stimTiming.ISI = MLConfig.InterTrialInterval;
 
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
@@ -514,8 +529,10 @@ taskData.taskEventIDs = taskEventIDs;
 taskData.taskEventList = translationTable;
 taskData.frameMotionData = tmpFrameMotionData';
 taskData.stimFramesLost = stimFramesLost;
+taskData.scaleFactor = scaleFactor;
 
 % Timing variables
+taskData.runTime = runTimeMins;
 taskData.taskEventStartTimes = taskEventStartTimesBlk;
 taskData.taskEventEndTimes = taskEventEndTimesBlk;
 taskData.taskEventFixDur = taskEventFixDur;

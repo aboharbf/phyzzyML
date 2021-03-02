@@ -30,7 +30,7 @@ briefStimList = tmp.pictureLabels(paramSortVec);
 % Iterate across stimuli and identify appropriate indicies
 plotMat = zeros(length(stimuliList),length(params.plotLabels));
 
-for stim_ind = 1:size(plotMat,1)
+for stim_ind = 10:size(plotMat,1)
   paramStimSet = paramArray{stim_ind};
   for label_ind = 1:size(plotMat,2)
     % If single label, do simple comparison, store logical value
@@ -43,8 +43,10 @@ for stim_ind = 1:size(plotMat,1)
       for subLabel_ind = 1:length(params.plotLabels{label_ind})
         tmp(subLabel_ind) = any(ismember(paramStimSet, params.plotLabels{label_ind}{subLabel_ind}));
       end
-      assert(any(tmp), 'stim %s lacks any labels in set ', paramStimSet{1})
-      plotMat(stim_ind, label_ind) = find(tmp,1,'last');
+%       assert(any(tmp), 'stim %s lacks any labels in set ', paramStimSet{1})
+      if any(tmp)
+        plotMat(stim_ind, label_ind) = find(tmp,1,'last');
+      end
     end
   end
 end

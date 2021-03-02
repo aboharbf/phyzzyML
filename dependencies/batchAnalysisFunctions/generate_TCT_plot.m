@@ -16,7 +16,8 @@ function generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, p
   points_to_label = params.plotParams.points_to_label;
   points_for_lines = params.plotParams.points_for_lines;
   the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1);
-  the_bin_start_times_shift = the_bin_start_times - 800;
+  the_bin_start_times_shift = the_bin_start_times - params.plotParams.shift;
+  
   bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
   lines_to_add = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
   

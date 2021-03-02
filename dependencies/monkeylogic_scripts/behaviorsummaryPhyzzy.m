@@ -56,6 +56,11 @@ if ~isempty(xlsxLog)
     %(for instances b/t July - Dec where runs weren't updated, correct info is pulled from Log book).
     %Pull the data from those columns, using the "Recording" column to
     %match days to runs.
+    
+    if length(rowID) > 1
+      rowID = rowID(1);
+    end
+    
     electrodeInd = strcmp(titles,'impedance (MOhms)');
     holeMLInd = find(strcmp(titles,'ML'));
     holeAPInd = find(strcmp(titles,'AP'));

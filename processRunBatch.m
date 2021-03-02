@@ -15,7 +15,7 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
+    outputVolumeBatch = 'D:\DataAnalysis_Zscore';                                            % The output folder for analyses performed.
     dataLog = 'D:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
@@ -42,10 +42,18 @@ if ~replaceAnalysisOut
     %list from all the data files in the ephysVolume.
     vararginInputs = varargin;
     analysisParamFile = varargin{1};
-    load(feval(analysisParamFile));
+    analysisParamPath = feval(analysisParamFile);
+    load(analysisParamPath);
+    
+    % Delete the produced file to avoid problems downstream
+%     pathSeg = strsplit(analysisParamPath, '/');
+%     segInd = find(contains(pathSeg, 'Mo'));
+%     dir2delete = strjoin(pathSeg(1:segInd), '/');
+%     rmdir(dir2delete, 's')
+    
     varargin = vararginInputs;
     runListFolder = ephysVolume;
-    runList = buildRunList(runListFolder, 'nev');    
+    runList = buildRunList(runListFolder, 'nev');
   elseif nargin >= 3 || nargin == 0
     disp('Must have 1  or 2 inputs.')
     return
@@ -86,8 +94,14 @@ if ~replaceAnalysisOut
         end
       end
       
+      % Update the psthPre w/ the ITI. 
+      if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'psthParams.psthPre'))
+        psthParams.psthPre = psthParams.psthPre + psthParams.ITI;
+      end
+      
       % If Channels have been changed, redefine all the relevant channel
-      % names
+      % names, if not, check for what was parsed before.
+      parsedFolderName = sprintf('%s/%s/%s%s_parsed',ephysVolume,dateSubject,dateSubject,runNum);
       if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'channels2Read'))
         ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
         ephysParams.lfpChannels = channels2Read;
@@ -95,6 +109,9 @@ if ~replaceAnalysisOut
         ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read),1]); %converts raw values to microvolts
         ephysParams.unitsToUnsort = cell(length(channels2Read),1); %these units will be re-grouped with u0
         ephysParams.unitsToDiscard = cell(length(channels2Read),1); %these units will be considered noise and discarded
+      elseif exist(parsedFolderName,'dir') == 7 && ~isempty(dir(parsedFolderName))
+        % Autodetecting spike channels - If the file is parsed, retrieve channels present
+        [ephysParams.spikeChannels, ephysParams.lfpChannels, ephysParams.channelNames] = autoDetectChannels(parsedFolderName);
       end
       
       % Generate appropriate Paths
@@ -121,12 +138,6 @@ if ~replaceAnalysisOut
           case '.bhv2'
             taskFilename = [A '/' B '.mat'];
         end
-      end
-      
-      % Autodetecting spike channels - If the file is parsed, retrieve channels present
-      parsedFolderName = sprintf('%s/%s/%s%s_parsed',ephysVolume,dateSubject,dateSubject,runNum);
-      if exist(parsedFolderName,'dir') == 7
-        [ephysParams.spikeChannels, ephysParams.lfpChannels, ephysParams.channelNames] = autoDetectChannels(parsedFolderName);
       end
 
       % Save files
@@ -178,10 +189,9 @@ if ~replaceAnalysisOut
       fprintf('Processing %s... \n', analysisParamFileList{run_ind});
       startTimes{run_ind} = datetime('now');
       if ~debugNoTry
-        
         try
           if usePreprocessed
-            [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids','preprocessed',analysisParamFileList{run_ind});
+            [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids', 'preprocessed', analysisParamFileList{run_ind});
           else
             [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
           end
@@ -219,15 +229,17 @@ if ~replaceAnalysisOut
   end
   
 end
-  
+
 if replaceAnalysisOut
-  %% If generating excel...  
+  %% If generating excel...
   if nargin >= 1
     %If there is only 1 file, it loads the analysisParamFile and composes a
     %list from all the data files in the ephysVolume.
     vararginInputs = varargin;
     analysisParamFile = varargin{1};
     load(feval(analysisParamFile), 'analysisLabel');
+  else
+    analysisLabel = 'Basic';
   end
   
   disp('Recompiling structures for excel output')
@@ -244,15 +256,19 @@ if replaceAnalysisOut
   errorMsg = cell(length(analysisParamFilename),1);
 
   % Iterate through the files, sometimes error message is missing for some
-  % unknown reason. To avoid crashes, loop below. 
+  % unknown reason. To avoid crashes, loop below.
   errorCount = 0;
   for analysis_i = 1:length(analysisOutFilename)
-    tmp = load(analysisOutFilename{analysis_i}, 'errorMsgRun');
-    if isfield(tmp, 'errorMsgRun')
-      errorMsg{analysis_i} = tmp.errorMsgRun;
+    if exist(analysisOutFilename{analysis_i}, 'file')
+      tmp = load(analysisOutFilename{analysis_i}, 'errorMsgRun');
+      if isfield(tmp, 'errorMsgRun')
+        errorMsg{analysis_i} = tmp.errorMsgRun;
+      else
+        errorCount = errorCount + 1;
+        errorMsg{analysis_i} = 'ERROR MISSING';
+      end
     else
-      errorCount = errorCount + 1;
-      errorMsg{analysis_i} = 'ERROR MISSING';
+      errorMsg{analysis_i} = 'analyzedData missing';
     end
   end
   fprintf('Missing Error Count %d \n', errorCount)
@@ -293,11 +309,12 @@ else
 end
 
 % Generate a cell array and the empty row to be used as a template.
-tableVar = {'File_Analyzed', 'Error', 'Channel', 'Unit_Count', 'Pupil Dil', 'spikePupilCorr', 'subEvent Unsorted', 'subEvent Unit', 'subEvent MUA', ...
+tableVar = {'File_Analyzed', 'Error', 'Paradigm', 'Channel', 'GridHole', 'Unit_Count', 'Pupil Dil', 'spikePupilCorr', 'subEvent Unsorted', 'subEvent Unit', 'subEvent MUA', ...
   'Sig Unit count', 'Sig Unsorted', 'Sig MUA', 'Stimuli_count', 'Stimuli','ANOVA','Other Info'};
 emptyTable = cell2table(cell(0,length(tableVar)), 'VariableNames', tableVar);
 emptyRow = cell([1, length(tableVar)]);
 
+% Initialize contents
 [emptyRow{strcmp(tableVar, 'Unit_Count')}, emptyRow{strcmp(tableVar, 'Sig Unsorted')}, ...
   emptyRow{strcmp(tableVar, 'Sig Unit count')}, emptyRow{strcmp(tableVar, 'Sig MUA')}, ...
   emptyRow{strcmp(tableVar, 'Stimuli_count')}]  = deal(NaN);
@@ -328,8 +345,10 @@ for ii = 1:length(analysisParamFileName)
   
   % Check for analyzedData.mat to open
   if ~isempty((analysisOutFilename{ii}))
-    tmp = load(analysisOutFilename{ii}, 'stimStatsTable','sigStruct','frEpochs', 'subEventSigStruct', 'eyeDataStruct', 'spikePupilCorrStruct'); %Relies on genStats function in runAnalyses.
+    tmp = load(analysisOutFilename{ii}, 'stimStatsTable','sigStruct','frEpochs', 'subEventSigStruct', 'eyeDataStruct', 'spikePupilCorrStruct', 'taskData'); %Relies on genStats function in runAnalyses.
     
+    dataRow(strcmp(tableVar, 'Paradigm')) = {tmp.taskData.paradigm};
+
     if isfield(tmp, 'sigStruct')
       channelCount = length(tmp.sigStruct.data);
     else
@@ -342,6 +361,7 @@ for ii = 1:length(analysisParamFileName)
         % Null model based significance testing
         if isfield(tmp, 'sigStruct')
           dataRow(strcmp(tableVar, 'Channel')) = tmp.sigStruct.channelNames(channel_ind);
+          dataRow(strcmp(tableVar, 'GridHole')) = tmp.sigStruct.channelNames(channel_ind);
           dataRow{strcmp(tableVar, 'Unit_Count')} = tmp.sigStruct.unitCount(channel_ind);
           dataRow{strcmp(tableVar, 'Sig Unsorted')} = tmp.sigStruct.sigInfo(channel_ind, 1);
           dataRow{strcmp(tableVar, 'Sig Unit count')} = tmp.sigStruct.sigInfo(channel_ind, 2);
@@ -351,6 +371,9 @@ for ii = 1:length(analysisParamFileName)
           if ~isempty(sigStim)
             dataRow{strcmp(tableVar, 'Stimuli_count')} = length(sigStim);
             dataRow{strcmp(tableVar, 'Stimuli')} = strjoin(sigStim, '|');
+          else
+            dataRow{strcmp(tableVar, 'Stimuli_count')} = 0;
+            dataRow{strcmp(tableVar, 'Stimuli')} = '';
           end
         end
         
@@ -402,7 +425,7 @@ for ii = 1:length(analysisParamFileName)
         end
         
         % Analysis of pupil dilation
-        if isfield(tmp, 'eyeDataStruct')
+        if isfield(tmp, 'eyeDataStruct') && isfield(tmp.eyeDataStruct, 'pupilStats')
           catStrings = [];
           for cat_i = 1:length(tmp.eyeDataStruct.pupilStats.catComp)
             if ~isempty(tmp.eyeDataStruct.pupilStats.catStats{cat_i}) && tmp.eyeDataStruct.pupilStats.catStats{cat_i}{1} < 0.05

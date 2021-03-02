@@ -96,19 +96,21 @@ trialValid = logical(trialValid);
 
 taskDataValid = struct;
 
+if isfield(taskData, 'eventData')
+  taskDataValid.eventData = taskData.eventData;
+end
+
 % Not per trial, can be passed as is.
 taskDataValid.taskDataSummary = taskData.taskDataSummary;
 taskDataValid.taskEventList = taskData.taskEventList;
 taskDataValid.frameMotionData = taskData.frameMotionData;
 taskDataValid.RFmap = taskData.RFmap;
 taskDataValid.eyeCal = taskData.eyeCal;
-
-if isfield(taskData, 'eventData')
-  taskDataValid.eventData = taskData.eventData;
-end
+taskDataValid.runTime = taskData.runTime;
+taskDataValid.paradigm = taskData.paradigm;
+taskDataValid.scaleFactor = taskData.scaleFactor;
 
 % Per trial values, which need to be changed
-taskDataValid.paradigm = taskData.paradigm;
 taskDataValid.taskEventIDs = taskData.taskEventIDs(trialValid);
 taskDataValid.stimFramesLost = taskData.stimFramesLost(trialValid);
 taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);
