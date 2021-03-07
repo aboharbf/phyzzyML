@@ -1285,57 +1285,6 @@ eventMaxDur = eventMaxDur + psthPre + 1;
 % Prepare a array which can store all the event slices extracted
 eventInstIndex = ones(size(eventMaxDur));
 
-% Prepare by cycling through the stimuli, events, and creating the desired
-% storage. subEventData{event_i, dataType}{inst_i}.
-
-dataType2 = {'subEventPSTH', 'Label', 'RunInd'};
-subEventData = cell(length(eventLists), length(dataType2)); % I took out Dim 2, which is usually group. Everything will be set to MUA for now.
-
-for stim_i = 1:size(stimPSTH,1)
-  if stimEvent2Plot(stim_i)
-    for group_i = groupIterInd      
-      for event_i = 1:length(eventList)
-        
-        % Gather info for all the instances of a specific event in a
-        % stimulus, and loop across them.
-        evTable = newEventData{stim_i, eventList{event_i}}{1};
-        evStarts = round(evTable.startTime);
-        evEnds = round(evTable.endTime);
-        eventLengths = evEnds - evStarts;
-        
-        for inst_i = 1:length(eventLengths)
-          % Expand the desired stop and start by the amount outside of
-          % the event you'd like to see.
-          startT = evStarts(inst_i) + psthPreData - psthPre;
-          endT = min(evEnds(inst_i) + psthPreData + psthPost, traceLength);            % If endT exceeds the length of the trace, then adjust it.
-          endDist = min(traceLength - evEnds(inst_i), psthPost);
-          
-          % Gather Relevant data
-          subEventPSTH = stimPSTH{stim_i, group_i, strcmp(dataType, 'PSTH')}(:, startT:endT);
-          subEventRunInds = stimPSTH{stim_i, group_i, strcmp(dataType, 'Run Ind')};
-          subEventLabel = sprintf('%s, %d - %d', allStimuliNames{stim_i}, evStarts(inst_i), evEnds(inst_i));
-          
-          % Retrieve and increment the storage index.
-          storInd = eventInstIndex(event_i);
-          eventInstIndex(event_i) = eventInstIndex(event_i) + 1;
-          
-          % subEventPSTH has to be padded to allow for stacking with
-          % different events later. This Padding involves removing
-          % post event activity.
-          subEventPSTHPadded = nan(size(subEventPSTH,1), eventMaxDur(event_i));
-          endIndForData = size(subEventPSTH, 2) - endDist;
-          subEventPSTHPadded(:, 1:endIndForData) = subEventPSTH(:, 1:end - endDist); % Using endDist here to avoid possibly cutting out activity during event, when postEvent time can't be 200 ms.
-          
-          % Store relevant data
-          subEventData{event_i, strcmp(dataType2, 'subEventPSTH')}{storInd} = subEventPSTHPadded;
-          subEventData{event_i, strcmp(dataType2, 'Label')}{storInd} = subEventLabel;
-          subEventData{event_i, strcmp(dataType2, 'RunInd')}{storInd} = subEventRunInds;
-        end
-      end
-    end
-  end
-end
-
 % Plot 3 - all subEvent PSTH from stimuli
 if params.stimPlusEvents_extracted
   for stim_i = 1:size(stimPSTH,1)
@@ -1447,13 +1396,66 @@ if params.stimPlusEvents_extracted
   end
 end
 
+% Prepare Data struct for 3.1 - MOVED W/O TESTING from before previous
+% loop.
+% Prepare by cycling through the stimuli, events, and creating the desired
+% storage. subEventData{event_i, dataType}{inst_i}.
+
+dataType2 = {'subEventPSTH', 'Label', 'RunInd'};
+subEventData = cell(length(eventLists), length(dataType2)); % I took out Dim 2, which is usually group. Everything will be set to MUA for now.
+
+for stim_i = 1:size(stimPSTH,1)
+  if stimEvent2Plot(stim_i)
+    for group_i = groupIterInd      
+      for event_i = 1:length(eventList)
+        
+        % Gather info for all the instances of a specific event in a
+        % stimulus, and loop across them.
+        evTable = newEventData{stim_i, eventList{event_i}}{1};
+        evStarts = round(evTable.startTime);
+        evEnds = round(evTable.endTime);
+        eventLengths = evEnds - evStarts;
+        
+        for inst_i = 1:length(eventLengths)
+          % Expand the desired stop and start by the amount outside of
+          % the event you'd like to see.
+          startT = evStarts(inst_i) + psthPreData - psthPre;
+          endT = min(evEnds(inst_i) + psthPreData + psthPost, traceLength);            % If endT exceeds the length of the trace, then adjust it.
+          endDist = min(traceLength - evEnds(inst_i), psthPost);
+          
+          % Gather Relevant data
+          subEventPSTH = stimPSTH{stim_i, group_i, strcmp(dataType, 'PSTH')}(:, startT:endT);
+          subEventRunInds = stimPSTH{stim_i, group_i, strcmp(dataType, 'Run Ind')};
+          subEventLabel = sprintf('%s, %d - %d', allStimuliNames{stim_i}, evStarts(inst_i), evEnds(inst_i));
+          
+          % Retrieve and increment the storage index.
+          storInd = eventInstIndex(event_i);
+          eventInstIndex(event_i) = eventInstIndex(event_i) + 1;
+          
+          % subEventPSTH has to be padded to allow for stacking with
+          % different events later. This Padding involves removing
+          % post event activity.
+          subEventPSTHPadded = nan(size(subEventPSTH,1), eventMaxDur(event_i));
+          endIndForData = size(subEventPSTH, 2) - endDist;
+          subEventPSTHPadded(:, 1:endIndForData) = subEventPSTH(:, 1:end - endDist); % Using endDist here to avoid possibly cutting out activity during event, when postEvent time can't be 200 ms.
+          
+          % Store relevant data
+          subEventData{event_i, strcmp(dataType2, 'subEventPSTH')}{storInd} = subEventPSTHPadded;
+          subEventData{event_i, strcmp(dataType2, 'Label')}{storInd} = subEventLabel;
+          subEventData{event_i, strcmp(dataType2, 'RunInd')}{storInd} = subEventRunInds;
+        end
+      end
+    end
+  end
+end
+
 % Plot 3.1 - Event PSTH Color Plots, based on 'eventStorage' from plot 3.
 if params.eventPsthColorPlots
   for event_i = 1:size(subEventData,1)
     for inst_i = 1:length(subEventData{event_i, 1})
       % Extract traces for an instance of an event.
-      instTraces = subEventData{event_i, 1}{inst_i};
-      instRunLab = runList(subEventData{event_i, 3}{inst_i});
+      instTraces = subEventData{event_i, strcmp(dataType2, 'subEventPSTH')}{inst_i};
+      instRunLab = runList(subEventData{event_i, strcmp(dataType2, 'RunInd')}{inst_i});
       
       % Traces are padded with NaNs to make them the same length. Remove
       % this padding.

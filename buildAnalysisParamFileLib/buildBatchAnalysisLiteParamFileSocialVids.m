@@ -45,8 +45,8 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
 plotSwitch.slidingWindowANOVA = 0;    % 
@@ -210,7 +210,7 @@ subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Indiv
 subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
 subEventPSTHParams.stimPlusEvents_extracted = 0;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
 subEventPSTHParams.eventPsthColorPlots = 0;                     % Plot 3.1 - event PSTH color plots, each individual trace, stacked. Takes length of event into account.
-subEventPSTHParams.eventPsthMeanLinePlots = 1;                  % Plot 3.2 - event PSTH mean line plots, shows the full slice of event related activity to the PSTH. ACTIVATES PLOT 3 CODE!
+subEventPSTHParams.eventPsthMeanLinePlots = 0;                  % Plot 3.2 - event PSTH mean line plots, shows the full slice of event related activity to the PSTH. ACTIVATES PLOT 3 CODE!
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
 
 subEventPSTHParams.plotSizeAllRunStimPSTH_extracted = [.5 .6];           
