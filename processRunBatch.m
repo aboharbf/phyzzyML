@@ -44,13 +44,7 @@ if ~replaceAnalysisOut
     analysisParamFile = varargin{1};
     analysisParamPath = feval(analysisParamFile);
     load(analysisParamPath);
-    
-    % Delete the produced file to avoid problems downstream
-%     pathSeg = strsplit(analysisParamPath, '/');
-%     segInd = find(contains(pathSeg, 'Mo'));
-%     dir2delete = strjoin(pathSeg(1:segInd), '/');
-%     rmdir(dir2delete, 's')
-    
+       
     varargin = vararginInputs;
     runListFolder = ephysVolume;
     runList = buildRunList(runListFolder, 'nev');
@@ -120,7 +114,7 @@ if ~replaceAnalysisOut
       [lfpFilename, photodiodeFilename, lineNoiseTriggerFilename] = deal(sprintf('%s/%s/%s%s.ns5',ephysVolume,dateSubject,dateSubject,runNum));
       spikeFilename = sprintf('%s/%s/%s%s.nev',ephysVolume,dateSubject,dateSubject,runNum); %note that this file also contains blackrock digital in events
       taskFilename = sprintf('%s/%s/%s%s.bhv2',stimulusLogVolume,dateSubject,dateSubject,runNum); %information on stimuli and performance
-      [outDir, stimSyncParams.outDir, stimSyncParams.outDir, ephysParams.outDir]  = deal(sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum));
+      [outDir, eyeStatsParams.outDir, eyeStimOverlayParams.outDir, stimSyncParams.outDir, stimSyncParams.outDir, ephysParams.outDir]  = deal(sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum));
       analysisParamFilename = strcat(outDir,analysisParamFilenameStem);
       preprocessedDataFilename = strcat(outDir,preprocessedDataFilenameStem);                     %#ok      
       

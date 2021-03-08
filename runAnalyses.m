@@ -286,7 +286,7 @@ end
 save(analysisOutFilename,'eyeDataStruct','-append');
 
 if plotSwitch.eyeStimOverlay
-  eyeStimOverlay(eyeInByEvent, stimDir, outDir, psthParams, eventIDs, taskData, eyeDataStruct);
+  eyeStimOverlay(eyeInByEvent, eyeDataStruct, eventIDs, taskData, psthParams, eyeStimOverlayParams)
 end
 
 if plotSwitch.eyeCorrelogram 
@@ -5306,19 +5306,22 @@ if saveFig
 end
 end
 
-function eyeStimOverlay(eyeInByEvent, stimDir, outDir, psthParams, eventIDs, taskData, eyeDataStruct)
+function [eyeInByEventDS, eyeSpikesByEvent] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, eventIDs, taskData, psthParams, eyeStimOverlayParams)
 %Function will visualize eye signal (and objects) on top of stimulus.
 
+eyeSpikesByEvent = [];
 saccadeByStim = eyeDataStruct.saccadeByStim;
 attendedObjData = eyeDataStruct.attendedObjData;
 
-shapeOverlay = 1;         % Switch for shape overlay.
-trialNumberOverlay = 1;   % Switch for trial number overlay on eye signal.
-colorCodedTrace = 1;      % Trace changes colors corresponding to what is being looked at. 1 = per target of gaze, 2 = Saccade vs fixation.
-frameCountOverlay = 1;    % Places the frame number in the lower left.
-eyeSig.shape = 'Circle';  
-eyeSig.color = {{[1. 0. 0.];[0 .4 1.];[.1 .8 .1];[.1 .8 .1];[0 0 0];[1 .4 0]; ...
-  [.7 0 0];[0 0 .7];[0 .5 0];[0 .5 0];[0 0 0];[1 .6 0]; [1 1 1]}; {[0 .653 .91]; [1 0 0]; [1 1 0]}}; %Faces, Bodies, Hands, Obj, bkg, then Fix v Saccade v Blink
+shapeOverlay = eyeStimOverlayParams.shapeOverlay;         % Switch for shape overlay.
+trialNumberOverlay = eyeStimOverlayParams.trialNumberOverlay;   % Switch for trial number overlay on eye signal.
+colorCodedTrace = eyeStimOverlayParams.colorCodedTrace;      % Trace changes colors corresponding to what is being looked at. 1 = per target of gaze, 2 = Saccade vs fixation.
+frameCountOverlay = eyeStimOverlayParams.frameCountOverlay;    % Places the frame number in the lower left.
+eyeSig.shape = eyeStimOverlayParams.eyeSig.shape;  
+eyeSig.color = eyeStimOverlayParams.eyeSig.color;
+videoOutput = eyeStimOverlayParams.videoOutput;
+stimDir = eyeStimOverlayParams.stimDir;
+outDir = eyeStimOverlayParams.outDir;
 
 if shapeOverlay
   frameMotionData = taskData.frameMotionData;
@@ -5339,6 +5342,9 @@ PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
 dvaOrigin =  taskData.eyeCal.origin;
 scaleFactor = taskData.scaleFactor;
 
+% Initialize some structures
+[eyeInByEventDS, eyeImgByEventDS] = deal(cell(size(eventIDs)));
+
 %Run each stimuli presented
 for stim_i = 1:length(eventIDs)
   %find the correct frameMotionData
@@ -5357,28 +5363,28 @@ for stim_i = 1:length(eventIDs)
   
   frames  = round(stimFrameMotionData.fps)*stimPresSec;
   dsInd = linspace(origInd(1), origInd(end) - 1000/stimFrameMotionData.fps, frames+1);
-  eyeInByEventDS = zeros(2, size(eyeInByEvent{stim_i},2), frames);
-  eyeImgByEventDS = zeros(size(eyeInByEvent{stim_i},2), frames);
+  eyeInByEventDS{stim_i} = zeros(2, size(eyeInByEvent{stim_i},2), frames);
+  eyeImgByEventDS{stim_i} = zeros(size(eyeInByEvent{stim_i},2), frames);
   
   for trial_i = 1:size(eyeInByEvent{stim_i},2)
     % Downsample the eye labels
     for eye_i = 1:2
       tmp = interp1(origInd, squeeze(eyeInByEvent{stim_i}(eye_i, trial_i, :)), dsInd, 'linear');
-      eyeInByEventDS(eye_i, trial_i, :) = tmp(1:end-1);
+      eyeInByEventDS{stim_i}(eye_i, trial_i, :) = tmp(1:end-1);
     end
     % Downsample saccade labels
     tmp = interp1(origInd, saccadeByStim{stim_i}(trial_i, :), dsInd, 'linear');
-    eyeImgByEventDS(trial_i, :) = tmp(1:end-1);
+    eyeImgByEventDS{stim_i}(trial_i, :) = tmp(1:end-1);
     
     % Brief modification for visual clarity - in cases where saccades are a
     % single frame, expand.
-    sacInd = find(eyeImgByEventDS(trial_i, :) == 2);
+    sacInd = find(eyeImgByEventDS{stim_i}(trial_i, :) == 2);
     for sac_i = 1:length(sacInd)
-      if sacInd(sac_i) ~= 1 && sacInd(sac_i) ~= size(eyeImgByEventDS,2)
-        preFrame = eyeImgByEventDS(sacInd(sac_i)-1);
-        postFrame = eyeImgByEventDS(sacInd(sac_i)+1);
+      if sacInd(sac_i) ~= 1 && sacInd(sac_i) ~= size(eyeImgByEventDS{stim_i},2)
+        preFrame = eyeImgByEventDS{stim_i}(sacInd(sac_i)-1);
+        postFrame = eyeImgByEventDS{stim_i}(sacInd(sac_i)+1);
         if preFrame == 1 && postFrame == 1
-          [eyeImgByEventDS(trial_i, sacInd(sac_i)-1), eyeImgByEventDS(trial_i, sacInd(sac_i)+1)] = deal(2);
+          [eyeImgByEventDS{stim_i}(trial_i, sacInd(sac_i)-1), eyeImgByEventDS{stim_i}(trial_i, sacInd(sac_i)+1)] = deal(2);
         end
       end
     end
@@ -5387,9 +5393,9 @@ for stim_i = 1:length(eventIDs)
   
   % move data to the dVa Origin, then shift to pixel space
   pixelOrigin = [stimFrameMotionData.width/2 stimFrameMotionData.height/2];
-  for eye_ind = 1:size(eyeInByEventDS,1)
-    tmp = eyeInByEventDS(eye_ind, :, :) + dvaOrigin(eye_ind);
-    eyeInByEventDS(eye_ind, :, :) = tmp * (PixelsPerDegree(eye_ind)/scaleFactor) + pixelOrigin(eye_ind); % scaleFactor makes the videos larger, meaning functionally, fewer pixels of video per degree.
+  for eye_ind = 1:size(eyeInByEventDS{stim_i},1)
+    tmp = eyeInByEventDS{stim_i}(eye_ind, :, :) + dvaOrigin(eye_ind);
+    eyeInByEventDS{stim_i}(eye_ind, :, :) = tmp * (PixelsPerDegree(eye_ind)/scaleFactor) + pixelOrigin(eye_ind); % scaleFactor makes the videos larger, meaning functionally, fewer pixels of video per degree.
   end
   
   %Open a new video to save the results
@@ -5420,69 +5426,74 @@ for stim_i = 1:length(eventIDs)
   
   % In cases where things were up sampled for storage, down sample back to
   % the appropriate frame count.
-  if ~(size(eyeInByEventDS,3) == size(colorIndMat,2))
-    nInd = 1:size(eyeInByEventDS,3);
+  if ~(size(eyeInByEventDS{stim_i},3) == size(colorIndMat,2))
+    nInd = 1:size(eyeInByEventDS{stim_i},3);
     oInd = 1:size(colorIndMat,2);
     tmp = interp1(oInd, colorIndMat', nInd ,'nearest', 'extrap');
     colorIndMat = round(tmp');
   end
   
-  while hasFrame(stimVid) && frame_i <= size(eyeInByEventDS,3)
-    
-    % Pull a frame from the video
-    img1 = readFrame(stimVid);
-    
-    % Add in Shapes (If the data exists, and switch is set)
-    if shapeOverlay && ~isempty(stimFrameMotionData.objNames) %Landscapes/Scrambles
-      for obj_i = 1:length(objects)
-        coords = eval(eval(sprintf('objects{%d}',obj_i)));
-        coords = coords(frame_i,:);
-        if any(isnan(coords)) %NaN means the object isn't present.
-          continue
-        end
-        switch objectShapes{obj_i}
-          case 'Circle'
-            img1 = insertShape(img1,objectShapes{obj_i},[coords(1) coords(2) objRad(obj_i)],'LineWidth',2,'color', (eyeSig.color{1}{obj_i}.*255));
-          case 'Line'
-            %the 2 lines define gazes - the first one comes from Face1, the
-            %2nd from Face2.
-            if obj_i == find(strcmp(objectShapes,'Line'),1,'first')
-              GazeSource = Face1;
-            else
-              GazeSource = Face2;
-            end
-            img1 = insertShape(img1,objectShapes{obj_i},[GazeSource(frame_i,1) GazeSource(frame_i,2) coords(1) coords(2)],'LineWidth',2);
+  % If Desired, create video of output
+  if videoOutput
+    while hasFrame(stimVid) && frame_i <= size(eyeInByEventDS{stim_i},3)
+      
+      % Pull a frame from the video
+      img1 = readFrame(stimVid);
+      
+      % Add in Shapes (If the data exists, and switch is set)
+      if shapeOverlay && ~isempty(stimFrameMotionData.objNames) %Landscapes/Scrambles
+        for obj_i = 1:length(objects)
+          coords = eval(eval(sprintf('objects{%d}',obj_i)));
+          coords = coords(frame_i,:);
+          if any(isnan(coords)) %NaN means the object isn't present.
+            continue
+          end
+          switch objectShapes{obj_i}
+            case 'Circle'
+              img1 = insertShape(img1, objectShapes{obj_i}, [coords(1) coords(2) objRad(obj_i)], 'LineWidth', 2, 'color', (eyeSig.color{1}{obj_i}.*255));
+            case 'Line'
+              %the 2 lines define gazes - the first one comes from Face1, the
+              %2nd from Face2.
+              if obj_i == find(strcmp(objectShapes, 'Line'), 1, 'first')
+                GazeSource = Face1;
+              else
+                GazeSource = Face2;
+              end
+              img1 = insertShape(img1,objectShapes{obj_i},[GazeSource(frame_i,1) GazeSource(frame_i,2) coords(1) coords(2)],'LineWidth',2);
+          end
         end
       end
-    end
-    
-    % Add the eye signal, color coded according to the switch
-    for trial_i = 1:size(eyeInByEventDS, 2)
-      coords = (eyeInByEventDS(:, trial_i, frame_i));
-      % Place the shapes corresponding to gaze for every trial
-%       if colorCodedTrace ~= 2
-        img1 = insertShape(img1, eyeSig.shape,[coords(1) coords(2) 1],'LineWidth',5,'Color',[eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}.*255]);
-%       else
-%         img1 = insertShape(img1, eyeSig.shape,[coords(1) coords(2) 1],'LineWidth',5,'Color',[eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}]);
-%       end
-      % If desired, put number on circle
-      if trialNumberOverlay
-        img1 = insertText(img1,[coords(1)-5 coords(2)-7],num2str(trial_i), 'BoxOpacity', 0, 'FontSize', 8);
+      
+      % Add the eye signal, color coded according to the switch
+      
+      for trial_i = 1:size(eyeInByEventDS{stim_i}, 2)
+        coords = (eyeInByEventDS{stim_i}(:, trial_i, frame_i));
+        % Place the shapes corresponding to gaze for every trial
+        %       if colorCodedTrace ~= 2
+        img1 = insertShape(img1, eyeSig.shape, [coords(1) coords(2) 1],'LineWidth', 5, 'Color', [eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}.*255]);
+        %       else
+        %         img1 = insertShape(img1, eyeSig.shape,[coords(1) coords(2) 1],'LineWidth',5,'Color',[eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}]);
+        %       end
+        % If desired, put number on circle
+        if trialNumberOverlay
+          img1 = insertText(img1,[coords(1)-5 coords(2)-7],num2str(trial_i), 'BoxOpacity', 0, 'FontSize', 8);
+        end
+        
       end
+      
+      % Add the Frame to the lower left of the stimuli
+      if frameCountOverlay
+        img1 = insertText(img1,[10 255], num2str(frame_i), 'BoxOpacity' , 0,'FontSize', 20, 'TextColor', 'yellow');
+      end
+      
+      frame_i = frame_i + 1;          % step the video
+      writeVideo(outputVideo, img1);  % Add the new Frame
+      
     end
     
-    % Add the Frame to the lower left of the stimuli
-    if frameCountOverlay
-      img1 = insertText(img1,[10 255], num2str(frame_i), 'BoxOpacity' , 0,'FontSize', 20, 'TextColor', 'yellow');
-    end
-    
-    
-    frame_i = frame_i + 1;          % step the video
-    writeVideo(outputVideo, img1);  % Add the new Frame
+    close(outputVideo);
     
   end
-  
-  close(outputVideo);
   
 end
 

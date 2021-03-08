@@ -9,10 +9,10 @@ switch machine
     analysisDirectory = slashSwap('D:\DataAnalysis_Zscore');
     outputDir = [analysisDirectory '/batchAnalysis'];
     stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
-    stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories');
+    stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
     batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
-    eventDataPath = fullfile(stimDir, 'eventData.mat');
+    eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
     NDTPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
@@ -46,7 +46,8 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.spikeEyeOverlay = 1;       % Generate an overlay of activity across units according to eye signal.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
 plotSwitch.slidingWindowANOVA = 0;    % 
@@ -58,7 +59,7 @@ spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, n
 preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList'}; %Variables extracted from preprocessedData.mat
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
                                   'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
-AnalysisParamVars = {'psthParams'}; %Variables extracted from analysisParam.mat
+AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned'};
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
@@ -220,7 +221,12 @@ meanPSTHParams.subEventPSTHParams = subEventPSTHParams;
 meanPSTHParams.subEventPSTHParams.subEventTimes = [200 200];      % psthPre and psthImDur for grabbing events.
 meanPSTHParams.subEventPSTHParams.psthPre = 100;                  
 meanPSTHParams.subEventPSTHParams.psthImDur = 400;                
-meanPSTHParams.subEventPSTHParams.psthPost = 200;                    
+meanPSTHParams.subEventPSTHParams.psthPost = 200;      
+
+spikeEyeOverlay.outputDir = fullfile(outputDir,'spikeEyeOverlay');
+spikeEyeOverlay.threshold = 1;
+spikeEyeOverlay.thresholdHz = 5;
+spikeEyeOverlay.stimDir = stimDir;
 
 frameFiringParams.stimParamsFilename = stimParamsFilename;
 frameFiringParams.outputDir = fullfile(outputDir,'frameFiring');
