@@ -60,7 +60,7 @@ preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign',
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
                                   'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
 AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
-analyzedDataBigVars = {'spikesByCategoryBinned'};
+analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
 spikePathLoadParams.batchAnalysisOutput = fullfile(outputDir, spikePathLoadParams.spikePathFileName);

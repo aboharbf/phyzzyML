@@ -4,7 +4,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20201115Mo';
+dateSubject = '20201117Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -48,8 +48,8 @@ verbosity = 'INFO';               % other options, 'DEBUG', 'VERBOSE';
 plotSwitch.pupilDilation = 0;               % plots image which illustrates continuous values for pupil dilation. 
 plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements. used by subEventAnalysis.
 plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
-plotSwitch.imageEyeMap = 1;                 
-plotSwitch.eyeCorrelogram = 1;              % Eye Gram
+plotSwitch.imageEyeMap = 0;                 
+plotSwitch.eyeCorrelogram = 0;              % Eye Gram
 plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
@@ -355,12 +355,13 @@ eyeStimOverlayParams.videoOutput = false;      % Switch for producing video outp
 eyeStimOverlayParams.shapeOverlay = 1;         % Switch for shape overlay, visualizing frame motion data if available.
 eyeStimOverlayParams.trialNumberOverlay = 1;   % Switch for trial number overlay on eye signal.
 eyeStimOverlayParams.colorCodedTrace = 1;      % Trace changes colors corresponding to what is being looked at. 1 = per target of gaze, 2 = Saccade vs fixation.
+eyeStimOverlayParams.spikeOverlay = 1;         % Overlay spikes onto the video
 eyeStimOverlayParams.frameCountOverlay = 1;    % Places the frame number in the lower left.
 eyeStimOverlayParams.eyeSig.shape = 'Circle';  % How to visualize the eye signal
 eyeStimOverlayParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
 eyeStimOverlayParams.eyeSig.color = {{[1. 0. 0.];[0 .4 1.];[.1 .8 .1];[.1 .8 .1];[0 0 0];[1 .4 0]; ...
   [.7 0 0];[0 0 .7];[0 .5 0];[0 .5 0];[0 0 0];[1 .6 0]; [1 1 1]}; {[0 .653 .91]; [1 0 0]; [1 1 0]}}; %Faces, Bodies, Hands, Obj, bkg, then Fix v Saccade v Blink
-
+  
 subEventAnalysisParams.preAlign = 300;
 subEventAnalysisParams.postAlign = 800;
 subEventAnalysisParams.nullAllStim = 1;
