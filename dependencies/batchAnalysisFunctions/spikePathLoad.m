@@ -73,6 +73,7 @@ for file_i = 1:length(fileNames2Load)
     end
     
   end
+end
 
 if any(any(varPresent))
   disp(spikePathBank.analyzedDir(any(varPresent,2)));

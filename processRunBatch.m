@@ -29,7 +29,7 @@ switch machine
 end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-usePreprocessed = 1;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
+usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
@@ -114,7 +114,11 @@ if ~replaceAnalysisOut
       [lfpFilename, photodiodeFilename, lineNoiseTriggerFilename] = deal(sprintf('%s/%s/%s%s.ns5',ephysVolume,dateSubject,dateSubject,runNum));
       spikeFilename = sprintf('%s/%s/%s%s.nev',ephysVolume,dateSubject,dateSubject,runNum); %note that this file also contains blackrock digital in events
       taskFilename = sprintf('%s/%s/%s%s.bhv2',stimulusLogVolume,dateSubject,dateSubject,runNum); %information on stimuli and performance
-      [outDir, eyeStatsParams.outDir, eyeStimOverlayParams.outDir, stimSyncParams.outDir, stimSyncParams.outDir, ephysParams.outDir]  = deal(sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum));
+      outDir = deal(sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum));
+      
+      % Update the many additional parts where outDir is required (function
+      % specific plots, make sure to update).
+      [eyeStatsParams.outDir, eyeStimOverlayParams.outDir, stimSyncParams.outDir, stimSyncParams.outDir, ephysParams.outDir, subEventAnalysisParams.outDir]  = deal(outDir);
       analysisParamFilename = strcat(outDir,analysisParamFilenameStem);
       preprocessedDataFilename = strcat(outDir,preprocessedDataFilenameStem);                     %#ok      
       

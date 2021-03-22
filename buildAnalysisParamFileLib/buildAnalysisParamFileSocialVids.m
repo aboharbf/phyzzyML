@@ -4,7 +4,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20201117Mo';
+dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -53,7 +53,7 @@ plotSwitch.eyeCorrelogram = 0;              % Eye Gram
 plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
-plotSwitch.eyeStimOverlay = 1;              % Visualize eye traces on stimuli.
+plotSwitch.eyeStimOverlay = 1;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
 plotSwitch.spikePupilCorr = 0;              % see the correlation between single trial PSTHes and pupil size.
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
@@ -348,20 +348,20 @@ eyeStatsParams.lfpPaddedBy = tfParams.movingWin(1)/2;
 eyeStatsParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
 eyeStatsParams.clusterFixLPFilterIn = 25;                 % Filter used for saccade detection internally in ClusterFix.
 
-genStatsParams.ANOVAParams.target = 'socialInteraction';    % When performing a one way ANOVA, the label from groups which is used. the rest are 'non-' label.
-
 eyeStimOverlayParams.stimDir = stimDir;
 eyeStimOverlayParams.videoOutput = false;      % Switch for producing video output. If off, videos are not produced, but down sampled eye signal and other structures are still produced.
 eyeStimOverlayParams.shapeOverlay = 1;         % Switch for shape overlay, visualizing frame motion data if available.
 eyeStimOverlayParams.trialNumberOverlay = 1;   % Switch for trial number overlay on eye signal.
 eyeStimOverlayParams.colorCodedTrace = 1;      % Trace changes colors corresponding to what is being looked at. 1 = per target of gaze, 2 = Saccade vs fixation.
-eyeStimOverlayParams.spikeOverlay = 1;         % Overlay spikes onto the video
+eyeStimOverlayParams.computeEyeSpikeMat = 0;   % Compute the eyeSpikeMat. It is massive, and will likely exhaust system memory.
+eyeStimOverlayParams.spikeOverlay = 0;         % Overlay spikes onto the video
 eyeStimOverlayParams.frameCountOverlay = 1;    % Places the frame number in the lower left.
 eyeStimOverlayParams.eyeSig.shape = 'Circle';  % How to visualize the eye signal
 eyeStimOverlayParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
 eyeStimOverlayParams.eyeSig.color = {{[1. 0. 0.];[0 .4 1.];[.1 .8 .1];[.1 .8 .1];[0 0 0];[1 .4 0]; ...
   [.7 0 0];[0 0 .7];[0 .5 0];[0 .5 0];[0 0 0];[1 .6 0]; [1 1 1]}; {[0 .653 .91]; [1 0 0]; [1 1 0]}}; %Faces, Bodies, Hands, Obj, bkg, then Fix v Saccade v Blink
   
+subEventAnalysisParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
 subEventAnalysisParams.preAlign = 300;
 subEventAnalysisParams.postAlign = 800;
 subEventAnalysisParams.nullAllStim = 1;
@@ -379,6 +379,8 @@ subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
+subEventAnalysisParams.genPlots = false;                                % Asks if you want to generate plots.
+subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
@@ -420,11 +422,15 @@ end
 %                 {-800, 60}; ...
 %                 {100, 1100}}; %#ok
 %               
-frEpochsCell = {{60, @(stimDur) stimDur+60}};...
+frEpochsCell = {{60, @(stimDur) stimDur+60}, {60, 560}};...
 %                 {-800, 60}; ...
 %                 {@(stimDur) stimDur+60, @(stimDur) stimDur+460}}; %#ok
-              
-epochLabels = {'Presentation'};%,'Fixation','Reward'};
+epochLabels = {'Presentation', 'stimOnset'};%,'Fixation','Reward'};
+
+
+ANOVAParams.target = 'socialInteraction';    % When performing a one way ANOVA, the label from groups which is used. the rest are 'non-' label.
+ANOVAParams.period = 'socialInteraction';    
+ANOVAParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres'};    
 
 neuroGLMParams.neuroGLMPath = neuroGLMPath;
 neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 

@@ -11,7 +11,6 @@ function [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsB
 % subEventParams - has path to eventData, stimDir, and variables used to
 % plot PSTHes.
 
-specSubEvent = 0;     % Analyze individual instances of subEvents in eventData.
 
 % Unpack Variables, some preprocessing. Generate an index for individual 
 % trials that take place during the run, matching them to the stimuli as 
@@ -19,6 +18,7 @@ specSubEvent = 0;     % Analyze individual instances of subEvents in eventData.
 frameMotionData = taskData.frameMotionData;
 eventIDs = subEventParams.eventIDs;
 taskEventIDs = taskData.taskEventIDs;
+specSubEvent = subEventParams.specSubEvent;
 
 taskEventIDInd = zeros(length(taskEventIDs),1);
 for ev_i = 1:length(eventIDs)
@@ -356,91 +356,95 @@ if exist('onsetsByEvent', 'var')
     end
   end
   
-  % Plotting Below
-  tabPerEvent = 1; % Plot line PSTHes for each event.
-  
-  % Generate an array for referencing subEvents correctly.
-  eventsInEventDataPlot = strrep(subEventNames, '_',' ');
-  if exist('uniqueSubEvents', 'var') && specSubEvent
-    tmp = cellfun(@(x) strsplit(x, '|'), uniqueSubEvents, 'UniformOutput', 0);
-    specSubEventNamesSorted = cellfun(@(x) x{1}, tmp, 'UniformOutput', 0);
-    %   eventsInEventDataPlot = strrep(subEventNames, '_',' ');
-  end
-  
-  for chan_i = 1:length(psthBySubEvent)
-    unitCount = length(psthBySubEvent{chan_i});
-    for unit_i = 1:unitCount
-      
-      if unit_i == 1 && unitCount == 2
-        continue % Only make plot for MUA.
-      end
-      
-      % Create per unit figure
-      if ~isempty(ephysParams.channelUnitNames{chan_i})
-        psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, ephysParams.channelUnitNames{chan_i}{unit_i});
-        figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
-        if ~tabPerEvent
-          sgtitle(psthTitle)
-        end
-        plotLabels = [{'Event'}, {'Null'}];
+  % Plotting
+  if subEventParams.genPlots
+    
+    % Plotting Below
+    tabPerEvent = 1; % Plot line PSTHes for each event.
+    
+    % Generate an array for referencing subEvents correctly.
+    eventsInEventDataPlot = strrep(subEventNames, '_',' ');
+    if exist('uniqueSubEvents', 'var') && specSubEvent
+      tmp = cellfun(@(x) strsplit(x, '|'), uniqueSubEvents, 'UniformOutput', 0);
+      specSubEventNamesSorted = cellfun(@(x) x{1}, tmp, 'UniformOutput', 0);
+      %   eventsInEventDataPlot = strrep(subEventNames, '_',' ');
+    end
+    
+    for chan_i = 1:length(psthBySubEvent)
+      unitCount = length(psthBySubEvent{chan_i});
+      for unit_i = 1:unitCount
         
-        % Cycle through events
-        for event_i = 1:length(subEventNames)
+        if unit_i == 1 && unitCount == 2
+          continue % Only make plot for MUA.
+        end
+        
+        % Create per unit figure
+        if ~isempty(ephysParams.channelUnitNames{chan_i})
+          psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, ephysParams.channelUnitNames{chan_i}{unit_i});
+          figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
           if ~tabPerEvent
-            axesH = subplot(length(subEventNames), 1, event_i);
-          else
-            objTab = uitab('Title', subEventNames{event_i});
-            axesH = axes('parent', objTab);
+            sgtitle(psthTitle)
           end
+          plotLabels = [{'Event'}, {'Null'}];
           
-          plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
-          plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
-          plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
-          [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
-          hold on
-          if event_i ~= length(subEventNames)
-            axesH.XLabel.String = '';
-          end
-          
-          % Plot individual traces
-          if specSubEvent
-            relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
-            newLines = gobjects(length(relevantEventInd),1);
-            psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + subEventParams.psthParams.psthPost;
-            for ii = 1:length(relevantEventInd)
-              newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
+          % Cycle through events
+          for event_i = 1:length(subEventNames)
+            if ~tabPerEvent
+              axesH = subplot(length(subEventNames), 1, event_i);
+            else
+              objTab = uitab('Title', subEventNames{event_i});
+              axesH = axes('parent', objTab);
             end
             
-            % Expand vertical bars to capture new traces
-            [vertLineHands(1).YData, vertLineHands(2).YData] = deal(ylim());
+            plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
+            plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
+            plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
+            [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
+            hold on
+            if event_i ~= length(subEventNames)
+              axesH.XLabel.String = '';
+            end
             
-            % Update the legend
-            handles = [psthHand.mainLine, newLines'];
-            labels = [plotLabels, uniqueSubEvents(relevantEventInd)'];
-            legend(handles, labels);
+            % Plot individual traces
+            if specSubEvent
+              relevantEventInd = find(strcmp(specSubEventNamesSorted, subEventNames{event_i}));
+              newLines = gobjects(length(relevantEventInd),1);
+              psthRange = -subEventParams.psthParams.psthPre:subEventParams.psthParams.psthImDur + subEventParams.psthParams.psthPost;
+              for ii = 1:length(relevantEventInd)
+                newLines(ii) = plot(psthRange, specSubEventPSTH{chan_i}{unit_i}(relevantEventInd(ii),:));
+              end
+              
+              % Expand vertical bars to capture new traces
+              [vertLineHands(1).YData, vertLineHands(2).YData] = deal(ylim());
+              
+              % Update the legend
+              handles = [psthHand.mainLine, newLines'];
+              labels = [plotLabels, uniqueSubEvents(relevantEventInd)'];
+              legend(handles, labels);
+            end
+            
           end
-          
+          saveFigure(figStruct.figDir, psthTitle, [], figStruct, [])
         end
-        saveFigure(figStruct.figDir, psthTitle, [], figStruct, [])
       end
     end
-  end
-  
-  % SubEvent Occurances for stimulus visual events, not saccades/blinks.
-  
-  if ~isempty(eventsInData)
-    plotName = 'SubEvent Occurances';
-    h = figure('Name', plotName,'NumberTitle','off','units','normalized');
-    for event_i = 1:length(stimEventMat)
-      axesH = subplot(length(stimEventMat), 1, event_i);
-      [~, colorbarH] = plotPSTH(stimEventMat{event_i}, [], [], subEventParams.stimPlotParams, 'color', eventsInEventDataPlot(event_i) , strrep(eventIDs, '_', ' '));
-      delete(colorbarH)
-      axesH.FontSize = 10;
-      if event_i ~= length(eventsInEventData)
-        axesH.XLabel.String = '';
+    
+    % SubEvent Occurances for stimulus visual events, not saccades/blinks.
+    if ~isempty(eventsInData)
+      plotName = 'SubEvent Occurances';
+      h = figure('Name', plotName,'NumberTitle','off','units','normalized');
+      for event_i = 1:length(stimEventMat)
+        axesH = subplot(length(stimEventMat), 1, event_i);
+        [~, colorbarH] = plotPSTH(stimEventMat{event_i}, [], [], subEventParams.stimPlotParams, 'color', eventsInEventDataPlot(event_i) , strrep(eventIDs, '_', ' '));
+        delete(colorbarH)
+        axesH.FontSize = 10;
+        if event_i ~= length(eventsInEventData)
+          axesH.XLabel.String = '';
+        end
       end
+      saveFigure(figStruct.figDir, plotName, [], figStruct, [])
     end
-    saveFigure(figStruct.figDir, plotName, [], figStruct, [])
+    
   end
   
   % Package outputs

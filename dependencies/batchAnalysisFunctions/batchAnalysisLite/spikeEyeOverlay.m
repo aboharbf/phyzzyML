@@ -6,13 +6,16 @@ function spikeEyeOverlay(spikePathBank, params, figStruct)
 % - batchAnalysisParams: with field for spikeLoadParams.
 % - figStruct
 
+params.spikePathLoadParams.fileVars = [params.spikePathLoadParams.fileVars, 'spikeEyeData'];
+params.spikePathLoadParams.fileInds = [params.spikePathLoadParams.fileInds, 4];
+
 [paradigmList, ~, allParadigmRuns] = unique(spikePathBank.paradigmName);
 
 % Define variables to load for every paradigm here
 if params.meanPSTHParams.normalize
-  variables2Extract = {'spikesByEventBinned', 'psthParams', 'eyeDataStruct', 'psthByImageProc'};
+  variables2Extract = {'spikeEyeData', 'psthParams', 'eyeDataStruct', 'psthByImageProc'};
 else
-  variables2Extract = {'spikesByEventBinned', 'psthParams', 'eyeDataStruct', 'psthByImage'};
+  variables2Extract = {'spikeEyeData', 'psthParams', 'eyeDataStruct', 'psthByImage'};
 end
 
 for par_i = 1:length(paradigmList)
@@ -22,7 +25,7 @@ for par_i = 1:length(paradigmList)
   uniqueStim = unique(vertcat(spikePathBankParadigm.stimuli{:}));
     
   % Load the necessary variables.
-  [spikesByEventBinnedPerRun, psthParamsPerRun, eyeDataStruct, psthByImagePerRun] = spikePathLoad(spikePathBankParadigm, variables2Extract, params.spikePathLoadParams);
+  [spikeEyeDataPerRun, psthParamsPerRun, eyeDataStruct, psthByImagePerRun] = spikePathLoad(spikePathBankParadigm, variables2Extract, params.spikePathLoadParams);
   
   % Load the first example of this paradigm, and extract parameters needed.
   psthPre = psthParamsPerRun{1}.psthPre;

@@ -13,11 +13,19 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %     specified in the stim param file
 %% unpack inputs
 %List of inputs to be unpacked
+load('genStatsDev.mat');
+if 0
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
 for input_ind = 1:length(inputFields)
   eval(sprintf('%s = inputs.%s;', inputFields{input_ind}, inputFields{input_ind}));
 end
+clear inputs
+clear spikesByCategoryForTF
+clear spikesByEventForTF
+clear taskDataAll
+clear lfpByEvent
+clear analogInByCategory
 
 %%% Load parameters from analysis and stim param files.
 load(analysisParamFilename);
@@ -311,6 +319,7 @@ if calcSwitch.categoryPSTH && calcSwitch.spikeTimes
 elseif calcSwitch.categoryPSTH
   [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategoryBinned, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
   save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
+  clear spikesByCategoryBinned
 end
 
 %% Spike, Task data, Eye Data Analysis
@@ -318,28 +327,31 @@ end
 if plotSwitch.subEventAnalysis
   ephysParams.spikeTimes = calcSwitch.spikeTimes;
   ephysParams.channelUnitNames = channelUnitNames;
-  subEventAnalysisParams.outDir = outDir;
   subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
   subEventAnalysisParams.eventIDs = eventIDs;
+  
   if ~exist('eyeBehStatsByStim', 'var')
     eyeBehStatsByStim = [];
   end
+  
   [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
+  clear subEventSigStruct spikesByChannel
 end
 
 if plotSwitch.eyeStimOverlay
   eyeStimOverlayParams.spikeOverlay = 1;
   [eyeInByEventDS, spikeEyeData] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
   save(analysisOutFilename,'eyeInByEventDS', '-append');
-  save(analysisOutFilenameBig,'spikeEyeData', '-append')
+  save(analysisOutFilenameBig, 'spikeEyeData', '-append')
+  clear spikeEyeData
 end
 
 % save('neuroGLMpre.mat')
 % else
 %   load('neuroGLMpre.mat')
 %   addpath(genpath('dependencies'));
-%   rmpath(genpath('dependencies/mvgc_v1.0')); %note: Not sure if this is appropriate replacement for genpath_exclude. previous line caused issues in parallel runs.
+%   rmpath(genpath('depen+dencies/mvgc_v1.0')); %note: Not sure if this is appropriate replacement for genpath_exclude. previous line caused issues in parallel runs.
 %   addpath('buildAnalysisParamFileLib');
 % end
 
@@ -534,15 +546,12 @@ if ~isempty(spikesByCategory)
 
 %   catFr = firingRatesByCategoryByEpoch{1};
 %   catFrErr = firingRateErrsByCategoryByEpoch{1};
-%   catSpikeCounts = spikeCountsByCategoryByEpoch{1};
-  trialCountsByCategory = zeros(length(spikesByCategory),1);
-  for cat_i = 1:length(spikesByCategory)
-    trialCountsByCategory(cat_i) = length(spikesByCategory{cat_i}{1}{1});
-  end
+%   catSpikeCounts = spikeCountsByCategoryByEpoch{1};  
+  trialCountsByCategory = cellfun(@(x) length(x{1}{1}), spikesByCategory);
   
   save(analysisOutFilename,'frEpochs','firingRatesByCategoryByEpoch','firingRateErrsByCategoryByEpoch','spikeCountsByCategoryByEpoch','trialCountsByCategory', '-append');
     
-  groupLabelsByImage = zeros(length(eventLabels),length(analysisGroups.stimulusLabelGroups));
+  groupLabelsByImage = zeros(length(eventLabels), length(analysisGroups.stimulusLabelGroups));
   groupLabelColorsByImage = ones(length(eventLabels),3,length(analysisGroups.stimulusLabelGroups));
   for group_i = 1:1:length(analysisGroups.stimulusLabelGroups.groups)
     group = analysisGroups.stimulusLabelGroups.groups{group_i};
@@ -592,21 +601,39 @@ if ~isempty(spikesByCategory)
   save(analysisOutFilename,'groupLabelsByImage','groupLabelColorsByImage', '-append');
 end
 
-trialCountsByImage = zeros(length(spikesByEvent),1);
-for event_i = 1:length(spikesByEvent)
-  trialCountsByImage(event_i) = length(spikesByEvent{event_i}{1}{1});
+trialCountsByImage = cellfun(@(x) length(x{1}{1}), spikesByEvent);
+
+save(analysisOutFilename, 'firingRatesByImageByEpoch', 'firingRateErrsByImageByEpoch', 'spikeCountsByImageByEpoch', '-append');
+
 end
 
-save(analysisOutFilename,'firingRatesByImageByEpoch','firingRateErrsByImageByEpoch','spikeCountsByImageByEpoch','-append');
+%% Unit Selectivity Analyses
+
+% Initalize a table which the 3 sensitivity functions will use.
+
+
+% Determine which units are sensitive to saccades. 
 
 % Calculate sort orders and statistics
-assert(length(analysisGroups.stimulusLabelGroups.groups) == 1, 'genStats will make mistakes in a multi-stimulusLabelGroups setting')
-genStatsParams.ANOVAParams.group = group;
-genStatsParams.ANOVAParams.groupLabelsByImage = groupLabelsByImage;
-genStatsParams.ANOVAParams.target = group{1};
-%[sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD, frEpochsStats]
-[sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD, stimStatsTable] = genStats(psthByImage, spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch, ...
-                                                                              trialCountsByImage, analysisGroups, epochLabels, eventIDs, ephysParams, genStatsParams);
+assert(length(analysisGroups.stimulusLabelGroups.groups) == 1, 'anovaStats will make mistakes in a multi-stimulusLabelGroups setting')
+ANOVAParams.group = group;
+ANOVAParams.groupLabelsByImage = groupLabelsByImage;
+ANOVAParams.target = 'socialInteractin';
+
+preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
+Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
+stimOnset = [0 500];
+stimPres = [500 psthParams.psthImDur];
+
+ANOVAParams.times = [preFix; Fix; stimOnset; stimPres];
+ANOVAParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres'};    
+ANOVAParams.categorySpikes = 1;         % Spikes by category fed in. 
+
+stimStatsTable = anovaStats(spikesByEvent, epochLabels, eventIDs, ephysParams, ANOVAParams);
+
+[sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD] = nullModelStats(psthByImage, spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch, ...
+  trialCountsByImage, analysisGroups, epochLabels, eventIDs, ephysParams);
+
 save(analysisOutFilename,'sigStruct','stimStatsTable','-append');
 
 for epoch_i = 1:length(firingRatesByImageByEpoch)

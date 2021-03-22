@@ -12,3 +12,4 @@ postBatchRun.mat
 neuroGLMpre.mat
 predictSpikeTrainData.mat
 tempDevFile.mat
+genStatsDev.mat
