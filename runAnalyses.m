@@ -13,8 +13,8 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %     specified in the stim param file
 %% unpack inputs
 %List of inputs to be unpacked
-load('genStatsDev.mat');
-if 0
+% 
+if ~exist('genStatsDev.mat', 'file')
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
 for input_ind = 1:length(inputFields)
@@ -336,7 +336,7 @@ if plotSwitch.subEventAnalysis
   
   [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
-  clear subEventSigStruct spikesByChannel
+%   clear subEventSigStruct spikesByChannel
 end
 
 if plotSwitch.eyeStimOverlay
@@ -605,14 +605,23 @@ trialCountsByImage = cellfun(@(x) length(x{1}{1}), spikesByEvent);
 
 save(analysisOutFilename, 'firingRatesByImageByEpoch', 'firingRateErrsByImageByEpoch', 'spikeCountsByImageByEpoch', '-append');
 
+save('genStatsDev.mat');
+else
+  load('genStatsDev.mat');
 end
 
 %% Unit Selectivity Analyses
 
 % Initalize a table which the 3 sensitivity functions will use.
-
+unitPerChan = cellfun('length', channelUnitNames);
+chanNameVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
+chanNameVec = string(vertcat(chanNameVec{:}));
+unitTypeVec = string([channelUnitNames{:}]');
+selTable = table(chanNameVec, unitTypeVec);
 
 % Determine which units are sensitive to saccades. 
+
+
 
 % Calculate sort orders and statistics
 assert(length(analysisGroups.stimulusLabelGroups.groups) == 1, 'anovaStats will make mistakes in a multi-stimulusLabelGroups setting')
