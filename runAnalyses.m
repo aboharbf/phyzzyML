@@ -13,13 +13,13 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %     specified in the stim param file
 %% unpack inputs
 %List of inputs to be unpacked
-% 
-% if ~exist('genStatsDev.mat', 'file')
 inputFields = fields(inputs);
+
 %Cycle through and unpack inputs
 for input_ind = 1:length(inputFields)
   eval(sprintf('%s = inputs.%s;', inputFields{input_ind}, inputFields{input_ind}));
 end
+
 clear inputs
 clear spikesByCategoryForTF
 clear spikesByEventForTF
@@ -272,7 +272,56 @@ catIndStruct.catIndMat = logical(catIndMat);
 catIndStruct.eventIDs = eventIDs;
 catIndStruct.categoryList = categoryList;
 
-%% Analyses
+% Generate groupImagesByLabel
+groupLabelsByImage = zeros(length(eventLabels), length(analysisGroups.stimulusLabelGroups.groups));
+groupLabelColorsByImage = ones(length(eventLabels),3,length(analysisGroups.stimulusLabelGroups));
+for group_i = 1:1:length(analysisGroups.stimulusLabelGroups.groups)
+  group = analysisGroups.stimulusLabelGroups.groups{group_i};
+  groupColors = analysisGroups.stimulusLabelGroups.colors{group_i};
+  if iscell(groupColors)
+    colorArray = zeros(length(groupColors),3);
+    for item_i = 1:length(groupColors)
+      % this silly line converts from colorspec letters to the corresponding rgb values
+      % Silly line now checks to see if conversion is needed.
+      if ischar(groupColors{item_i})
+        colorArray(item_i,:) = rem(floor((strfind('kbgcrmyw', groupColors{item_i}) - 1) * [0.25 0.5 1]), 2);
+      else
+        colorArray(item_i,:) = groupColors{item_i};
+      end
+    end
+    groupColors = colorArray;
+    analysisGroups.stimulusLabelGroups.colors{group_i} = groupColors;
+  end
+  
+  if group_i == 1
+    %Maybe just make the above colors into cells?
+    %Swap colors defined above to numbers
+    colors_tmp = zeros(length(colors),3);
+    for item_i = 1:length(colors)
+      if ischar(colors{item_i})
+        colors_tmp(item_i,:) = rem(floor((strfind('kbgcrmyw', colors{item_i}) - 1) * [0.25 0.5 1]), 2);
+      else
+        colors_tmp(item_i,:) = colors{item_i};
+      end
+    end
+    colors = colors_tmp;
+  end
+  
+  for image_i = 1:length(eventLabels)
+    for item_i = 1:length(group)
+      if any(strcmp(eventCategories{image_i},group{item_i})) || strcmp(eventLabels{image_i},group{item_i})
+        groupLabelsByImage(image_i,group_i) = item_i;
+        groupLabelColorsByImage(image_i,:,group_i) = groupColors(item_i,:);
+        break
+      end
+    end
+    if groupLabelsByImage(image_i,group_i) == 0
+      Output.VERBOSE(sprintf('no stim category match found for %s\n',eventLabels{image_i}));
+    end
+  end
+end
+
+save(analysisOutFilename,'groupLabelsByImage','groupLabelColorsByImage', '-append');
 
 %% Eye Signal Processing
 eyeStatsParams.eventIDs = eventIDs;
@@ -352,6 +401,20 @@ if plotSwitch.eyeStimOverlay
   save(analysisOutFilenameBig, 'spikeEyeData', '-append')
   clear spikeEyeData
 end
+
+% Initalize a table which the 3 sensitivity functions will use.
+unitPerChan = cellfun('length', channelUnitNames);
+chanNameVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
+chanNameVec = string(vertcat(chanNameVec{:}));
+unitTypeVec = string([channelUnitNames{:}]');
+selTable = table(chanNameVec, unitTypeVec);
+
+% Determine which units are sensitive to saccades. 
+selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
+
+% Tests between epochs of the conditions
+epochStatsParams.groupLabelsByImage = groupLabelsByImage;
+selTable = epochStats(spikesByEvent, selTable, eventIDs, analysisGroups.stimulusLabelGroups, epochStatsParams);
 
 %% Plotting and further analyses
 
@@ -530,82 +593,14 @@ if ~isempty(spikesByCategory)
   trialCountsByCategory = cellfun(@(x) length(x{1}{1}), spikesByCategory);
   
   save(analysisOutFilename,'frEpochs','firingRatesByCategoryByEpoch','firingRateErrsByCategoryByEpoch','spikeCountsByCategoryByEpoch','trialCountsByCategory', '-append');
-    
-  groupLabelsByImage = zeros(length(eventLabels), length(analysisGroups.stimulusLabelGroups.groups));
-  groupLabelColorsByImage = ones(length(eventLabels),3,length(analysisGroups.stimulusLabelGroups));
-  for group_i = 1:1:length(analysisGroups.stimulusLabelGroups.groups)
-    group = analysisGroups.stimulusLabelGroups.groups{group_i};
-    groupColors = analysisGroups.stimulusLabelGroups.colors{group_i};
-    if iscell(groupColors)
-      colorArray = zeros(length(groupColors),3);
-      for item_i = 1:length(groupColors)
-        % this silly line converts from colorspec letters to the corresponding rgb values
-        % Silly line now checks to see if conversion is needed.
-        if ischar(groupColors{item_i})
-          colorArray(item_i,:) = rem(floor((strfind('kbgcrmyw', groupColors{item_i}) - 1) * [0.25 0.5 1]), 2);
-        else
-          colorArray(item_i,:) = groupColors{item_i};
-        end
-      end
-      groupColors = colorArray;
-      analysisGroups.stimulusLabelGroups.colors{group_i} = groupColors;
-    end
-    
-    if group_i == 1
-      %Maybe just make the above colors into cells?
-      %Swap colors defined above to numbers
-      colors_tmp = zeros(length(colors),3);
-      for item_i = 1:length(colors)
-        if ischar(colors{item_i})
-          colors_tmp(item_i,:) = rem(floor((strfind('kbgcrmyw', colors{item_i}) - 1) * [0.25 0.5 1]), 2);
-        else
-          colors_tmp(item_i,:) = colors{item_i};
-        end
-      end
-      colors = colors_tmp;
-    end
-    
-    for image_i = 1:length(eventLabels)
-      for item_i = 1:length(group)
-        if any(strcmp(eventCategories{image_i},group{item_i})) || strcmp(eventLabels{image_i},group{item_i})
-          groupLabelsByImage(image_i,group_i) = item_i;
-          groupLabelColorsByImage(image_i,:,group_i) = groupColors(item_i,:);
-          break
-        end
-      end
-      if groupLabelsByImage(image_i,group_i) == 0
-        Output.VERBOSE(sprintf('no stim category match found for %s\n',eventLabels{image_i}));
-      end
-    end
-  end
-  save(analysisOutFilename,'groupLabelsByImage','groupLabelColorsByImage', '-append');
+   
 end
 
 trialCountsByImage = cellfun(@(x) length(x{1}{1}), spikesByEvent);
 
 save(analysisOutFilename, 'firingRatesByImageByEpoch', 'firingRateErrsByImageByEpoch', 'spikeCountsByImageByEpoch', '-append');
 
-% save('genStatsDev.mat');
-% else
-%   load('genStatsDev.mat');
-% end
-
 %% Unit Selectivity Analyses
-
-% Initalize a table which the 3 sensitivity functions will use.
-unitPerChan = cellfun('length', channelUnitNames);
-chanNameVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
-chanNameVec = string(vertcat(chanNameVec{:}));
-unitTypeVec = string([channelUnitNames{:}]');
-selTable = table(chanNameVec, unitTypeVec);
-
-% Determine which units are sensitive to saccades. 
-selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
-
-% Tests between epochs of the conditions
-epochStatsParams.groupLabelsByImage = groupLabelsByImage;
-
-selTable = epochStats(spikesByEvent, selTable, eventIDs, analysisGroups.stimulusLabelGroups, epochStatsParams);
 
 [sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD] = nullModelStats(psthByImage, spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch, ...
   trialCountsByImage, analysisGroups, epochLabels, eventIDs, ephysParams);
