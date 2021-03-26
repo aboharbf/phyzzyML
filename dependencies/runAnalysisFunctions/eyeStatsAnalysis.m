@@ -1,9 +1,25 @@
 function [eyeDataStruct, eyeBehStatsByStim, eyeInByEventSmooth] = eyeStatsAnalysis(analogInByEvent, eyeStatsParams, taskData, eyeDataStruct, figStruct)
 % Function uses ClusterFix to generate a saccade map.
+
+% Outputs
+% - eyeDataStruct: Also an Input, has the saccadeByStim structure added,
+% which create a color map per stimulus of eye behavior, as indicated in
+% the eventInds and eventNames variables below.
+% - eyeBehStatsByStim - a {stim}{trial} struct which details outputs of
+% ClusterFix per trial.
+% - eyeInByEventSmooth - the smoothed eye signal extracted from
+% analogInByEvent and processed by ClusterFix, and returned to normal
+% format.
+
+% Relevant Variables for processing
 blinkVals = taskData.eyeCal.blinkVals;
 PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
+
+% Code for the output saccadeByStim Image.
 eventInds = [1, 2, 3];      
 eventNames = {'Fix','Saccade','Blink'};
+
+% A few switches.
 filterSaccades = 1;         % Performs a filter on saccades to exclude microsaccades, defined with respect to duration
 saccadeDurThres = 35;       % Additional saccade filtering outside of clusterFix, removes saccades which don't last this long or more.
 saccadeDistThrs = 1;        % As above, removes saccades with mean distances of less than this. 
@@ -11,6 +27,7 @@ plotPaths = 0;              % Code below which visualizes things trial by trial.
 % visualized trial by trial trace parameters
 saccadeColors = 'rbgcm';
 
+% ITI = eyeStatsParams.ITI;
 stimDir = eyeStatsParams.stimDir;
 psthPre = eyeStatsParams.psthPre;
 psthImDur = eyeStatsParams.psthImDur;
@@ -96,7 +113,7 @@ for stim_i = 1:length(fixStats)
       
       % Extract Saccades and mark their times
       saccadeTimes = stimEye{trial_i}.saccadetimes;
-      saccadeMaxDists = stimEye{trial_i}.SaaccadeClusterValues(:,7)';
+      saccadeMaxDists = stimEye{trial_i}.SaccadeClusterValues(:,7)';
       
       % Filter if desired
       if filterSaccades
@@ -112,7 +129,7 @@ for stim_i = 1:length(fixStats)
         
         % Remove saccades and overwrite clusterFix output.
         [saccadeTimes, fixStats{stim_i}{trial_i}.saccadetimes] = deal(saccadeTimes(:, sacKeepInd));
-        fixStats{stim_i}{trial_i}.SaaccadeClusterValues = fixStats{stim_i}{trial_i}.SaaccadeClusterValues(sacKeepInd,:);
+        fixStats{stim_i}{trial_i}.SaccadeClusterValues = fixStats{stim_i}{trial_i}.SaccadeClusterValues(sacKeepInd,:);
       end
       
       % Label Saccade times in the image
@@ -158,8 +175,8 @@ if plotPaths
       fixations = fixStats{stim_i}{trial_i}.fixations;
       fixationtimes = fixStats{stim_i}{trial_i}.fixationtimes;
       saccadetimes = fixStats{stim_i}{trial_i}.saccadetimes;
-      saccMeanDist = round(fixStats{stim_i}{trial_i}.SaaccadeClusterValues(:,3), 3);
-      saccMaxDist = round(fixStats{stim_i}{trial_i}.SaaccadeClusterValues(:,7), 3);
+      saccMeanDist = round(fixStats{stim_i}{trial_i}.SaccadeClusterValues(:,3), 3);
+      saccMaxDist = round(fixStats{stim_i}{trial_i}.SaccadeClusterValues(:,7), 3);
       
       hold on
       % Plot the entire trace in black for the sake of microsaccades which
@@ -194,9 +211,9 @@ if plotPaths
     plotHandles(1).XLim = [-12 12];
     plotHandles(1).YLim = [-7 7];
     
-    % Save the figure
-    savefig(fullfile(eyeStatsParams.outDir, ['saccadeTraces_' eyeStatsParams.eventLabels{stim_i}]))
-    close(h);
+    % Save the figure - Untested, just added to bring in line w/ other
+    % code.
+    saveFigure(eyeStatsParams.outDir, ['saccadeTraces_' eyeStatsParams.eventLabels{stim_i}], figData, figStruct, figStruct.figTag);
   end
   
 end
@@ -228,5 +245,53 @@ end
 
 eyeBehStatsByStim = fixStats;
 eyeDataStruct.saccadeByStim = eyeBehImgByStim;
+
+% Determine Saccade angles.
+% padding = 20;
+for stim_i = 1:length(eyeBehStatsByStim)
+  for trial_i = 1:length(eyeBehStatsByStim{stim_i})
+    % Pull and adjust saccade times
+    saccadeTimes = eyeBehStatsByStim{stim_i}{trial_i}.saccadetimes + psthPre;
+        
+    [saccadeDir, saccadeAngle] = deal(zeros(1, size(saccadeTimes,2)));
+    % Find the times just before it in the trace.
+    trialEye = squeeze(eyeInByEventSmooth{stim_i}(:,trial_i, :));
+    
+    for sac_i = 1:size(saccadeTimes,2)
+      saccadeEyePadded = trialEye(:, saccadeTimes(1, sac_i):saccadeTimes(2, sac_i));
+      
+      % Find the starting and stopping spots for the saccade
+      startSpot = mean(saccadeEyePadded(:,1:3), 2);
+      stopSpot = mean(saccadeEyePadded(:,end-3:end), 2);
+      dots = [startSpot, stopSpot];
+
+      % Find the angle for the saccade
+      angle = 180/pi*atan2(diff(dots(2,:)),diff(dots(1,:)));
+      
+      % Transform angles into Cardinal directions, and identify which each
+      % belongs to.
+      cardinalRanges = [0, 45, 90, 135, 180];
+      negAngle = angle < 0;
+      absAngle = abs(angle);
+      angleMat = repmat(absAngle, [1, length(cardinalRanges)]);
+      angleDiff = abs(angleMat - cardinalRanges);
+      [~, dirInd] = min(angleDiff, [], 2);
+      dirInd(negAngle & dirInd == 4) = 6;
+      dirInd(negAngle & dirInd == 3) = 7;
+      dirInd(negAngle & dirInd == 2) = 8;
+      
+      % Store
+      saccadeDir(sac_i) = dirInd;
+      saccadeAngle(sac_i) = angle;
+      
+    end
+    
+    % Store in output
+    eyeBehStatsByStim{stim_i}{trial_i}.saccadeDirection = saccadeDir;
+    eyeBehStatsByStim{stim_i}{trial_i}.saccadeAngle = saccadeAngle;
+    
+  end
+end
+
 
 end

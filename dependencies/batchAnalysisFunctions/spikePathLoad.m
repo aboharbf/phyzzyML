@@ -6,7 +6,7 @@ function varargout = spikePathLoad(spikePathBank, fields2Retrieve, params)
 % directory for each run
 % - fields2Retrieve: a cell array with the name of the field(s) to be
 % retrieved from each run.
-% - params: a param file containing.
+% - params: a param file containing the files, variables, and indicies.
 
 % Check that all the variables are in the list
 varsNotRep = setdiff(fields2Retrieve, params.fileVars);

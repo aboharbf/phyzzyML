@@ -34,7 +34,7 @@ function [fixationstats, eyedatSmooth] = ClusterFix(eyedat,samprate)
 %                   5) mean absolute value of the angle
 %                   6) mean angular velocity
 %                   7) max distance (Added by FA, microsaccades exclusion)
-%       fixationstats{cndlop}.SaaccadeClusterValues = pointsac; same as above except for saccades
+%       fixationstats{cndlop}.SaccadeClusterValues = pointsac; same as above except for saccades
 %       fixationstats{cndlop}.MeanClusterValues = recalc_meanvalues; mean of parameter values by cluster
 %       fixationstats{cndlop}.STDClusterValues = recalc_stdvalues; standard deviation of parameter values by cluster
 %       fixationstats{cndlop}.XY = [x;y]; eye data from remapped to [0 to max size of image]
@@ -275,7 +275,7 @@ for cndlop = 1:length(eyedat)
         fixationstats{cndlop}.fixations = fixations;
         fixationstats{cndlop}.saccadetimes = saccadetimes;
         fixationstats{cndlop}.FixationClusterValues = pointfix;
-        fixationstats{cndlop}.SaaccadeClusterValues = pointsac;
+        fixationstats{cndlop}.SaccadeClusterValues = pointsac;
         fixationstats{cndlop}.MeanClusterValues = recalc_meanvalues;
         fixationstats{cndlop}.STDClusterValues = recalc_stdvalues;
         fixationstats{cndlop}.XY = [x;y];
@@ -288,7 +288,7 @@ for cndlop = 1:length(eyedat)
           fixationstats{cndlop}.fixations = [];
           fixationstats{cndlop}.saccadetimes = [];
           fixationstats{cndlop}.FixationClusterValues = [];
-          fixationstats{cndlop}.SaaccadeClusterValues = [];
+          fixationstats{cndlop}.SaccadeClusterValues = [];
           fixationstats{cndlop}.MeanClusterValues = [];
           fixationstats{cndlop}.STDClusterValues = [];
           fixationstats{cndlop}.XY = [x;y];
@@ -301,7 +301,7 @@ for cndlop = 1:length(eyedat)
         fixationstats{cndlop}.fixations = [];
         fixationstats{cndlop}.saccadetimes = [];
         fixationstats{cndlop}.FixationClusterValues = [];
-        fixationstats{cndlop}.SaaccadeClusterValues = [];
+        fixationstats{cndlop}.SaccadeClusterValues = [];
         fixationstats{cndlop}.MeanClusterValues = [];
         fixationstats{cndlop}.STDClusterValues = [];
         fixationstats{cndlop}.XY = [x;y];

@@ -10,8 +10,6 @@ function spikeDataBankPath = processBatchAnalysisLite( varargin )
 % variables). spikeDataBank files end with '_N', while the other variables
 % end with 'Vars'. Vars file is 1st in cell array of file paths.
 
-%% Switches
-
 %% Parse Arguments
 addpath(genpath('dependencies'));
 rmpath(genpath('dependencies/mvgc_v1.0')); %note: Not sure if this is appropriate replacement for genpath_exclude. previous line caused issues in parallel runs.

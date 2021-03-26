@@ -37,7 +37,7 @@ function [ taskData, stimTiming ] = preprocessLogFileMonkeyLogic(logfile, taskTr
 %Parse the Log file
 disp('Loading MonkeyLogic log file');
 assert(logical(exist(logfile,'file')),'The logfile you requested does not exist.');
-[data,MLConfig,TrialRecord] = mlread(logfile);
+[data, MLConfig, TrialRecord] = mlread(logfile);
 % assert(length(unique(TrialRecord.ConditionsPlayed)) < ceil((length(TrialRecord.ConditionsPlayed))/2) , 'MonkeyLogic file reports each condition was not repeated at least 2 times')
 
 % Find out experiment length
@@ -63,6 +63,7 @@ catch
   error('SCALE FACTOR NOT FOUND!') % Temporary, just for the first run.
   scaleFactor = 1;
 end
+
 % Use that to generate a table of stimuli
 for trial_ind = 1:length(data)
   trialHolder = data(trial_ind);
@@ -510,6 +511,15 @@ switch taskData.paradigm
 end
 stimTiming.ISI = MLConfig.InterTrialInterval;
 
+%% March 2021
+% Add in fixation time per trial - this varies due to punishment dynamic.
+% It is 95%+ the typical value, but other times it is more.
+
+fixTime = nan(length(data),1);
+for ii = 1:length(data)
+  fixTime(ii) = data(ii).ObjectStatusRecord.SceneParam(1).AdapterArgs{3}{2,2};
+end
+
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.
@@ -539,6 +549,7 @@ taskData.taskEventFixDur = taskEventFixDur;
 taskData.rewardTimePerTrial = rewardTimePerTrial;
 taskData.trialStartTimesMkl = mklTrialStarts';
 taskData.logVsBlkModel = logVsBlkModel;
+taskData.fixTime = fixTime;
 taskData.fixationInTimes = fixationInTimesBlk;
 taskData.fixationOutTimes = fixationOutTimesBlk;
 taskData.juiceOnTimes = juiceOnTimesBlk;

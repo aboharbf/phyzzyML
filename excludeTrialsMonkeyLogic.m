@@ -111,6 +111,7 @@ taskDataValid.paradigm = taskData.paradigm;
 taskDataValid.scaleFactor = taskData.scaleFactor;
 
 % Per trial values, which need to be changed
+taskDataValid.fixTime = taskData.fixTime(trialValid);
 taskDataValid.taskEventIDs = taskData.taskEventIDs(trialValid);
 taskDataValid.stimFramesLost = taskData.stimFramesLost(trialValid);
 taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);

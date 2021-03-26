@@ -4,7 +4,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20201115Mo';
+dateSubject = '20201117Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -14,7 +14,7 @@ switch machine
   case 'Skytech_FA'
     ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
-    outputVolume = slashSwap('D:\DataAnalysis_Zscore');
+    outputVolume = slashSwap('D:\DataAnalysis');
     stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
     neuroGLMPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
@@ -46,22 +46,21 @@ verbosity = 'INFO';               % other options, 'DEBUG', 'VERBOSE';
 
 %% Plot switches
 plotSwitch.pupilDilation = 0;               % plots image which illustrates continuous values for pupil dilation. 
-plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements. used by subEventAnalysis.
+plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements. used by subEventAnalysis, and subsequently selDir. 
 plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
 plotSwitch.imageEyeMap = 0;                 
 plotSwitch.eyeCorrelogram = 0;              % Eye Gram
-plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
+plotSwitch.attendedObject = 0;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
-plotSwitch.eyeStimOverlay = 1;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
+plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
 plotSwitch.spikePupilCorr = 0;              % see the correlation between single trial PSTHes and pupil size.
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
 plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
 plotSwitch.categoryPsth = 1;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
-plotSwitch.analysisGroupsPsth = 1;          % a PSTH for every set of analysisGroups defined below.
-plotSwitch.stimCatANOVA = 0;
+plotSwitch.analysisGroupsPsth = 0;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
 plotSwitch.prefImRasterColorCoded = 0;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.
 plotSwitch.topStimToPlot = 5;               % Determines number of stimuli for which rasters are plotted.
@@ -326,7 +325,7 @@ psthParams.psthPost = 500;
 psthParams.latency = 0;
 psthParams.movingWin = tfParams.movingWin;
 psthParams.smoothingWidth = 40;  %psth smoothing width, in ms
-psthParams.Zscore = 1;  % 0: raw PSTH, 1: pre-trial baseline subtraction Z Scored PSTH, 2: whole trial baseline subtracted Z Scored PSTH
+psthParams.Zscore = 0;  % 0: raw PSTH, 1: pre-trial baseline subtraction Z Scored PSTH, 2: whole trial baseline subtracted Z Scored PSTH
 psthParams.errorType = 3; % chronux convention: 1 is poisfStimson, 2 is trialwise bootstrap, 3 is across trial std for binned spikes, bootstrap for spike times 
 psthParams.errorRangeZ = 1; % how many standard errors to show
 psthParams.bootstrapSamples = 10;
@@ -341,6 +340,7 @@ psthParams.psthColormapFilename = 'cocode2.mat'; % a file with one variable, a c
 load(psthParams.psthColormapFilename);
 psthParams.colormap = map;
 
+eyeStatsParams.ITI = psthParams.ITI;
 eyeStatsParams.psthPre = psthParams.psthPre;
 eyeStatsParams.psthImDur = psthParams.psthImDur;
 eyeStatsParams.stimDir = stimDir;
@@ -349,6 +349,7 @@ eyeStatsParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysis
 eyeStatsParams.clusterFixLPFilterIn = 25;                 % Filter used for saccade detection internally in ClusterFix.
 
 eyeStimOverlayParams.stimDir = stimDir;
+eyeStimOverlayParams.spikeOverlay = 1;         % Adding 3D Gaussian blurred spiking activity. This function is UNSTABLE due to MASSIVE MEMORY USAGE.
 eyeStimOverlayParams.videoOutput = false;      % Switch for producing video output. If off, videos are not produced, but down sampled eye signal and other structures are still produced.
 eyeStimOverlayParams.shapeOverlay = 1;         % Switch for shape overlay, visualizing frame motion data if available.
 eyeStimOverlayParams.trialNumberOverlay = 1;   % Switch for trial number overlay on eye signal.
@@ -427,10 +428,17 @@ frEpochsCell = {{60, @(stimDur) stimDur+60}, {60, 560}};...
 %                 {@(stimDur) stimDur+60, @(stimDur) stimDur+460}}; %#ok
 epochLabels = {'Presentation', 'stimOnset'};%,'Fixation','Reward'};
 
+% epochStats Params, more are below analysisGroups
+preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
+Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
+stimOnset = [0 500];
+stimPres = [500 psthParams.psthImDur];
+reward = [psthParams.psthImDur psthParams.psthImDur + 250];
 
-ANOVAParams.target = 'socialInteraction';    % When performing a one way ANOVA, the label from groups which is used. the rest are 'non-' label.
-ANOVAParams.period = 'socialInteraction';    
-ANOVAParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres'};    
+epochStatsParams.stimParamsFilename = stimParamsFilename;
+epochStatsParams.targetEpochs = [[0 0 1 1 1]; [0 0 0 1 1]; [0 0 1 1 1]; [0 0 0 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
+epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'reward'};    
 
 neuroGLMParams.neuroGLMPath = neuroGLMPath;
 neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 
@@ -492,9 +500,13 @@ analysisGroups.stimPrefBarPlot.names = {'Barplots per label'};
 analysisGroups.stimPrefBarPlot.groupDepth = 2; %2 subplots, each figure is defined by a cell array in the first item (groups).
 
 %
-analysisGroups.stimulusLabelGroups.groups = {{'socialInteraction'; 'goalDirected'; 'idle'; 'objects'; 'scene'; 'scramble'; 'headTurn'}};
-analysisGroups.stimulusLabelGroups.names = {'Preferred Stimulus', 'Preferred Stimulus'};
-analysisGroups.stimulusLabelGroups.colors = {{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}};
+analysisGroups.stimulusLabelGroups.groups = {{'socialInteraction'; 'goalDirected'; 'idle'; 'objects'; 'scene'; 'scramble'},{'headTurn', 'noTurn'}, {'fullModel', 'dotModel', 'smoothModel'}, {'turnToward', 'turnAway'}};
+analysisGroups.stimulusLabelGroups.names = {'Soc V Non Soc', 'Head Turn', 'Model', 'Turn Dir'};
+analysisGroups.stimulusLabelGroups.colors = {{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}, {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}};
+
+epochStatsParams.names = analysisGroups.stimulusLabelGroups.names;
+assert(length(epochStatsParams.names) == size(epochStatsParams.targetEpochs, 1), "these should be the same length");
+
 
 %Essentially LFP selectivity/strength/quality
 analysisGroups.evokedPotentials.groups = {{'socialInteraction';'nonInteraction';'objects'};{'socialInteraction';'nonInteraction'}};
@@ -547,7 +559,7 @@ analysisGroups.spectraByCategory.colors = {{[1 0.1 0.1];[0.1 0.1 1]}};
 %Calculates the same spectra, but w/ sliding windows. sometimes the Power
 %spectrum changes overtime.
 analysisGroups.tfSpectraByCategory.groups = {{'socialInteraction';'nonInteraction';}};%{'object'};{'body'}      %todo: add tf spectra diff?
-analysisGroups.tfSpectraByCategory.names = {'socialInt';'Int'};%'nonface';'object';'body'
+analysisGroups.tfSpectraByCategory.names = {{'socialInt';'Int'}};%'nonface';'object';'body'
 
 %Evoked potential plot, shows individual traces for a bunch of trials.
 analysisGroups.lfpSingleTrialsByCategory.groups = {{'socialInteraction';'nonInteraction';}};
@@ -563,6 +575,26 @@ analysisGroups.coherenceByCategory.names = {'Interaction V Scrambles'}; %'fob';'
 %Calculates the same as above but in sliding windows.
 analysisGroups.tfCouplingByCategory.groups = {{'socialInteraction'};{'nonInteraction';};{'objects'};{'goalDirected'}}; %#ok
 %%%%%
+
+% Do a quick check on analysisGroups just defined to conform to proper
+analysisGroupFields = fields(analysisGroups);
+for analysisGroup_i = 1:length(analysisGroupFields)
+  field = analysisGroupFields{analysisGroup_i};
+  
+  % If the field doesn't conform to this checker's syntax, or is more
+  % complicated, then do not process it in this way.
+  hasGroups = isfield(analysisGroups.(field), 'groups');
+  if ~hasGroups || (hasGroups && isempty(analysisGroups.(field).groups))
+    continue
+  end
+  if isfield(analysisGroups.(field),'groupDepth') && analysisGroups.(field).groupDepth > 1
+    continue
+  end
+  
+  % Check that all the elements of the analysisGroup have the same length
+  assert(length(unique(structfun(@(x) length(x), analysisGroups.(field)))) == 1, "analysisGroups.%s has uneven group members - all subfields should have the same length", field)
+  
+end
 
 if calcSwitch.useJacknife
   chronuxParams.err(1) = 2; %#ok

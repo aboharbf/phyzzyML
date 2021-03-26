@@ -11,7 +11,6 @@ function [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsB
 % subEventParams - has path to eventData, stimDir, and variables used to
 % plot PSTHes.
 
-
 % Unpack Variables, some preprocessing. Generate an index for individual 
 % trials that take place during the run, matching them to the stimuli as 
 % present in the taskData.eventIDs field.

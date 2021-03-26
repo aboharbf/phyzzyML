@@ -19,44 +19,11 @@ if ~strcmp('stimPresCount',spikePathBank.Properties.VariableNames)
   save(spikePathFile, 'spikePathBank', '-append')
 end
 
-% if ~exist('unitCounts','var') || ~exist('trueCellStruct', 'var') || ~isfield(spikeDataBank.(runList{end}), 'gridHoles')
-%   [spikeDataBank, trueCellStruct, unitCounts, resultTable, nullCells] = tableRefFunx(spikeDataBank, cellCountParams.batchRunxls, cellCountParams.recordingLogxls);
-%   saveEnv(1)
-% end
+selCount(spikePathBank, batchAnalysisParams)
 
-% meanPSTHParams.tTestTable = resultTable;
+% Prepare things to run in DataHigh
+dataHighPrep(spikePathBank, batchAnalysisParams)
 
-% Report
-% reportSubEventCounts(batchAnalysisParams.cellCountParams.subEventBatchStructPath, trueCellStruct)
-
-% Remove repeated Runs
-% if ~calcSwitch.excludeRepeats && isfield(analysisLog, 'repeatsExcluded')
-%   error('Repeats already excluded in this spikeDataBank, delete and restart or change parameters')
-% elseif calcSwitch.excludeRepeats && ~isfield(analysisLog, 'repeatsExcluded')
-%   % Exclude repeated recordings at the same site.
-%   for run_ind = 1:length(runList)
-%     sessionName = extractBetween(runList{run_ind}, 2, length(runList{run_ind}));
-%     validInd = trueCellInd(strcmp(sessionName, trueCellInfo(:,1)));
-%     if sum(validInd) == 0
-%       % Remove entire field if all channels are repeated recordings.
-%       spikeDataBank = rmfield(spikeDataBank,(runList{run_ind}));
-%     else
-%       for event_ind = 1:length(spikeDataBank.(runList{run_ind}).spikesByEvent)
-%         % Remove individual channel info where one of the channels is
-%         % recording new units.
-%         spikeDataBank.(runList{run_ind}).spikesByEvent{event_ind} = spikeDataBank.(runList{run_ind}).spikesByEvent{event_ind}(validInd);
-%       end
-%       spikeDataBank.(runList{run_ind}).gridHoles(validInd) = spikeDataBank.(runList{run_ind}).gridHoles(validInd);
-%       spikeDataBank.(runList{run_ind}).recDepth(validInd) = spikeDataBank.(runList{run_ind}).recDepth(validInd);
-%     end
-%   end
-%   %Save modified struct.
-%   runListIndex = unitCounts.Exclude;
-%   analysisLog.repeatsExcluded = 1;
-%   saveEnv()
-% else
-%   runListIndex = unitCounts.nonExclude;
-% end
 
 %% Analyses
 % Generate a cell array containing the PSTHes from spikeDataBank, along
@@ -73,8 +40,6 @@ if plotSwitch.meanPSTH
   meanPSTH(spikePathBank, batchAnalysisParams, figStruct);
 %   saveEnv(0)
 end
-
-% Combine PSTH across all runs for a particular event.
 
 if plotSwitch.subEventPSTH %&& ~exist('meanPSTHStruct','var')
   subEventPSTHStruct = subEventPSTH(spikePathBank, batchAnalysisParams, figStruct);

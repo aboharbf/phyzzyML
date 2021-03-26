@@ -14,7 +14,7 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %% unpack inputs
 %List of inputs to be unpacked
 % 
-if ~exist('genStatsDev.mat', 'file')
+% if ~exist('genStatsDev.mat', 'file')
 inputFields = fields(inputs);
 %Cycle through and unpack inputs
 for input_ind = 1:length(inputFields)
@@ -116,15 +116,20 @@ end
 % automatically. Also, asumes all fields other than groupDepth are cell
 % arrays.
 
+% Determine whether groups need to be removed.
 analysisGroupFields = fieldnames(analysisGroups);
 for field_i = 1:length(analysisGroupFields)
   field = analysisGroupFields{field_i};
+  
+  % If the field doesn't conform to this checker's syntax, or is more
+  % complicated, then do not process it in this way.
   if isempty(analysisGroups.(field).groups)
     continue
   end
   if isfield(analysisGroups.(field),'groupDepth') && analysisGroups.(field).groupDepth > 1
     continue
   end
+  
   subfields = fieldnames(analysisGroups.(field));
   itemDelimitedSubfields = cell(length(subfields),1); %we'll use this to remove all subfield entries corresponding to items not presented
   itemDelimitedSubfield_i = 0;
@@ -137,6 +142,7 @@ for field_i = 1:length(analysisGroupFields)
       itemDelimitedSubfields{itemDelimitedSubfield_i} = subfield;
     end
   end
+  
   itemDelimitedSubfields = itemDelimitedSubfields(1:itemDelimitedSubfield_i);
   for group_i = 1:length(analysisGroups.(field).groups)
     newStruct = struct();
@@ -178,7 +184,7 @@ for field_i = 1:length(analysisGroupFields)
     else
       fprintf('The analysisGroups.%s group with index %d was removed because no item had a valid trial\n',field,group_i);
       disp(analysisGroups.(field).groups{group_i})
-      disp('If you think there should be valid trials, check that the item naming convention in the task log file matches that in stimulusParamFile.');
+%       disp('If you think there should be valid trials, check that the item naming convention in the task log file matches that in stimulusParamFile.');
     end
   end
   for subfield_i = 1:length(subfields)
@@ -186,6 +192,7 @@ for field_i = 1:length(analysisGroupFields)
   end
   analysisGroups.(field) = newStruct;
 end
+
 for field_i = 1:length(analysisGroupFields)
   field = analysisGroupFields{field_i};
   if isempty(analysisGroups.(field).groups)
@@ -340,37 +347,10 @@ if plotSwitch.subEventAnalysis
 end
 
 if plotSwitch.eyeStimOverlay
-  eyeStimOverlayParams.spikeOverlay = 1;
   [eyeInByEventDS, spikeEyeData] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
   save(analysisOutFilename,'eyeInByEventDS', '-append');
   save(analysisOutFilenameBig, 'spikeEyeData', '-append')
   clear spikeEyeData
-end
-
-% save('neuroGLMpre.mat')
-% else
-%   load('neuroGLMpre.mat')
-%   addpath(genpath('dependencies'));
-%   rmpath(genpath('depen+dencies/mvgc_v1.0')); %note: Not sure if this is appropriate replacement for genpath_exclude. previous line caused issues in parallel runs.
-%   addpath('buildAnalysisParamFileLib');
-% end
-
-% neuroGLMParams.lfpBuffer = 151;
-% if isfield(plotSwitch, 'neuroGLM') && plotSwitch.neuroGLM
-%   neuroGLMStruct = runNeuroGLM(spikesByEvent, lfpByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
-% end
-
-% error('Done neuroGLM')
-
-if plotSwitch.spikePupilCorr
-  if calcSwitch.spikeTimes
-    spikePupilCorrStruct = spikePupilCorr(spikesByEvent, eyeDataStruct, taskData, calcSwitch.spikeTimes, psthParams, eventIDs, spikeAlignParams, figStruct);
-  else
-    spikePupilCorrStruct = spikePupilCorr(spikesByEventBinned, eyeDataStruct, taskData, calcSwitch.spikeTimes, psthParams, eventIDs, spikeAlignParams, figStruct);
-  end
-  
-  save(analysisOutFilename,'spikePupilCorrStruct','-append');
-
 end
 
 %% Plotting and further analyses
@@ -468,7 +448,7 @@ if plotSwitch.categoryPsth
       end
            
       psthTitle = sprintf('Per Catagory PSTH %s, %s, %s',channelNames{channel_i}, channelUnitNames{channel_i}{unit_i}, zTag);
-      figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
+      figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'outerposition', figStruct.figPos);
       plotPSTH(psthByCategory{channel_i}{unit_i}, [],  [], psthParams, 'color', psthTitle, categoryListPlot);
       clear figData
       title(psthTitle);
@@ -551,7 +531,7 @@ if ~isempty(spikesByCategory)
   
   save(analysisOutFilename,'frEpochs','firingRatesByCategoryByEpoch','firingRateErrsByCategoryByEpoch','spikeCountsByCategoryByEpoch','trialCountsByCategory', '-append');
     
-  groupLabelsByImage = zeros(length(eventLabels), length(analysisGroups.stimulusLabelGroups));
+  groupLabelsByImage = zeros(length(eventLabels), length(analysisGroups.stimulusLabelGroups.groups));
   groupLabelColorsByImage = ones(length(eventLabels),3,length(analysisGroups.stimulusLabelGroups));
   for group_i = 1:1:length(analysisGroups.stimulusLabelGroups.groups)
     group = analysisGroups.stimulusLabelGroups.groups{group_i};
@@ -605,10 +585,10 @@ trialCountsByImage = cellfun(@(x) length(x{1}{1}), spikesByEvent);
 
 save(analysisOutFilename, 'firingRatesByImageByEpoch', 'firingRateErrsByImageByEpoch', 'spikeCountsByImageByEpoch', '-append');
 
-save('genStatsDev.mat');
-else
-  load('genStatsDev.mat');
-end
+% save('genStatsDev.mat');
+% else
+%   load('genStatsDev.mat');
+% end
 
 %% Unit Selectivity Analyses
 
@@ -620,30 +600,17 @@ unitTypeVec = string([channelUnitNames{:}]');
 selTable = table(chanNameVec, unitTypeVec);
 
 % Determine which units are sensitive to saccades. 
+selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
 
+% Tests between epochs of the conditions
+epochStatsParams.groupLabelsByImage = groupLabelsByImage;
 
-
-% Calculate sort orders and statistics
-assert(length(analysisGroups.stimulusLabelGroups.groups) == 1, 'anovaStats will make mistakes in a multi-stimulusLabelGroups setting')
-ANOVAParams.group = group;
-ANOVAParams.groupLabelsByImage = groupLabelsByImage;
-ANOVAParams.target = 'socialInteractin';
-
-preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
-Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
-stimOnset = [0 500];
-stimPres = [500 psthParams.psthImDur];
-
-ANOVAParams.times = [preFix; Fix; stimOnset; stimPres];
-ANOVAParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres'};    
-ANOVAParams.categorySpikes = 1;         % Spikes by category fed in. 
-
-stimStatsTable = anovaStats(spikesByEvent, epochLabels, eventIDs, ephysParams, ANOVAParams);
+selTable = epochStats(spikesByEvent, selTable, eventIDs, analysisGroups.stimulusLabelGroups, epochStatsParams);
 
 [sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD] = nullModelStats(psthByImage, spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch, ...
   trialCountsByImage, analysisGroups, epochLabels, eventIDs, ephysParams);
 
-save(analysisOutFilename,'sigStruct','stimStatsTable','-append');
+save(analysisOutFilename,'sigStruct', 'selTable', '-append');
 
 for epoch_i = 1:length(firingRatesByImageByEpoch)
   epochTag = sprintf('%d-%d ms',frEpochs(epoch_i,1), frEpochs(epoch_i,2));

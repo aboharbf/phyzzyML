@@ -15,7 +15,7 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    outputVolumeBatch = 'D:\DataAnalysis_Zscore';                                            % The output folder for analyses performed.
+    outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
     dataLog = 'D:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
@@ -90,7 +90,38 @@ if ~replaceAnalysisOut
       
       % Update the psthPre w/ the ITI. 
       if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'psthParams.psthPre'))
+        % Update psthPre
         psthParams.psthPre = psthParams.psthPre + psthParams.ITI;
+        
+        % Update timing related variables for ANOVA analysis
+        preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
+        Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
+        stimOnset = [0 500];
+        stimPres = [500 psthParams.psthImDur];
+        reward = [psthParams.psthImDur psthParams.psthImDur + 250];
+        epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
+        
+        
+        % Update subevent Analysis stuff
+        subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
+        subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
+        subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
+        subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
+        subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
+        
+        % Update lfpalign stuff
+        lfpAlignParams.msPreAlign = psthParams.psthPre+tfParams.movingWin(1)/2;
+        lfpAlignParams.msPostAlign = psthParams.psthImDur+psthParams.psthPost+tfParams.movingWin(1)/2;
+        spikeAlignParams.preAlign = psthParams.psthPre+3*psthParams.smoothingWidth;
+        spikeAlignParams.postAlign = psthParams.psthImDur+psthParams.psthPost+3*psthParams.smoothingWidth;   %#ok
+        
+        % Update eyeStats stuff
+        eyeStatsParams.ITI = psthParams.ITI;
+        eyeStatsParams.psthPre = psthParams.psthPre;
+        eyeStatsParams.psthImDur = psthParams.psthImDur;
+        
+        % Note to self - this stuff should be turned into a function handle
+        % and evaluated in runAnalysis.
       end
       
       % If Channels have been changed, redefine all the relevant channel
@@ -107,7 +138,7 @@ if ~replaceAnalysisOut
         % Autodetecting spike channels - If the file is parsed, retrieve channels present
         [ephysParams.spikeChannels, ephysParams.lfpChannels, ephysParams.channelNames] = autoDetectChannels(parsedFolderName);
       end
-      
+            
       % Generate appropriate Paths
       outputVolume = outputVolumeBatch;
       analogInFilename = sprintf('%s/%s/%s%s.ns2',ephysVolume,dateSubject,dateSubject,runNum);   %#ok
