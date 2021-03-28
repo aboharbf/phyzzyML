@@ -382,12 +382,16 @@ end
 
 % Initalize a table which the 3 sensitivity functions will use.
 unitPerChan = cellfun('length', channelUnitNames);
-chanNameVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
-chanNameVec = string(vertcat(chanNameVec{:}));
+channelVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
+channelVec = string(vertcat(channelVec{:}));
 unitTypeVec = string([channelUnitNames{:}]');
-selTable = table(chanNameVec, unitTypeVec);
-plotSwitch.subEventAnalysis = 1;
+dateSubjVec = repmat(string(dateSubject), [length(channelVec), 1]);
+runNumVec = repmat(string(runNum), [length(channelVec), 1]);
 
+selTable = table(dateSubjVec, runNumVec, channelVec, unitTypeVec);
+selTable.Properties.VariableNames = extractBefore(selTable.Properties.VariableNames, 'Vec');
+
+% Determine selectivity for events labeled in eventData, + blinks & rewards.
 if plotSwitch.subEventAnalysis
   ephysParams.spikeTimes = calcSwitch.spikeTimes;
   ephysParams.channelUnitNames = channelUnitNames;
@@ -403,7 +407,7 @@ if plotSwitch.subEventAnalysis
 %   clear subEventSigStruct spikesByChannel
 end
 
-% Determine which units are sensitive to saccades. 
+% Determine which units are selective for saccades (direction).
 selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
 
 % Tests between epochs of the conditions
@@ -411,6 +415,7 @@ epochStatsParams.groupLabelsByImage = groupLabelsByImage;
 selTable = epochStats(spikesByEvent, selTable, eventIDs, analysisGroups.stimulusLabelGroups, epochStatsParams);
 
 save(analysisOutFilename, 'selTable', '-append');
+error('done');
 
 if plotSwitch.eyeStimOverlay
   [eyeInByEventDS, spikeEyeData] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);

@@ -37,7 +37,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
@@ -62,11 +62,14 @@ analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabe
 AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
 
+selParam.outputDir =  fullfile(outputDir,'selCount');
+
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
 spikePathLoadParams.batchAnalysisOutput = fullfile(outputDir, spikePathLoadParams.spikePathFileName);
 spikePathLoadParams.files = {'preprocessedData.mat', 'analyzedData.mat', 'AnalysisParams.mat', 'analyzedDataBig.mat'};
 spikePathLoadParams.fileVars = [preprocessedDataVars, analyzedDataVars, AnalysisParamVars, analyzedDataBigVars];
 spikePathLoadParams.fileInds = [ones(size(preprocessedDataVars)), ones(size(analyzedDataVars)) * 2, ones(size(AnalysisParamVars)) * 3, ones(size(analyzedDataBigVars)) * 4];
+spikePathLoadParams.acceptMissing = 1;                % Allows for analyses to proceed despite missing values from specific runs. Implemented for the sake of analyzing outputs only created for some paradigms.
 clear preprocessedDataVars preprocessedDataVars AnalysisParamVars
 
 stimStructParams.spikePathLoadParams = spikePathLoadParams;

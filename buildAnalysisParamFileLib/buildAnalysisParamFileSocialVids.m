@@ -3,8 +3,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '001';
-dateSubject = '20201117Mo';
+runNum = '005';
+dateSubject = '20210102Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -426,10 +426,10 @@ end
 %                 {-800, 60}; ...
 %                 {100, 1100}}; %#ok
 %               
-frEpochsCell = {{60, @(stimDur) stimDur+60}, {60, 560}};...
+frEpochsCell = {{60, @(stimDur) stimDur+60}};...
 %                 {-800, 60}; ...
 %                 {@(stimDur) stimDur+60, @(stimDur) stimDur+460}}; %#ok
-epochLabels = {'Presentation', 'stimOnset'};%,'Fixation','Reward'};
+epochLabels = {'Presentation'};%,'Fixation','Reward'};
 
 % epochStats Params, more are below analysisGroups
 preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
@@ -509,8 +509,9 @@ analysisGroups.stimulusLabelGroups.names = {'Soc V Non Soc', 'Head Turn', 'Model
 analysisGroups.stimulusLabelGroups.colors = {{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}, {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}};
 
 epochStatsParams.names = analysisGroups.stimulusLabelGroups.names;
+epochStatsParams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
+epochStatsParams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.
 assert(length(epochStatsParams.names) == size(epochStatsParams.targetEpochs, 1), "these should be the same length");
-
 
 %Essentially LFP selectivity/strength/quality
 analysisGroups.evokedPotentials.groups = {{'socialInteraction';'nonInteraction';'objects'};{'socialInteraction';'nonInteraction'}};

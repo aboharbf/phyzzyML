@@ -24,7 +24,6 @@ selCount(spikePathBank, batchAnalysisParams)
 % Prepare things to run in DataHigh
 dataHighPrep(spikePathBank, batchAnalysisParams)
 
-
 %% Analyses
 % Generate a cell array containing the PSTHes from spikeDataBank, along
 % with additional dimension for identifying information. Expansions in

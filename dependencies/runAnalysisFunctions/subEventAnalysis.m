@@ -175,42 +175,35 @@ end
 % the 'onsetsByEvent' cue.
 if ~isempty(eyeBehStatsByStim)
   if isempty(subEventNames)
-    subEventNames = {'saccades'; 'blinks'};
+    subEventNames = {'blinks'};
   else
-    subEventNames = [subEventNames; 'saccades'; 'blinks'];
+    subEventNames = [subEventNames; 'blinks'];
   end
-  [saccadeTimes, nullSaccTimes, blinkTimes, nullBlinkTimes] = deal([]);
+  [blinkTimes, nullBlinkTimes] = deal([]);
   for stim_i = 1:length(eyeBehStatsByStim)
     % Find all the start times for the stimulus
-    %stimuliStartTimes = subEventParams.onsetsByEvent{stim_i};
     stimuliStartTimes = subEventParams.onsetsByEvent{stim_i};
     for trial_i = 1:length(eyeBehStatsByStim{stim_i})
       % for every trial, extract blink times, adding the appropriate event
       % Onset to get absolute eye event start times.
-      
-      if ~isempty(eyeBehStatsByStim{stim_i}{trial_i}.saccadetimes)
-        % Store saccade time
-        %trialSaccadeTimes = eyeBehStatsByStim{stim_i}{trial_i}.saccadetimes(1,:)';
-        saccadeTimes = [saccadeTimes; eyeBehStatsByStim{stim_i}{trial_i}.saccadetimes(1,:)'] + stimuliStartTimes(trial_i);
-      end
-      
+            
       if ~isempty(eyeBehStatsByStim{stim_i}{trial_i}.blinktimes)
         blinkTimes = [blinkTimes; eyeBehStatsByStim{stim_i}{trial_i}.blinktimes(1,:)'] + stimuliStartTimes(trial_i);
       end
+      
     end
   end
   
   % Sort these lists for the next processing steps
-  saccadeTimes = sort(saccadeTimes);
   blinkTimes = sort(blinkTimes);
-  eyeEventTimes = {saccadeTimes; blinkTimes};
-  eyeEventNullTimes = {nullSaccTimes; nullBlinkTimes};
+  eyeEventTimes = {blinkTimes};
+  eyeEventNullTimes = {nullBlinkTimes};
   
-  % Generate a distribution of null times for both blinks and saccades
-  firstTime = min([saccadeTimes(1); blinkTimes(1)]);
-  lastTime = max([saccadeTimes(end); blinkTimes(end)]);
+  % Generate a distribution of null times for blinks
+  firstTime = blinkTimes(1);
+  lastTime = blinkTimes(end);
 
-  % Generate Null times Take the Saccade times, add a number (100 - 1000), shuffle them and check 
+  % Generate Null times, add a number (100 - 1000), shuffle them and check 
   % if its close to a number on the list. If not, its a null value.
   maxShift = 500;
   minShift = 100;
@@ -247,7 +240,7 @@ end
 % Event Type 3 - add the Reward as an event
 if subEventParams.RewardEvent
   
-  % Generate a distribution of null times for both blinks and saccades
+  % Generate a distribution of null times 
   rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
   firstTime = min(rewardTimes);
   lastTime = max(rewardTimes);

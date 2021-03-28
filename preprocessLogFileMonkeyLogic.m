@@ -17,10 +17,6 @@ function [ taskData, stimTiming ] = preprocessLogFileMonkeyLogic(logfile, taskTr
 %       - taskEventEndTimes: nTrials x 1 array of task event (e.g. stimulus) end times in ms
 %       _ stimParams: struct containing information about stimulus size etc. Not currently used elsewhere, so may be left empty
 %       - RFmap: 1 for runs where stimulus position varies, else 0
-%       - stimJumps: if RFmap, nTrialsx2 array or stim x and y positions, in degrees of visual angle, else may be empty
-%           - note: position relative to center of jump grid, not absolute position
-%       - gridPointsDegX: if RFmap, 1xN array of unique stimulus jump X locations, else may be empty 
-%       - gridPointsDegY: if RFmap, 1xN array of unique stimulus jump Y locations, else may be empty
 %       - fields likely required for excludeStimuli and runSummary plots (may be left empty if not needed):
 %         - stimFramesLost: nTrials x 1, number of frames lost during trial
 %         - fixationInTimes: nTrials x 1, times in ms when fixation epochs begin
@@ -519,6 +515,8 @@ fixTime = nan(length(data),1);
 for ii = 1:length(data)
   fixTime(ii) = data(ii).ObjectStatusRecord.SceneParam(1).AdapterArgs{3}{2,2};
 end
+
+
 
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,

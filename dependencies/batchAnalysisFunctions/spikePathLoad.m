@@ -77,7 +77,11 @@ end
 
 if any(any(varPresent))
   disp(spikePathBank.analyzedDir(any(varPresent,2)));
-  error('Not all variables in all runs, check files');
+  if ~params.acceptMissing
+    error('Not all variables in all runs, check files');
+  else
+    warning('Not all variables in all runs, check files');
+  end
 end
   
 end
