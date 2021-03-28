@@ -380,6 +380,14 @@ end
 
 %% Spike, Task data, Eye Data Analysis
 
+% Initalize a table which the 3 sensitivity functions will use.
+unitPerChan = cellfun('length', channelUnitNames);
+chanNameVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
+chanNameVec = string(vertcat(chanNameVec{:}));
+unitTypeVec = string([channelUnitNames{:}]');
+selTable = table(chanNameVec, unitTypeVec);
+plotSwitch.subEventAnalysis = 1;
+
 if plotSwitch.subEventAnalysis
   ephysParams.spikeTimes = calcSwitch.spikeTimes;
   ephysParams.channelUnitNames = channelUnitNames;
@@ -390,24 +398,10 @@ if plotSwitch.subEventAnalysis
     eyeBehStatsByStim = [];
   end
   
-  [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, figStruct);
+  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, selTable, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
 %   clear subEventSigStruct spikesByChannel
 end
-
-if plotSwitch.eyeStimOverlay
-  [eyeInByEventDS, spikeEyeData] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
-  save(analysisOutFilename,'eyeInByEventDS', '-append');
-  save(analysisOutFilenameBig, 'spikeEyeData', '-append')
-  clear spikeEyeData
-end
-
-% Initalize a table which the 3 sensitivity functions will use.
-unitPerChan = cellfun('length', channelUnitNames);
-chanNameVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
-chanNameVec = string(vertcat(chanNameVec{:}));
-unitTypeVec = string([channelUnitNames{:}]');
-selTable = table(chanNameVec, unitTypeVec);
 
 % Determine which units are sensitive to saccades. 
 selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
@@ -415,6 +409,15 @@ selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre
 % Tests between epochs of the conditions
 epochStatsParams.groupLabelsByImage = groupLabelsByImage;
 selTable = epochStats(spikesByEvent, selTable, eventIDs, analysisGroups.stimulusLabelGroups, epochStatsParams);
+
+save(analysisOutFilename, 'selTable', '-append');
+
+if plotSwitch.eyeStimOverlay
+  [eyeInByEventDS, spikeEyeData] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
+  save(analysisOutFilename,'eyeInByEventDS', '-append');
+  save(analysisOutFilenameBig, 'spikeEyeData', '-append')
+  clear spikeEyeData
+end
 
 %% Plotting and further analyses
 

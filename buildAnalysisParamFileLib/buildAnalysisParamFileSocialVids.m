@@ -58,8 +58,8 @@ plotSwitch.spikePupilCorr = 0;              % see the correlation between single
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
-plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
-plotSwitch.categoryPsth = 1;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
+plotSwitch.imagePsth = 0;                   % a PSTH for every stimulus in the file.
+plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
 plotSwitch.analysisGroupsPsth = 0;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
 plotSwitch.prefImRasterColorCoded = 0;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.
@@ -382,6 +382,9 @@ subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
 subEventAnalysisParams.genPlots = false;                                % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
+subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'blinks', 'reward'};
+subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-250 50]; [0 200];];
+subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
@@ -439,6 +442,7 @@ epochStatsParams.stimParamsFilename = stimParamsFilename;
 epochStatsParams.targetEpochs = [[0 0 1 1 1]; [0 0 0 1 1]; [0 0 1 1 1]; [0 0 0 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
 epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
 epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'reward'};    
+epochStatsParams.nonParametric = 1;                                                     % run non Parametric tests.
 
 neuroGLMParams.neuroGLMPath = neuroGLMPath;
 neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 

@@ -1,4 +1,4 @@
-function [subEventSigStruct, specSubEventStruct] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventParams, figStruct)
+function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventParams, selTable, figStruct)
 % subEventAnalysis
 % Description - looks through spikesByEvent, calculates PSTH for activity
 % aligned to a specific event as well as a null distribution from the
@@ -313,8 +313,7 @@ if exist('onsetsByEvent', 'var')
   end
   
   if specSubEvent
-    % Remove the subEvents which are specific instances, they need to be
-    % processed differently.
+    % Remove the subEvents which are specific instances, they need to be processed differently.
     subEventInd = false(length(subEventNames),1);
     % In case there are only saccades and blinks.
     if exist('specEventInds', 'var')
@@ -337,22 +336,49 @@ if exist('onsetsByEvent', 'var')
     % uniqueSubEvents for specificSubEvents
   end
   
-  % Statistics
-  % Method 1 - perform T test on spike rates for the period from 0 to 200
-  % ms post event. See if the Non-event and event differ in this period.
-  testPeriod = [0 200];
-  [spikeCounts, ~, ~] = spikeCounter(spikesBySubEvent, testPeriod(1), testPeriod(2));
-  [spikeCountsNull, ~, ~] = spikeCounter(spikesBySubEventNull, testPeriod(1), testPeriod(2));
-  [testResults, cohensD] = deal(initNestedCellArray(spikeCounts, 'ones', [1 1], 3));
-  for chan_i = 1:length(testResults)
-    for unit_i = 1:length(testResults{chan_i})
-      for event_i = 1:length(testResults{chan_i}{unit_i})
-        eventSpikes = [spikeCounts{chan_i}{unit_i}{event_i}.rates];
-        nullSpikes = [spikeCountsNull{chan_i}{unit_i}{event_i}.rates];
-        [~, testResults{chan_i}{unit_i}{event_i}, ~, tmpStats] = ttest2(eventSpikes,  nullSpikes);
-        cohensD{chan_i}{unit_i}{event_i} = (mean(eventSpikes) - mean(nullSpikes))/tmpStats.sd;
+  % Statistics - for every event
+  % Method 1 - perform T test on spike rates for the period assigned.
+  selArray = zeros(size(selTable,1), length(subEventNames));
+  for event_i = 1:length(subEventNames)
+    
+    unitInd = 1;
+    
+    % Find the test window for this event
+    testPeriod = subEventParams.testPeriodPerEvent(strcmp(subEventParams.possibleEvents, subEventNames{event_i}), :);
+    assert(~isempty(testPeriod), 'Event %s is missing from array', subEventNames{event_i})
+    
+    % Count the spikes
+    [spikeCounts, ~, ~] = spikeCounter(spikesBySubEvent(event_i), testPeriod(1), testPeriod(2));
+    [spikeCountsNull, ~, ~] = spikeCounter(spikesBySubEventNull(event_i), testPeriod(1), testPeriod(2));
+    
+    % Initialize test arrays
+    if event_i == 1
+      [testResults, cohensD] = deal(initNestedCellArray(spikeCounts, 'ones', [1 1], 3));
+    end
+    
+    for chan_i = 1:length(testResults)
+      for unit_i = 1:length(testResults{chan_i})
+        % Collect relevant spikes
+        eventSpikes = [spikeCounts{chan_i}{unit_i}{1}.rates];
+        nullSpikes = [spikeCountsNull{chan_i}{unit_i}{1}.rates];
+        
+        % Perform the test, and store results.
+        if subEventParams.nonParametric
+          [~, sigSwitch, ~] = ranksum(eventSpikes,  nullSpikes);
+        else
+          [sigSwitch, ~, ~] = ttest2(eventSpikes,  nullSpikes);
+        end
+        
+        if ~isnan(sigSwitch) && sigSwitch
+          selArray(unitInd, event_i) = mean(eventSpikes) - mean(nullSpikes);
+        end
+        
+        % Increment units
+        unitInd = unitInd + 1;
+        
       end
     end
+    
   end
   
   % Plotting
@@ -458,6 +484,12 @@ if exist('onsetsByEvent', 'var')
   subEventSigStruct.events = subEventNames;
   subEventSigStruct.noSubEvent = 0;
   
+end
+
+tableVarNames = strcat("subSel_", subEventNames)';
+
+for ev_i = 1:length(tableVarNames)
+  selTable.(tableVarNames{ev_i}) = selArray(:, ev_i);
 end
 
 specSubEventStruct = struct();

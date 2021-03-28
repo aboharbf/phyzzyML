@@ -64,9 +64,17 @@ for group_i = 1:length(stimulusLabelGroups.groups)
       allBaseline = vertcat(allBaseline{:});
       allFix = cellfun(@(x) x.rates, spikeCountsByImageByEpoch{2}{chan_i}{unit_i}, 'UniformOutput', false);
       allFix = vertcat(allFix{:});
-      [sigSwitch0, ~, ci] = ttest(allFix, allBaseline);
+      
+      % Run the Test
+      if epochStatsParams.nonParametric
+        [~, sigSwitch0, ~] = signrank(allFix, allBaseline);
+      else
+        [sigSwitch0, ~, ~] = ttest(allFix, allBaseline);
+      end
+      
+      % If sig, save the difference
       if ~isnan(sigSwitch0) && sigSwitch0
-        fixSel(allUnitInd) = mean(ci);
+        fixSel(allUnitInd) = mean(allFix) - mean(allBaseline);
       end
       
       % Collect baseline for the target of the test.
@@ -84,20 +92,31 @@ for group_i = 1:length(stimulusLabelGroups.groups)
         nonTargRates = vertcat(nonTargRates{:});
         
         % signrank to compare epoch to baseline.
-        [sigSwitch2, ~, ci] = ttest(targRates, targBaseline);
+        if epochStatsParams.nonParametric
+          [~, sigSwitch2, ~] = signrank(targRates, targBaseline);
+        else
+          [sigSwitch2, ~, ~] = ttest(targRates, targBaseline);
+        end
+        
         if isnan(sigSwitch2)
           baselineMat(allUnitInd, ep_i) = nan;
         elseif ~isnan(sigSwitch2) && sigSwitch2
-          baselineMat(allUnitInd, ep_i) = mean(ci);
+          baselineMat(allUnitInd, ep_i) = mean(targRates) - mean(targBaseline);
         end
         
         % Running tests - ttest2 to compare soc v non soc
         if any(nonTargEventInd)
-          [sigSwitch, ~, ci] = ttest2(targRates, nonTargRates);
+          
+          if epochStatsParams.nonParametric
+            [~, sigSwitch, ~] = ranksum(targRates, nonTargRates);
+          else
+            [sigSwitch, ~, ~] = ttest2(targRates, nonTargRates);
+          end
+          
           if isnan(sigSwitch)
             targVNonTargMat(allUnitInd, ep_i) = nan;
           elseif ~isnan(sigSwitch) && sigSwitch
-            targVNonTargMat(allUnitInd, ep_i) = mean(ci);
+            targVNonTargMat(allUnitInd, ep_i) = mean(targRates) - mean(nonTargRates);
           end
         else
           targVNonTargMat(allUnitInd, ep_i) = nan;
