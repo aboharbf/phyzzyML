@@ -331,6 +331,7 @@ end
 firstEntry = find(~cellfun('isempty', analysisOutFilename), 3);
 entry2check = min(length(firstEntry), 3);
 firstEntry = firstEntry(entry2check);
+
 if ~isempty(firstEntry)
   tmp = load(analysisOutFilename{firstEntry},'sigStruct');
   assert(isfield(tmp, 'sigStruct'), 'sigStruct not in this analysis param, likely due to rerunning the single run and stopping prior to this structure being made. Rerun whole or pick different run')

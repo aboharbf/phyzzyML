@@ -37,14 +37,16 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 1;    % export figure using export_fig.
+figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Switches
 calcSwitch.excludeRepeats = 0;
+calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
+plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.spikeEyeOverlay = 1;       % Generate an overlay of activity across units according to eye signal.
@@ -61,8 +63,6 @@ analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabe
                                   'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
 AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
-
-selParam.outputDir =  fullfile(outputDir,'selCount');
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
 spikePathLoadParams.batchAnalysisOutput = fullfile(outputDir, spikePathLoadParams.spikePathFileName);
@@ -82,6 +82,18 @@ stimStructParams.xyStimparams.YLabel = 'Stimulus Name';
 stimStructParams.xyEventparams.plotTitle = 'Events Per Stimulus Count, Sorted by first presentation';
 stimStructParams.xyEventparams.XLabel = 'Event Name';
 stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
+
+% selParam for function below - move to paramFile eventually.
+selParam.outputDir =  fullfile(outputDir,'selCount');
+selParam.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socIntSel_any', 'headTurnSel_any'};
+selParam.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
+  {'socIntSel_stimOnset', 'socIntSel_stimPres', 'socIntSel_reward'}, {'headTurn_baseDiff_stimPres', 'headTurn_baseDiff_reward'}};
+selParam.figStruct = batchAnalysisParams.figStruct;
+selParam.selCheck = {'socInt', 'headTurn', 'fullModel', 'turnToward'};
+selParam.UnitTypes = {'MUA', digitsPattern};
+selParam.UnitTypePlot = {'MUA', 'Units'};
+selParam.colNamePoss = {'stimOnset','stimPres','reward'};
+selParam.colNamePlotAll = {'stim Onset','stim Presentation','Reward'};
 
 meanPSTHParams.spikePathLoadParams = spikePathLoadParams;
 meanPSTHParams.runInclude = 30;                                     % 0 = everything, N = Nth first runs of the stimulus.
@@ -236,16 +248,16 @@ frameFiringParams.outputDir = fullfile(outputDir,'frameFiring');
 frameFiringParams.broadLabelPool = {'chasing','fighting','mounting','grooming','holding','following','observing',...
     'foraging','sitting','objects','goalDirected','idle','scramble','scene','animControl','animSocialInteraction'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
 frameFiringParams.broadLabels = 1;
-frameFiringParams.useRates = 0;     % collected data per frame can be in rates or spike counts. 1 = Rates, 0 = spikeCounts.
-frameFiringParams.delay = 70;       % Hypothetical delay between frame and the activity it causes. deduced from Mean PSTHs.
-frameFiringParams.plotRuns = 0;     % Plot Histograms of values across individual runs. 
+frameFiringParams.useRates = 0;                                               % collected data per frame can be in rates or spike counts. 1 = Rates, 0 = spikeCounts.
+frameFiringParams.delay = 70;                                                 % Hypothetical delay between frame and the activity it causes. deduced from Mean PSTHs.
+frameFiringParams.plotRuns = 0;                                               % Plot Histograms of values across individual runs. 
 
-slidingTestParams.plotTest = 0;   % Plot individual cell pVectors. Saves these to individual files.
+slidingTestParams.plotTest = 0;                                               % Plot individual cell pVectors. Saves these to individual files.
 slidingTestParams.binSize = 100;
 slidingTestParams.binStep = 25;
-slidingTestParams.scrambleCount = 100;    % Count of trials to come up with control p values.
-slidingTestParams.Omega = 1;       %switch to convert ANOVA curves to Omega curves.
-slidingTestParams.target = {'socialInteraction','agents','interaction'};  %Labels which must exist in the stimParamFile associated with the runs. 
+slidingTestParams.scrambleCount = 100;                                        % Count of trials to come up with control p values.
+slidingTestParams.Omega = 1;                                                  % switch to convert ANOVA curves to Omega curves.
+slidingTestParams.target = {'socialInteraction','agents','interaction'};      % Labels which must exist in the stimParamFile associated with the runs. 
 slidingTestParams.stimParamFile = stimParamsFilename;
 slidingTestParams.outputDir = fullfile(outputDir,'slidingTest');
 slidingTestParams.spikeDataFileName = spikePathLoadParams.spikePathFileName;
@@ -259,11 +271,18 @@ NDTParams.outputDir = fullfile(outputDir,'NeuralDecodingTB');
 NDTParams.rasterDir =  fullfile(NDTParams.outputDir, 'rasterData');
 NDTParams.spikeToRasterParams.plotIndParams.stimParamsFilename = stimParamsFilename; % a full path to a phyzzy style stimParamFile.
 NDTParams.spikeToRasterParams.subEventBatchStructPath = subEventBatchStructPath; % a full path to a subEventStruct produced by processRunBatch.
+
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
-%  spikeDataBank to rasterData Parameters.
+% spikeDataBank to rasterData Parameters.
+NDTParams.spikeToRasterParams.fixShorten = 400; % Push the start of the data collected an additional X past the start (not including the ITI). No point in decoding full fixation.
+NDTParams.spikeToRasterParams.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socIntSel_any', 'headTurnSel_any'};
+NDTParams.spikeToRasterParams.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
+  {'socIntSel_stimOnset', 'socIntSel_stimPres', 'socIntSel_reward'}, {'headTurn_baseDiff_stimPres', 'headTurn_baseDiff_reward'}};
+
+% Paradigm specific
 NDTParams.spikeToRasterParams.NaturalSocial.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
-NDTParams.spikeToRasterParams.NaturalSocial.plotIndParams.plotLabels = {'socialInteraction', 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
+NDTParams.spikeToRasterParams.NaturalSocial.plotIndParams.plotLabels = {{'agents', 'socialInteraction'}, 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
   'scramble', 'foraging', 'following', 'observing','animControl', 'animSocialInteraction'}}; % a cell array list of labels for inclusion.
 
 NDTParams.spikeToRasterParams.headTurnCon.rasterLabels = {'headTurn', 'social', 'socialCat'};
@@ -282,27 +301,27 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
-NDTParams.AnalysesDefault.null_shuffle_count = 20;            % The number of times to randomly shuffle the data to generate a null distribution.
+NDTParams.AnalysesDefault.null_shuffle_count = 10;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.AnalysesDefault.cross_validator_num_resample = 10;  % Number of times to resample runs for cross validator.
 
 NDTParams.figStruct = figStruct;
 NDTParams.plotParams = figStruct;
-NDTParams.NaturalSocial.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.NaturalSocial.plotParams.points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
 NDTParams.NaturalSocial.plotParams.points_for_lines = [0, 2800];
-NDTParams.NaturalSocial.plotParams.shift = 800; % prePSTH in the code elsewhere.
+NDTParams.NaturalSocial.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.headTurnCon.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
 NDTParams.headTurnCon.plotParams.points_for_lines = [0, 2800];
-NDTParams.headTurnCon.plotParams.shift = 800; % prePSTH in the code elsewhere.
+NDTParams.headTurnCon.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.FamiliarFace.plotParams.points_to_label = [-250, 0, 250, 500, 750, 1000, 1250];
 NDTParams.FamiliarFace.plotParams.points_for_lines = [0, 1000];
-NDTParams.FamiliarFace.plotParams.shift = 500; % prePSTH in the code elsewhere.
+NDTParams.FamiliarFace.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.headTurnIso.plotParams.points_to_label = [-250, 0, 250, 500, 750, 1000, 1250];
 NDTParams.headTurnIso.plotParams.points_for_lines = [0, 1000];
-NDTParams.headTurnIso.plotParams.shift = 500; % prePSTH in the code elsewhere.
+NDTParams.headTurnIso.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.p_val_threshold = 0.05;
 NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;    % The thrshold to use for determining significant regions
@@ -321,6 +340,7 @@ analysisParamFilenameStem = 'batchAnalysisParams.mat';
 if ~exist([outputDir '/'])
   mkdir([outputDir '/']);
 end
+
 batchAnalysisParamFilename = [outputDir '/' analysisParamFilenameStem];
 save(batchAnalysisParamFilename)
 

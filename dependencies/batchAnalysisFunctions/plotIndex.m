@@ -15,7 +15,7 @@ function [plotMat, briefStimList, params]= plotIndex(stimuliList, params)
 %   - ().removeEmpty - a 0 or 1, deciding whether to remove empty entries.
 % Output
 % - plotMat - a stimuli * length(plotLabel) matrix with 1s for stimuli to
-% include 0, for others. 
+% include 0, for others.
 
 % Load broad label correspondences for plotting or for reassigning labels.
 tmp = load(params.stimParamsFilename);
@@ -30,22 +30,26 @@ briefStimList = tmp.pictureLabels(paramSortVec);
 % Iterate across stimuli and identify appropriate indicies
 plotMat = zeros(length(stimuliList),length(params.plotLabels));
 
-for stim_ind = 10:size(plotMat,1)
+for stim_ind = 1:size(plotMat,1)
   paramStimSet = paramArray{stim_ind};
   for label_ind = 1:size(plotMat,2)
+    
     % If single label, do simple comparison, store logical value
     if ~iscell(params.plotLabels{label_ind})
+      
       plotMat(stim_ind, label_ind) = any(ismember(paramStimSet,params.plotLabels{label_ind}));
+      
     else
-      % If Cell, iterate through values, store the max.
+      
+      % If Cell, iterate through values, store the max or min.
       tmp = zeros(length(params.plotLabels{label_ind}),1);
       
       for subLabel_ind = 1:length(params.plotLabels{label_ind})
         tmp(subLabel_ind) = any(ismember(paramStimSet, params.plotLabels{label_ind}{subLabel_ind}));
       end
-%       assert(any(tmp), 'stim %s lacks any labels in set ', paramStimSet{1})
+      %       assert(any(tmp), 'stim %s lacks any labels in set ', paramStimSet{1})
       if any(tmp)
-        plotMat(stim_ind, label_ind) = find(tmp,1,'last');
+        plotMat(stim_ind, label_ind) = find(tmp, 1, 'last');
       end
     end
   end

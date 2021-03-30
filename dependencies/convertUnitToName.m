@@ -11,7 +11,7 @@ for ii = 1:length(unitNumber)
       if unitNumber(ii) == totalUnitCount
         stringName{ii} = 'MUA';
       elseif unitNumber(ii) == 1
-        stringName{ii} = 'Unsorted';
+        stringName{ii} = 'US';
       else
         stringName{ii} = sprintf('U%d', unitNumber(ii)'-1);
       end

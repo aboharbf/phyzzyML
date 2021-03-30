@@ -14,7 +14,7 @@ function  spikePathBank_to_rasterData(spikePathBank, rasterDataPath, params)
 %runData.spikesByEventBinned{stim}{chan}{unit} --> needs to be turned to
 %rasterDataUnit
 
-if ~exist(rasterDataPath)
+if ~exist(rasterDataPath, 'dir')
   mkdir(rasterDataPath);
 end
 
@@ -27,8 +27,14 @@ if exist(params.subEventBatchStructPath, 'file')
 end
 
 % Load the spike data to be turned into raster data.
-[spikesByEventBinned, psthParams] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams'}, params.spikePathLoadParams);
+[spikesByEventBinned, psthParams, selTable] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams', 'selTable'}, params.spikePathLoadParams);
+selTable = vertcat(selTable{:});
 runList = spikePathBank.Properties.RowNames;
+
+% Add Combo events
+selTable = expandSelTableComboEvents(selTable, params);
+
+vars2Add = [selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'Sel_')), 'fixationSel', 'saccSel'];
 
 for run_i = 1:length(runList)
   
@@ -43,26 +49,24 @@ for run_i = 1:length(runList)
   
   % Collect data for this particular run
   runData = struct();
-  runData.start = -psthParams{run_i}.psthPre;
+  runData.start = -psthParams{run_i}.psthPre + psthParams{run_i}.ITI + params.fixShorten;
   runData.end = psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost;
+  padSize = psthParams{run_i}.movingWin(1)/2;
+  
+  % Full Length = psthPre + psthImDur + psthPost + psthParams{run_i}.movingWin(1)
   
   runData.spikesByEventBinned = spikesByEventBinned{run_i};
   runData.eventIDs = spikePathBank.stimuli{run_i};
   
-  %   runData.stimPresCount = 1;
-  %   runData.gridHoles = 1;
-  %   runData.recDepth = 1;
-  
-  % Indicies for activity, accounting for padding.
-  dataLength = abs(runData.start) + runData.end;
+  % Indicies for activity, accounting for padding, ITI
   vecLength = size(runData.spikesByEventBinned{1}{1}{1},2);
-  if dataLength ~= vecLength
-    startTime = floor((vecLength - dataLength)/2);
-    endTime = dataLength+startTime-1;
-  else
-    startTime = 1;
-    endTime = dataLength;
-  end
+  theoreticalLength = psthParams{run_i}.psthPre + psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost + psthParams{run_i}.movingWin(1) + 1;
+  assert(vecLength == theoreticalLength, 'Something is off w/ vector lengths');
+
+  % Determine the slice of activity to be used.
+  startTime = psthParams{run_i}.psthPre - params.fixShorten + padSize;
+  endTime = vecLength - padSize;
+  dataLength = endTime - startTime + 1;
   
   % find out trials per stimuli to generate useful indicies
   trialsPerStim = cellfun(@(x) size(x{1}{1},1), runData.spikesByEventBinned);
@@ -86,22 +90,19 @@ for run_i = 1:length(runList)
   rasterLabelTmp = plotIndex(runData.eventIDs, params.plotIndParams);
   rasterLabelTmp = arrayfun(@(x) repmat(rasterLabelTmp(x, :), [trialsPerStim(x), 1]), stimCount, 'UniformOutput', 0)';
   rasterLabel = vertcat(rasterLabelTmp{:});
-  
-  % Generate a vector of stimulus presentation counts for a particular run.
-  %   stimPresCountTmp = arrayfun(@(x) repmat(runData.stimPresCount(x), [trialsPerStim(x), 1]), stimCount, 'UniformOutput', 0)';
-  %   stimPresCountPerTrial = vertcat(stimPresCountTmp{:});
-  
+    
   % Assign to raster labels.
   raster_labels = struct();
   raster_labels.stimuli = stimuliVec';
   %   raster_labels.stimPresCount = stimPresCountPerTrial';
   
-  % iterate through rasterLabels.
+  % iterate through rasterLabels, creating a string array which grants the
+  % label of 'target' or 'non-target' to each trial.
   for label_i = 1:length(params.rasterParams.rasterLabels)
     % Convert the indices into strings
     label = params.rasterParams.plotIndParams.plotLabels{label_i};
-    entry = cell(size(rasterLabel,1),1);
-    [entry{:}] = deal('');
+    entry = cell(size(rasterLabel, 1), 1);
+    [entry{:}] = deal('None');
     
     if iscell(label)
       % Use entries as indices to the provided labels
@@ -123,14 +124,9 @@ for run_i = 1:length(runList)
   % raster_site_info
   raster_site_info.session_ID = runList{run_i};
   raster_site_info.alignment_event_time = abs(runData.start);
-  %     raster_site_info.runNum = runData.runNum;
   
   % Construct raster_data and save file per unit.
-  for chan_i = 1:length(runData.spikesByEventBinned{1})
-    % Information which is consistent per channel
-    %     raster_site_info.gridHole = num2str(runData.gridHoles{chan_i});
-    %     raster_site_info.recordingDepth = runData.recDepth{chan_i};
-    
+  for chan_i = 1:length(runData.spikesByEventBinned{1})    
     for unit_i = 1:length(runData.spikesByEventBinned{1}{chan_i})
       
       % Cycle through the stim, store into raster_data.
@@ -143,28 +139,14 @@ for run_i = 1:length(runList)
       raster_site_info.UnitType = convertUnitToName(unit_i, length(runData.spikesByEventBinned{1}{chan_i}), 2);
       
       ULabel = convertUnitToName(unit_i, length(runData.spikesByEventBinned{1}{chan_i}), 1);
-      chLabel = ['Ch' num2str(chan_i)];
-      rasterFileName = [runList{run_i},chLabel, ULabel];
+      chLabel = {['Ch' num2str(chan_i)]};
+      rasterFileName = strjoin([runList(run_i), chLabel, ULabel], '_');
       
       % use generated label to look up eventData, subEvent significance.
-      if exist('sigUnitGrid', 'var')
-        gridRow = strcmp(sigUnitGrid.sigUnitLabels, rasterFileName(2:end));
-        subStructSigData = sigUnitGrid.sigUnitMat(gridRow, :);
-        for event_i = 1:length(eventList)
-          raster_site_info.(eventList{event_i}) = subStructSigData(event_i);
-        end
-        
-        % Combo events
-        comboName = {'headTurn_all', 'allTurn'};
-        comboInts = {{'headTurn_right','headTurn_left'};{'headTurn_right', 'headTurn_left', 'bodyTurn'}};
-        
-        for combo_i = 1:length(comboName)
-          anyArray = 0;
-          for event_i = 1:length(comboInts{combo_i})
-            anyArray = anyArray | subStructSigData(strcmp(eventList', comboInts{combo_i}{event_i}));
-          end
-          raster_site_info.(comboName{combo_i}) = anyArray;
-        end
+      rowInd = strcmp(selTable.dateSubj, runList{run_i}(2:end-3)) & strcmp(selTable.runNum, runList{run_i}(end-2:end)) & strcmp(selTable.channel, chLabel) & strcmp(selTable.unitType, ULabel);
+      gridRow = selTable(rowInd, :);
+      for event_i = 1:length(vars2Add)
+        raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) ~= 0;
       end
       
       % If desired, remove data and accompanying labels if the labels are
@@ -178,9 +160,11 @@ for run_i = 1:length(runList)
         end
         
         % Remove elements in each and cut the data
-        raster_labels.stimuli = raster_labels.stimuli(~removeInd);
-        for label_i = 1:length(params.rasterParams.rasterLabels)
-          raster_labels.(params.rasterParams.rasterLabels{label_i}) = raster_labels.(params.rasterParams.rasterLabels{label_i})(~removeInd);
+        if any(removeInd)
+          raster_labels.stimuli = raster_labels.stimuli(~removeInd);
+          for label_i = 1:length(params.rasterParams.rasterLabels)
+            raster_labels.(params.rasterParams.rasterLabels{label_i}) = raster_labels.(params.rasterParams.rasterLabels{label_i})(~removeInd);
+          end
         end
         
       end
@@ -193,4 +177,5 @@ for run_i = 1:length(runList)
   end
   
 end
+
 end

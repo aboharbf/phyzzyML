@@ -14,7 +14,7 @@ params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Generate the appropriate binned data
-for paradigm_i = 1:length(paradigmList)
+for paradigm_i = 2:length(paradigmList)
   pName = paradigmList{paradigm_i};
   spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
   pFolder = fullfile(params.outputDir, pName);
@@ -41,6 +41,10 @@ for paradigm_i = 1:length(paradigmList)
   else
     binnedFileName = binnedFileNameOut;
   end
+  
+% end
+% 
+% if 1
 
   % Grab a variable which will be useful later
   tmp = dir(rasterDataPath);
@@ -82,7 +86,7 @@ for paradigm_i = 1:length(paradigmList)
   analysesToRun = fields(params.Analyses);
   analysesStructs = params.Analyses;
   
-  for analysis_i = 1:length(analysesToRun)
+  for analysis_i = 24:length(analysesToRun)
     % Step 2 - generate the data source object
     analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
     
@@ -160,7 +164,7 @@ for paradigm_i = 1:length(paradigmList)
         % Step 6 - save the results
         parforsave(fullfile(save_file_dir_itr, fileName), decoding_results)
         
-        fprintf('Run complete after %d minutes \n', toc/60);
+        fprintf('Run complete after %s minutes \n', num2str(round(toc/60, 1)));
       end
       
     end

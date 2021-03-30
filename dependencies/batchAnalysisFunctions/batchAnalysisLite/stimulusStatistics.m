@@ -6,6 +6,34 @@ function spikePathBank = stimulusStatistics(spikePathBank, params)
 %appends a dateTime vector to each structure related to how long since the
 %last recording day.
 
+% Create a list of gridHoles, save it if it isn't there.
+gridHoleFile = fullfile(params.outDir, 'gridHoleArray.mat');
+% First, collect info from .bhv2 about gridHole
+monkeyLogicFiles = dir('D:\EphysData\Data\202*\**\*.bhv2');
+monkeyLogicPaths = fullfile({monkeyLogicFiles.folder}, {monkeyLogicFiles.name})';
+monkeyLogicFileNames = {monkeyLogicFiles.name}';
+monkeyLogicFileNames = extractBefore(monkeyLogicFileNames, '.');
+
+if ~exist(gridHoleFile, 'file')
+  gridHoleContents = cell(size(monkeyLogicPaths));
+  
+  parfor ii = 1:length(monkeyLogicPaths)
+    [data, ~, ~] = mlread(monkeyLogicPaths{ii});
+    gridHoleContents{ii} = data(1).VariableChanges.gridHole;
+  end
+  
+  gridHoleContents(1) = {'C9'};
+  gridHoleContents(2) = {'C9'};
+  
+  % Save the results in batchAnalysis to speed up future runs.
+  save(gridHoleFile, 'gridHoleContents')
+  
+else
+  
+  load(gridHoleFile, 'gridHoleContents')
+  
+end
+
 runList = spikePathBank.Properties.RowNames;
 
 tok2Find = {'S20', 'Mo00'};
@@ -13,7 +41,9 @@ tok2Rep = {'', 'R'};
 runListLabels = regexprep(runList, tok2Find, tok2Rep);
 
 % Extract the eventIDs field, generate a cell array of unique stimuli
-[allStimCatVecPerRun, allCategoryVecPerRun, dateSubjectVec] = spikePathLoad(spikePathBank, {'eventIDs', 'categoryList', 'dateSubject'}, params.spikePathLoadParams);
+[allStimCatVecPerRun, allCategoryVecPerRun, dateSubjectVec, psthByImage] = spikePathLoad(spikePathBank, {'eventIDs', 'categoryList', 'dateSubject', 'psthByImage'}, params.spikePathLoadParams);
+chanCount = cellfun('length', psthByImage);
+clear psthByImage;
 allStimuliVec = unique(vertcat(allStimCatVecPerRun{:}));
 allCategoryVec = unique(horzcat(allCategoryVecPerRun{:}))';
 
@@ -150,5 +180,7 @@ spikePathBank.daysSinceLastPres = daysSinceLastPresVec;
 spikePathBank.stimPresCount = stimPresCountVec;
 spikePathBank.stimPresArray = stimPresArrayVec;
 spikePathBank.daysSinceLastRec = daysSinceLastRecVec;
+spikePathBank.chanCount = chanCount;
+spikePathBank.GridHole = gridHoleContents;
 
 end
