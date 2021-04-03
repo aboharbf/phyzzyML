@@ -42,10 +42,11 @@ if ~any(strcmp(batchAnalysisParams.spikePathLoadParams.files, 'batchAnalyzedData
   save(spikePathFile, 'spikePathBank', 'batchAnalysisParams', '-append')
 end
 
+crossParadigmCheck(spikePathBank, batchAnalysisParams)
+
 % Combine PSTH across all runs for a particular stimulus.
 if plotSwitch.meanPSTH
   meanPSTH(spikePathBank, batchAnalysisParams, figStruct);
-%   saveEnv(0)
 end
 
 if plotSwitch.subEventPSTH %&& ~exist('meanPSTHStruct','var')

@@ -19,21 +19,15 @@ for par_i = 2%:length(paradigmList)
   runNamesParadigm = runNames(pInd,:);
   selTableParadigmPerRun = selTablePerRun(pInd);
   
-  % Replace the channel names for 20201123Mo004
-  if any(strcmp(runNamesParadigm, "20201123Mo004"))
-    runInd2Change = strcmp(runNamesParadigm, "20201123Mo004");
-    table2Change = selTableParadigmPerRun{runInd2Change};
-    % Ch33 - Ch64 --> Ch1 - Ch32
-    table2Change.channel = strcat("Ch", string(double(extractAfter(table2Change.channel, "Ch"))-32));
-    selTableParadigmPerRun{runInd2Change} = table2Change;
-  else
-    
-  end
   % Combine across tables
   selTableParadigm = vertcat(selTableParadigmPerRun{:});
+  
+  % Replace the channel names for 20201123Mo
+  selTableParadigm = replaceChanNum_1123(selTableParadigm);
+  
 
   % Run the function
-  selectivityPerEpochBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams)
+%   selectivityPerEpochBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
   % Generate an array of gridHoles for each unit
   paradigmRuns = extractAfter(spikePathBankParadigm.Properties.RowNames, 'S');
@@ -84,10 +78,10 @@ for par_i = 2%:length(paradigmList)
   end
   
   selTableParadigm.gridHole = gridHolePerUnit;
-  barPlotParams.paradigm = paradigmList{par_i};
+  batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
   
   % Now, for each unitType and selectivity, map out 
-  selectivityPerGridHole(spikePathBankParadigm, barPlotParams, selTableParadigm)
+  selectivityPerGridHole(spikePathBankParadigm, batchAnalysisParams.selParam, selTableParadigm)
   
 end
 

@@ -34,6 +34,9 @@ runList = spikePathBank.Properties.RowNames;
 % Add Combo events
 selTable = expandSelTableComboEvents(selTable, params);
 
+% Update 20201123Mo channels...
+selTable = replaceChanNum_1123(selTable);
+
 vars2Add = [selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'Sel_')), 'fixationSel', 'saccSel'];
 
 for run_i = 1:length(runList)
@@ -126,8 +129,20 @@ for run_i = 1:length(runList)
   raster_site_info.alignment_event_time = abs(runData.start);
   
   % Construct raster_data and save file per unit.
-  for chan_i = 1:length(runData.spikesByEventBinned{1})    
+  selTableRows = selTable(strcmp(selTable.dateSubj, runList{run_i}(2:end-3)) & strcmp(selTable.runNum, runList{run_i}(end-2:end)), :);
+  channels = strcat('Ch', string(sort(double(extractAfter(unique(selTableRows.channel), 'Ch')))));
+  
+  for chan_i = 1:length(runData.spikesByEventBinned{1})
+    
+    % Units were not labeled as expected. Not every channel has unsorted
+    % activity.
+    chLabel = channels(chan_i);
+    ULabelList = selTableRows.unitType(strcmp(selTableRows.channel, chLabel));
+    
     for unit_i = 1:length(runData.spikesByEventBinned{1}{chan_i})
+      
+      % Actual ULabel
+      ULabel = ULabelList{unit_i};
       
       % Cycle through the stim, store into raster_data.
       raster_data = zeros(trialsPerUnit, dataLength);
@@ -138,14 +153,12 @@ for run_i = 1:length(runList)
       % Generate the raster_site_info
       raster_site_info.UnitType = convertUnitToName(unit_i, length(runData.spikesByEventBinned{1}{chan_i}), 2);
       
-      ULabel = convertUnitToName(unit_i, length(runData.spikesByEventBinned{1}{chan_i}), 1);
-      chLabel = {['Ch' num2str(chan_i)]};
       rasterFileName = strjoin([runList(run_i), chLabel, ULabel], '_');
       
       % use generated label to look up eventData, subEvent significance.
-      rowInd = strcmp(selTable.dateSubj, runList{run_i}(2:end-3)) & strcmp(selTable.runNum, runList{run_i}(end-2:end)) & strcmp(selTable.channel, chLabel) & strcmp(selTable.unitType, ULabel);
-      gridRow = selTable(rowInd, :);
+      gridRow = selTableRows(unit_i, :);
       for event_i = 1:length(vars2Add)
+        assert(~isempty(gridRow.(vars2Add{event_i}) ~= 0), 'Error found')
         raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) ~= 0;
       end
       

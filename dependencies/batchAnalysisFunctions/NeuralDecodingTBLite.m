@@ -14,7 +14,7 @@ params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Generate the appropriate binned data
-for paradigm_i = 2:length(paradigmList)
+for paradigm_i = 3:length(paradigmList)
   pName = paradigmList{paradigm_i};
   spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
   pFolder = fullfile(params.outputDir, pName);
@@ -86,7 +86,7 @@ for paradigm_i = 2:length(paradigmList)
   analysesToRun = fields(params.Analyses);
   analysesStructs = params.Analyses;
   
-  for analysis_i = 24:length(analysesToRun)
+  for analysis_i = 1:length(analysesToRun)
     % Step 2 - generate the data source object
     analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
     
@@ -136,20 +136,23 @@ for paradigm_i = 2:length(paradigmList)
       
       % Step 4 - Generate a cross validator, define some parameters on newly generated object
       cross_val_resample = analysisStruct.cross_validator_num_resample;
+      analysisStruct.real_shuffle_count = 1;
+      runShuff = [false(analysisStruct.real_shuffle_count, 1); true(7,1)]';
       
-      parfor shuff_ind = 1:analysisStruct.null_shuffle_count+1
+      % Cycle through the runs
+      parfor shuff_ind = 1:length(runShuff)
         fprintf('Running Shuffle ind %d, @ %s \n', shuff_ind, datetime())
         tic
         
         tmpds = ds;
         
-        if shuff_ind ~= 1
+        if runShuff(shuff_ind)
           tmpds.randomly_shuffle_labels_before_running = 1;  % randomly shuffled the labels before running
-          fileName = sprintf('decoding_results_shuffle%d', shuff_ind - 1);
+          fileName = sprintf('decoding_results_shuffle%d', shuff_ind);
           save_file_dir_itr = shuff_file_dir;
           tmpds.initialized = 0;       % Without this, the shuffle code isn't seen and shuffling doesn't take place until you create a new ds from scratch.
         else
-          fileName = sprintf('decoding_results');
+          fileName = sprintf('decoding_results_run%d', shuff_ind);
           save_file_dir_itr = save_file_dir;
         end
         
@@ -171,8 +174,9 @@ for paradigm_i = 2:length(paradigmList)
     
     % Step 7 - Significance testing
     % Significance testing
+    saved_results_file_name = 'decoding_results_run1';
     saved_results_struct_name = 'decoding_results';
-    true_decoder_name = fullfile(save_file_dir, saved_results_struct_name);
+    true_decoder_name = fullfile(save_file_dir, saved_results_file_name);
     null_dist_dir = strcat(shuff_file_dir, filesep);
     pval_obj = pvalue_object(true_decoder_name, null_dist_dir);
     pval_obj.collapse_all_times_when_estimating_pvals = 1;
@@ -184,9 +188,13 @@ for paradigm_i = 2:length(paradigmList)
     params.decoding_threshold = prctile(null_dist, 100 - (params.p_val_threshold * 100), 'all');
     
     % Load the normal decoding results
-    save_file_name = fullfile(save_file_dir, saved_results_struct_name);
-    tmp_decoding = load(save_file_name);
-    decoding_results = tmp_decoding.decoding_results;
+    save_file_name = dir(fullfile(save_file_dir, 'decoding_results*'));
+    save_file_name = fullfile({save_file_name.folder}, {save_file_name.name})';
+    decoding_results = cell(size(save_file_name));
+    for result_i = 1:length(save_file_name)
+      tmp_decoding = load(save_file_name{result_i});
+      decoding_results{result_i} = tmp_decoding.decoding_results;
+    end
     
     % Step 8 - Plotting
     % Assign params for correct plotting.
@@ -203,7 +211,7 @@ for paradigm_i = 2:length(paradigmList)
       sigStr = sprintf(', %s%% threshold', num2str(100 - (params.p_val_threshold * 100)));
       params.figTitle = horzcat([params.figTitle, sigStr]);
     end
-    generate_TCT_plot(analysisStruct, save_file_name, saved_results_struct_name, params) 
+    generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
     saveFigure(pFolder, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
     
   end

@@ -30,20 +30,96 @@ end
 if size(labels, 2) > 1
   labels = labels';
 end
-confusionMat = decoding_results.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix;
-confusionMat = confusionMat ./ sum(confusionMat, 1);
-correctLineStack = zeros(length(labels), size(confusionMat,3));
-linePlotHandles = gobjects(length(labels) + 2, 1);
-for jj = 1:length(labels)
-  correctTrace = squeeze(confusionMat(jj,jj,:))';
-  correctLineStack(jj,:) = correctTrace;
-  linePlotHandles(jj) = plot(correctTrace, 'linewidth', 3);
+
+% Cycle through decoding results
+confusionMatSize = size(decoding_results{1}.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix);
+confusionMat = nan([confusionMatSize, length(decoding_results)]);
+for dec_i = 1:length(decoding_results)
+  confusionMatTmp = decoding_results{dec_i}.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix;
+  confusionMat(:,:,:, dec_i) = confusionMatTmp ./ sum(confusionMatTmp, 1);
+end
+correctLineStack = zeros([length(labels), confusionMatSize(3), length(decoding_results)]);
+
+% Collect each curve
+for dec_i = 1:length(decoding_results)
+  for jj = 1:length(labels)
+    correctTrace = squeeze(confusionMat(jj,jj,:, dec_i))';
+    correctLineStack(jj,:, dec_i) = correctTrace;
+  end
+end
+
+% Create the plotting results
+correctLineMean = mean(correctLineStack, 3);
+correctLineSTD = std(correctLineStack, 0, 3);
+
+% Check if plotting error was requested, despite not having many lines.
+if size(correctLineStack, 3) == 1 && params.plot_per_label_acc.plotError
+  warning('There is only 1 decoding result, no error line to plot')
+  params.plot_per_label_acc.plotError = 0;
+end
+
+if length(labels) == 2
+  warning('Binary Decoder forced to plotting of just Mean')
+  params.plot_per_label_acc.justMean = 1;
+end
+
+% Create the traces and labels to plot
+% - Either just the mean
+% - the mean across individual preset groups
+% - Individual traces 
+if params.plot_per_label_acc.justMean
+  % Initialize this if only plotting.
+  plotLabels = {};
+elseif ~params.plot_per_label_acc.plotEachLabel
+  
+  % Plot means of preset groups.
+  groups2Plot = params.plot_per_label_acc.groupNames;
+  linePlotHandles = gobjects(length(groups2Plot) + 2, 1)';
+  meanTraces2Plot = zeros(length(groups2Plot), size(correctLineMean,2));
+  meanErr2Plot = zeros(length(groups2Plot), size(correctLineSTD,2));
+  meanTraceLabels = cell(size(groups2Plot));
+  
+  for group_i = 1:length(groups2Plot);
+    % Find the traces to add
+    [groupPresent, groupPresentInd] = intersect(labels, params.plot_per_label_acc.groups{group_i});
+    % Combine them
+    meanTraces2Plot(group_i,:) = mean(correctLineMean(groupPresentInd, :, :));
+    meanErr2Plot(group_i,:) = mean(correctLineSTD(groupPresentInd, :, :));
+    meanTraceLabels{group_i} = strjoin(groupPresent,' ');
+  end
+  
+  %Plot them
+  if params.plot_per_label_acc.plotError
+    mseb(1:size(meanTraces2Plot,2), meanTraces2Plot, meanErr2Plot);
+  else
+    linePlotHandles(1:length(groups2Plot)) = plot(meanTraces2Plot', 'linewidth', 3);
+  end
+  plotLabels = meanTraceLabels';
+  
+else
+  % Plot each curve individually.
+  linePlotHandles = gobjects(length(labels) + 2, 1)';
+  
+  if params.plot_per_label_acc.plotError
+    mseb(1:size(correctLineMean, 2), correctLineMean, correctLineSTD);
+  else
+    linePlotHandles(1:end-2) = plot(correctLineMean', 'linewidth', 3);
+  end
+  
+  plotLabels = labels;
+  
 end
 
 % Plot the mean and chance
-linePlotHandles(length(labels) + 1) = plot(mean(correctLineStack), 'linewidth', 5, 'color', 'k');
-linePlotHandles(length(labels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
 sigBarLabel = sprintf('Significant regions (>%s%%)', num2str((1 - params.p_val_threshold) * 100));
+if params.plot_per_label_acc.plotMean || params.plot_per_label_acc.justMean
+  linePlotHandles(length(plotLabels) + 1) = plot(mean(correctLineMean), 'linewidth', 5, 'color', 'k');
+  linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
+  allLabels = [plotLabels; 'All Label Mean'; 'Theoretical chance'; sigBarLabel];
+else
+  linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
+  allLabels = [plotLabels; 'Theoretical chance'; sigBarLabel];
+end
 
 if strcmp(params.plot_per_label_acc, 'top')
    % Top 10%
@@ -57,11 +133,11 @@ decodingAx = gca;
 % Plot Significant p values
 [sigBarImgAxs, sigBarHands] = add_bars_to_plots([], [], {params.sig_bins}, params.plot_per_label_acc.sig_color, {params.sig_bins}, yLims);
 
-allLabels = [labels; 'All Label Mean'; 'Theoretical chance'; sigBarLabel];
-linePlotHandles = [linePlotHandles; sigBarHands];
+linePlotHandles = [linePlotHandles, sigBarHands];
 
 % Add the legend
-legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
+% legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
+legend(allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
 
 % Label axes correctly
 the_bin_start_times_shift = the_bin_start_times - shift;
@@ -72,7 +148,12 @@ ylabel('Decoding Accuracy')
 xlabel('Bin start time')
 xticks(bins_to_label);
 xticklabels(points_to_label);
-ylim([0, 1]);
+
+if params.plot_per_label_acc.chanceAtBottom
+  ylim([round(min(correctLineStack(:)),1), 1]);
+else
+  ylim([0, 1]);
+end
 xlim([1, length(the_bin_start_times)]);
 for ii = 1:length(x_for_lines)
   plot([x_for_lines(ii), x_for_lines(ii)], ylim(), 'linewidth', 4, 'color', [0.2, 0.2, 0.2])

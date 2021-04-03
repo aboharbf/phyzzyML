@@ -37,7 +37,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
@@ -46,14 +46,14 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.spikeEyeOverlay = 1;       % Generate an overlay of activity across units according to eye signal.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
 plotSwitch.slidingWindowANOVA = 0;    % 
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 
 %% Parameters
 spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
@@ -88,7 +88,7 @@ selParam.outputDir =  fullfile(outputDir,'selCount');
 selParam.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socIntSel_any', 'headTurnSel_any'};
 selParam.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
   {'socIntSel_stimOnset', 'socIntSel_stimPres', 'socIntSel_reward'}, {'headTurn_baseDiff_stimPres', 'headTurn_baseDiff_reward'}};
-selParam.figStruct = batchAnalysisParams.figStruct;
+selParam.figStruct = figStruct;
 selParam.selCheck = {'socInt', 'headTurn', 'fullModel', 'turnToward'};
 selParam.UnitTypes = {'MUA', digitsPattern};
 selParam.UnitTypePlot = {'MUA', 'Units'};
@@ -192,13 +192,11 @@ meanPSTHParams.includeMeanTrace = 1;            % For 'All Chasing' plots, inclu
 meanPSTHParams.traceCountLabel = 1;             % labels on the catagory specific plots include 'n = X' to highlight trace value.
 meanPSTHParams.addSubEventBars = 0;             % for plot 5.0, add bars underneath for subEvents.
 
-meanPSTHParams.allStimPSTH = 1;                 % 1.0 - All Stimuli means in the same plot.
-meanPSTHParams.catPSTH = 0;                     % 2.0 - Catagory PSTH Plot - 'All Chasing Stimuli, mean PSTH'
-meanPSTHParams.analysisGroupPSTH = 1;           % 3.0
-meanPSTHParams.allRunStimPSTH = 1;              % 3.0 - Stimuli Plot - 'All chasing0001 PSTHs, sorted by...'
-meanPSTHParams.lineCatPlot = 1;                 % 4.0 - Line plot with Line per Catagory.
-meanPSTHParams.lineBroadCatPlot = 1;            % 5.0 - Means Line plot across broad catagorizations (like Social vs non Social).
-meanPSTHParams.splitContrib = 0;                % 5.1 - Mean line plots, split by stimuli.
+meanPSTHParams.allStimPSTH = 0;                 % 1.0 - All Stimuli means in the same plot.
+meanPSTHParams.catPSTH = 0;                     % 2.0 - 
+meanPSTHParams.analysisGroupPSTH = 0;           % 3.0 - analysisGroup Plot - 'All head Turning vs non-Head turning'
+meanPSTHParams.selPSTH = 1;                     % 4.0 - Create a plot with means for selective units between conditions, and non-selective units.
+meanPSTHParams.selParam = selParam;
 
 meanPSTHParams.exportFig = figStruct.exportFig; % Turns on the 'exportFig' feature of saveFigure, which generates .pngs.
 meanPSTHParams.plotSizeCatPSTH = [.8 .6];       
@@ -301,6 +299,7 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
+NDTParams.AnalysesDefault.real_shuffle_count = 1;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.null_shuffle_count = 10;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.AnalysesDefault.cross_validator_num_resample = 10;  % Number of times to resample runs for cross validator.
@@ -311,7 +310,7 @@ NDTParams.NaturalSocial.plotParams.points_to_label = [-300, 0, 500, 1000, 1500, 
 NDTParams.NaturalSocial.plotParams.points_for_lines = [0, 2800];
 NDTParams.NaturalSocial.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
-NDTParams.headTurnCon.plotParams.points_to_label = [-500, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.headTurnCon.plotParams.points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
 NDTParams.headTurnCon.plotParams.points_for_lines = [0, 2800];
 NDTParams.headTurnCon.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
@@ -324,6 +323,16 @@ NDTParams.headTurnIso.plotParams.points_for_lines = [0, 1000];
 NDTParams.headTurnIso.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.p_val_threshold = 0.05;
+NDTParams.plot_per_label_acc.plotEachLabel = 0;                               % Determines whether each label is plotted, or a mean, as defined below.
+NDTParams.plot_per_label_acc.plotError = 1;                                   % uses mseb to plot error lines around things. Only works when many decodings were run.
+NDTParams.plot_per_label_acc.plotMean = 1;                                    % Plot or don't plot the mean trace.
+NDTParams.plot_per_label_acc.justMean = 1;                                    % Plot just the mean, don't include the other traces (this value is set to 1 when there are only 2 other traces.
+NDTParams.plot_per_label_acc.chanceAtBottom = 1;                              % Shifts the plot so that chance decoding is near the bottom, Y axis doesn't go all the way down.
+NDTParams.plot_per_label_acc.plotEachLabel = 1;                               % Plot a mean of different groups represented in each trace.
+NDTParams.plot_per_label_acc.groupNames = {'Social Categories', 'Non-Social Categories'};
+NDTParams.plot_per_label_acc.groups = {{'socialInteraction', 'chasing', 'fighting' 'mounting', 'grooming'}, {'goalDirected', 'idle', 'objects', 'scene'}};
+
+
 NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;    % The thrshold to use for determining significant regions
 NDTParams.plot_per_label_acc.sig_bar_pos = 'bottom';                          % Determines position of significance bar as top or bottom of plot.
 NDTParams.plot_per_label_acc.sig_color = {[232/255 0 5/255]};                 % Determines the color of the bar of the significant regions in 'plot_per_label accuracy'

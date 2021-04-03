@@ -12,18 +12,32 @@ comboSubEvents = params.comboSubEvents;
 
 varNames = selTable.Properties.VariableNames;
 for combo_i = 1:length(comboEvents)
+  
   % Initialize combo index, and collect subEvents.
   subEvents = comboSubEvents{combo_i};
-  comboInd = false(size(selTable,1),1);
+  comboInd = zeros(size(selTable,1), length(subEvents));
   
   % See if individual events are present
   for sub_i = 1:length(subEvents)
     if any(strcmp(varNames, subEvents{sub_i}))
-      comboInd = comboInd | (selTable.(subEvents{sub_i}) ~= 0);
+      comboInd(:, sub_i) = selTable.(subEvents{sub_i});
+    end
+  end
+  
+  % Identify largest activity
+  maxActInd = max(abs(comboInd),  [], 2);
+  
+  % Identify the correct sign
+  actInd = find(maxActInd ~= 0)';
+  for act_i = actInd
+    % If the max entry doesn't match the one from the original set, flip
+    % the sign.
+    if max(comboInd(act_i,:)) ~= maxActInd(act_i)
+      maxActInd(act_i) = -maxActInd(act_i);
     end
   end
   
   % Add to larger table
-  selTable.(comboEvents{combo_i}) = comboInd;
+  selTable.(comboEvents{combo_i}) = maxActInd;
   
 end

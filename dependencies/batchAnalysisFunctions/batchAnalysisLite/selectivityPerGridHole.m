@@ -132,15 +132,19 @@ saveFigure(outDir, paradigmPlotName, [], figStruct, []);
 % Unit selectivity in each Paradigm
 dataArray = [{gridHoleSelectivity}, {gridHoleSelectivityNormalized}];
 normTag = [{''}, {' Normalized'}];
+uniqueEventsPlot = strrep(uniqueEvents, '_', ' ');
 
 for data_i = 1:length(dataArray)
   for unit_i = 1:length(unitTypes)
-    TopPlotName = sprintf("Units selective for events per Grid Hole, %s %s", unitTypePlot{unit_i}, normTag{data_i});
-    h = figure('Name', TopPlotName, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', figStruct.figPos);
-    sgtitle(TopPlotName)
+    %     TopPlotName = sprintf("Units selective for events per Grid Hole, %s %s", unitTypePlot{unit_i}, normTag{data_i});
+    %     h = figure('Name', TopPlotName, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', figStruct.figPos);
+    %     sgtitle(TopPlotName)
     
-    for event_i = 1:length(uniqueEvents)
-      subplot(4, 5, event_i)
+    for event_i = 16:length(uniqueEvents)
+      %       subplot(4, 5, event_i)
+      TopPlotName = sprintf("Units selective for event %s per Grid Hole, %s %s", uniqueEventsPlot{event_i}, unitTypePlot{unit_i}, normTag{data_i});
+      h = figure('Name', TopPlotName, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', figStruct.figPos);
+%       sgtitle(TopPlotName)
       plotName = sprintf("%s", strrep(uniqueEvents{event_i}, '_', ' '));
       imagesc(dataArray{data_i}(:, :, event_i, unit_i));
       colorbar()
@@ -149,10 +153,13 @@ for data_i = 1:length(dataArray)
       h.Children(2).YTickLabel = gridHoleA;
       h.Children(2).XTick = 1:length(gridHoleB);
       h.Children(2).XTickLabel = gridHoleB;
-      title(plotName)
+      h.Children(2).FontSize = 16;
+      title(TopPlotName)
+      
+      saveFigure(outDir, TopPlotName, [], figStruct, []);
       
     end
-    saveFigure(outDir, TopPlotName, [], figStruct, []);
+
   end
 end
 

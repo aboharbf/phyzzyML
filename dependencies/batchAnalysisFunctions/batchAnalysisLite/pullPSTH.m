@@ -17,7 +17,7 @@ if psthParams.normalize || psthParams.rateThreshold
   % For every variable above, normalize/threshold as needed, and save it to a
   % file in the local analysis folder.
   tic
-  for run_i = 1:length(runList)
+  parfor run_i = 1:length(runList)
     
     % Initialize structures to save, processed versions.
     [psthByImageProc, psthErrByImageProc] = deal(initNestedCellArray(psthByImage{run_i}, 'NaN'));
@@ -74,7 +74,8 @@ if psthParams.normalize || psthParams.rateThreshold
       end
     end
     
-    save(procFileList{run_i}, 'psthByImageProc', 'psthErrByImageProc', 'psthByCategoryProc', 'psthErrByCategoryProc');
+%     save(procFileList{run_i}, 'psthByImageProc', 'psthErrByImageProc', 'psthByCategoryProc', 'psthErrByCategoryProc');
+    parforsavePSTH(procFileList{run_i}, psthByImageProc, psthErrByImageProc, psthByCategoryProc, psthErrByCategoryProc)
     
   end
   toc
