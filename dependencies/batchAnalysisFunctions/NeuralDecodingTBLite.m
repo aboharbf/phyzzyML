@@ -4,9 +4,9 @@ function NeuralDecodingTBLite(spikePathBank, params)
 % not already generated, and runs the analysis specified in the NBTDParams.
 
 % IMPORTANT SWITCHES 
-swap2libsvm = 0;          % Swaps whatever classifier is defined in the file to libsvm.
 expandLabelPerSplit = 1;  % Divides the number of labels per split by 3.
-dontZScoreFeatures = 1;   % Turns off the Z scoring
+swap2libsvm = 0;          % Swaps whatever classifier is defined in the file to libsvm.
+dontZScoreFeatures = 0;   % Turns off the Z scoring
 
 % Add the path to the NB
 addpath(genpath(params.NDTPath));
@@ -89,6 +89,17 @@ for paradigm_i = 2:length(paradigmList)
     [~, fileName, ~] = fileparts(analysesFiles(ii).name);
     templateAnalysisParams.plotTitle = tmp.plotTitle;
     templateAnalysisParams.load_data_as_spike_counts = strcmp(templateAnalysisParams.classifier, 'poisson_naive_bayes_CL');
+    
+    % For each analysis, make the folder to which output images will be
+    % saved.
+    if ~isempty(templateAnalysisParams.preProc)
+      analysisSubType = [templateAnalysisParams.classifier(1:3) '_' templateAnalysisParams.preProc{1}(1:3)];
+    else
+      analysisSubType = [[templateAnalysisParams.classifier(1:3)]];
+    end
+    
+    templateAnalysisParams.plotOutDir = fullfile(pFolder, analysisSubType);
+    
     params.Analyses.(fileName) = templateAnalysisParams;
     
   end
@@ -143,7 +154,7 @@ for paradigm_i = 2:length(paradigmList)
     end
     
     % Create Paths
-    save_file_dir = deal(fullfile(pFolder, sprintf('results_%s', analysesToRun{analysis_i})));
+    save_file_dir = deal(fullfile(analysisStruct.plotOutDir, sprintf('results_%s', analysesToRun{analysis_i})));
     if ~exist(save_file_dir, 'dir')
       mkdir(save_file_dir);
     end
@@ -233,9 +244,7 @@ for paradigm_i = 2:length(paradigmList)
     params.plotParams = params.(pName).plotParams;
     
     % Per Label Accuracy Trace, Figure 1
-    figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
-    plot_per_label_accuracy(decoding_results, [], ds, analysisStruct, params);
-    saveFigure(pFolder, ['1. ' figTitle], analysisStruct, params.figStruct, [])
+    plot_per_label_accuracy(decoding_results, ds, analysisStruct, params);
     
     % TCT Matrix, Figure 2
 %     params.figTitle = sprintf('Cross Temporal Decoding of %s', analysisStruct.plotTitle);
