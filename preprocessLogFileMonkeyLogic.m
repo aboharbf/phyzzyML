@@ -491,7 +491,7 @@ if any(contains(translationTable, 'headTurnCon'))
 elseif any(contains(translationTable, 'headTurnIso'))
   taskData.paradigm = 'headTurnIso';
 elseif any(contains(translationTable, 'monkey'))
-  taskData.paradigm = 'naturalStim';
+  taskData.paradigm = 'naturalSocial';
 elseif any(contains(translationTable, 'Barney'))
   taskData.paradigm = 'familiarFace';
 end
@@ -501,9 +501,11 @@ switch taskData.paradigm
   case {'headTurnIso', 'familiarFace'}
     stimTiming.shortest = 1000; %Making this 0 for now
     stimTiming.longest = 1000; %setting this to 2800 for now, but maybe save as an editable variable.
-  case {'headTurnCon', 'naturalStim'}
+  case {'headTurnCon', 'naturalSocial'}
     stimTiming.shortest = 2800; %Making this 0 for now
     stimTiming.longest = 2800; %setting this to 2800 for now, but maybe save as an editable variable.
+  otherwise
+    error('stimTiming Missing');
 end
 stimTiming.ISI = MLConfig.InterTrialInterval;
 
@@ -516,7 +518,30 @@ for ii = 1:length(data)
   fixTime(ii) = data(ii).ObjectStatusRecord.SceneParam(1).AdapterArgs{3}{2,2};
 end
 
+% April 2021
+[~, fName, ~] = fileparts(TrialRecord.DataFile);
+dateSubj = extractBefore(fName, '00');
 
+if strcmp(dateSubj, '20201115Mo')
+  gridHole = 'C9';
+  recDepth = '0';
+else
+  gridHole = data(1).VariableChanges.gridHole;
+  recDepth = data(1).VariableChanges.recordingDepth;
+end
+
+% Merge IDs for the animated paradigms
+taskEventIDsMerged = eventIDMerge(taskEventIDs);
+
+% Identify if rewards are missing on correct trials (rewardParadigm).
+% Missing reward on completed trials
+missingReward = rewardTimePerTrial(TrialRecord.TrialErrors == 0);
+
+if any(isnan(missingReward))
+  rewardParadigm = true;
+else
+  rewardParadigm = false;
+end
 
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
@@ -533,11 +558,15 @@ fixationOutTimesBlk = taskEventEndTimesBlk(firstNonNaN);
 
 taskData.taskDataSummary.TrialRecord = TrialRecord;
 taskData.errorArray = errorArray;
+taskData.taskEventIDsMerged = taskEventIDsMerged;
 taskData.taskEventIDs = taskEventIDs;
 taskData.taskEventList = translationTable;
 taskData.frameMotionData = tmpFrameMotionData';
 taskData.stimFramesLost = stimFramesLost;
 taskData.scaleFactor = scaleFactor;
+taskData.gridHole = gridHole;
+taskData.recDepth = recDepth;
+taskData.rewardParadigm = rewardParadigm;
 
 % Timing variables
 taskData.runTime = runTimeMins;

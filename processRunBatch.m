@@ -98,9 +98,9 @@ if ~replaceAnalysisOut
         Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
         stimOnset = [0 500];
         stimPres = [500 psthParams.psthImDur];
+        stimWhole = [0 psthParams.psthImDur];
         reward = [psthParams.psthImDur psthParams.psthImDur + 250];
-        epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
-        
+        epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
         
         % Update subevent Analysis stuff
         subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
@@ -201,12 +201,12 @@ if ~replaceAnalysisOut
       fprintf('Processing %s... \n', analysisParamFileList{run_ind});
       try
         if usePreprocessed
-          [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids','preprocessed',analysisParamFileList{run_ind});
+          [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids', 'preprocessed',analysisParamFileList{run_ind});
         else
           [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
         end
       catch MyErr
-        errorMsg{run_ind} = MyErr.message;
+        errorMsg{run_ind} = MyErr;
       end
       close all;
       fprintf('Done! \n');
@@ -225,7 +225,7 @@ if ~replaceAnalysisOut
             [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
           end
         catch MyErr
-          errorMsg{run_ind} = MyErr.message;
+          errorMsg{run_ind} = MyErr;
         end
         
       else
@@ -233,7 +233,7 @@ if ~replaceAnalysisOut
         % This loop is identical to the one above, without the try clause.
         % Should be used for testing problems in batch non-parallel run.
         if usePreprocessed
-          [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids','preprocessed',analysisParamFileList{run_ind});
+          [~, analysisOutFilename{run_ind}] = processRun('paramBuilder','buildAnalysisParamFileSocialVids', 'preprocessed',analysisParamFileList{run_ind});
         else
           [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
         end
@@ -325,8 +325,13 @@ end
 % the loops below
 
 % Things I usually run
-% errorMsg(~strcmp(errorMsg, 'None'))
-% analysisParamFileList(~strcmp(errorMsg, 'None'))
+errorInd = ~strcmp(errorMsg, 'None');
+if any(errorInd)
+  errorMsg = errorMsg(errorInd);
+  errorStack = [errorMsg{:}];
+  errorStack = [{errorStack.message}]';
+  files2Check = analysisParamFileList(errorInd);
+end
 
 firstEntry = find(~cellfun('isempty', analysisOutFilename), 3);
 entry2check = min(length(firstEntry), 3);

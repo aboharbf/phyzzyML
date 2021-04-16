@@ -6,34 +6,6 @@ function spikePathBank = stimulusStatistics(spikePathBank, params)
 %appends a dateTime vector to each structure related to how long since the
 %last recording day.
 
-% Create a list of gridHoles, save it if it isn't there.
-gridHoleFile = fullfile(params.outDir, 'gridHoleArray.mat');
-% First, collect info from .bhv2 about gridHole
-monkeyLogicFiles = dir('D:\EphysData\Data\202*\**\*.bhv2');
-monkeyLogicPaths = fullfile({monkeyLogicFiles.folder}, {monkeyLogicFiles.name})';
-monkeyLogicFileNames = {monkeyLogicFiles.name}';
-monkeyLogicFileNames = extractBefore(monkeyLogicFileNames, '.');
-
-if ~exist(gridHoleFile, 'file')
-  gridHoleContents = cell(size(monkeyLogicPaths));
-  
-  parfor ii = 1:length(monkeyLogicPaths)
-    [data, ~, ~] = mlread(monkeyLogicPaths{ii});
-    gridHoleContents{ii} = data(1).VariableChanges.gridHole;
-  end
-  
-  gridHoleContents(1) = {'C9'};
-  gridHoleContents(2) = {'C9'};
-  
-  % Save the results in batchAnalysis to speed up future runs.
-  save(gridHoleFile, 'gridHoleContents')
-  
-else
-  
-  load(gridHoleFile, 'gridHoleContents')
-  
-end
-
 runList = spikePathBank.Properties.RowNames;
 
 tok2Find = {'S20', 'Mo00'};
@@ -45,7 +17,15 @@ runListLabels = regexprep(runList, tok2Find, tok2Rep);
 chanCount = cellfun('length', psthByImage);
 clear psthByImage;
 allStimuliVec = unique(vertcat(allStimCatVecPerRun{:}));
-allCategoryVec = unique(horzcat(allCategoryVecPerRun{:}))';
+% allStimuliVec = unique(vertcat(spikePathBank.stimuli{:}));
+% allStimuliVec = unique(vertcat(spikePathBank.stimuli{~strcmp(spikePathBank.paradigmName, 'FamiliarFace')}));
+
+% temp fix for orientation problem.
+isRow = cellfun(@(x) size(x, 1) == 1, allCategoryVecPerRun);
+for ii = find(isRow)'
+  allCategoryVecPerRun{ii} = allCategoryVecPerRun{ii}';
+end
+allCategoryVec = unique(vertcat(allCategoryVecPerRun{:}));
 
 % Attach the paradigm to the table for later reference
 paradigmIndex = nan(size(allStimCatVecPerRun));
@@ -100,38 +80,108 @@ sliceStart = [1 40 80];
 sliceEnd = [39 79 107];
 
 % Generate image figure for this using XYGrid
-for ii = 1:length(sliceStart)
-  figTitle = sprintf('StimRunGrid_%d', ii);
-  h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 1 1]);
-  XYGrid(h, csStimLogicalArraySorted(sliceStart(ii):sliceEnd(ii), :), allStimuliVecNames(sliceStart(ii):sliceEnd(ii)), runListLabels, params.xyStimParams);
-  saveFigure(params.outDir, figTitle, [], params.figStruct, [])
-end
+% for ii = 1:length(sliceStart)
+%   figTitle = sprintf('StimRunGrid_%d', ii);
+%   h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 1 1]);
+%   XYGrid(h, csStimLogicalArraySorted(sliceStart(ii):sliceEnd(ii), :), allStimuliVecNames(sliceStart(ii):sliceEnd(ii)), runListLabels, params.xyStimParams);
+%   saveFigure(params.outDir, figTitle, [], params.figStruct, [])
+% end
+
+% Label stimulus sets in the table
+% paradigmList = unique(spikePathBank.paradigmName);
+% stimSetVec = nan(length(spikePathBank.paradigmName),1);
+% runStim = spikePathBank.stimuli;
+% 
+% for par_i = 1:length(paradigmList)
+%   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
+%   
+%   % Pull the stimSets
+%   paradigmStimSets = runStim(pInd);
+%     
+% end
 
 % Generate image figure for eventData using XYGrid
 tmp = load(params.eventDataPath);
 eventListPlot = strrep(tmp.eventData.Properties.VariableNames, '_', ' ');
 try
-  eventData = tmp.eventData(allStimuliVec,:);
   
-  for ii = 1:length(sliceStart)
-    figTitle = sprintf('StimEventGrid_%d', ii);
-    h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 1 1]);
-    XYGrid(h, eventData(sliceStart(ii):sliceEnd(ii), :), allStimuliVecNames(sliceStart(ii):sliceEnd(ii)), eventListPlot, params.xyEventparams)
-    saveFigure(params.outDir, figTitle, [], params.figStruct, [])
+  allStimuliVec = unique(vertcat(spikePathBank.stimuli{strcmp(spikePathBank.paradigmName, 'NaturalSocial')}));
+  stimPerRun = spikePathBank.stimuli(strcmp(spikePathBank.paradigmName, 'NaturalSocial'));
+  stimSets = {stimPerRun{2}; stimPerRun{3}};
+  dataMat = zeros(2,2);
+  
+  for set_i = 1:length(stimSets)
+    eventData = tmp.eventData(stimSets{set_i},:);
+    allStimuliVec = eventData.Properties.RowNames;
+    tokens2Find = {'.avi', '_\d{3}', 'monkey', 'human'};
+    tokens2Rep = {'', '', 'm', 'h'};
+    allStimuliVecNames = regexprep(allStimuliVec, tokens2Find, tokens2Rep);
+    allStimuliVecNames = strrep(allStimuliVecNames, '_', ' ');  % For the Animation tags.
+        
+    % Counts of events per stimulus, specifically headTurning
+    monkeyId = contains(allStimuliVec, 'monkey');
+    allStimuliVec = allStimuliVec(monkeyId);
+    goalInd = find(contains(allStimuliVec, ['Goal']));
+    idleInd = find(contains(allStimuliVec, ['Idle']));
+    socInd = find(~contains(allStimuliVec, ['Goal']) & ~contains(allStimuliVec, ['Idle']));
+    
+    allStimuliVec = allStimuliVec([socInd; idleInd; goalInd]);
+    
+    eventData = eventData(allStimuliVec, :);
+    eventList = eventData.Properties.VariableNames;
+    eventList = eventList(1:2);
+    
+    eventCountMat = cellfun(@(x) size(x, 1), table2cell(eventData));
+    eventCountMat = eventCountMat(:, 1:2);
+    eventPerStim = sum(eventCountMat, 2);
+    eventsPerSocial = eventPerStim(1:length(socInd));
+    eventsPerNonSocial = eventPerStim(length(socInd)+1:end);
+    
+    fprintf('Events in Social %d, Events in Non-Social %d \n', sum(eventsPerSocial), sum(eventsPerNonSocial));
+    
+    dataMat(:,set_i) = [sum(eventsPerSocial); sum(eventsPerNonSocial)];
   end
   
-  % Simple subEvent visualization, which happen when.
-  eventMat = generateEventImage(tmp.eventData, 2800); % Hard coded stim length.
-  eventMat = eventMat(:, 1:2800, :);  % Remove excess due to events persisting longer than stim was shown.
-  for event_i = 1:length(eventListPlot)
-    for ii = 1:length(sliceStart)
-      figTitle = sprintf('Time of %s event occurances - %d', eventListPlot{event_i}, ii);
-      h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 1 1]);
-      params.xyEventparams.plotTitle = figTitle;
-      XYGrid(h, eventMat(sliceStart(ii):sliceEnd(ii), :, event_i), allStimuliVecNames(sliceStart(ii):sliceEnd(ii)), [], params.xyEventparams)
-      saveFigure(params.outDir, figTitle, [], params.figStruct, [])
-    end
-  end
+  figH = figure('NumberTitle','off','units','normalized', 'outerposition', [.3 .3 .4 .6]);
+  colNamesPlot = {'Stimulus Set 1', 'Stimulus Set 2'};
+  X = categorical(colNamesPlot);
+  X = reordercats(X,colNamesPlot);
+  bar(X, dataMat');
+  figH.Children(1).FontSize = 16;
+  ylabel('Head Turning Count');
+  legend('Head Turning Events in Social Videos', 'Head Turning Events in Agent Controls');
+  
+  % Plot
+  figH = figure('units', 'normalized', 'position', [0.3542    0.1398    0.4573    0.7657]);
+  imagesc(eventCountMat)
+  figH.Children(1).XTick = 1:size(eventCountMat, 2);
+  figH.Children(1).XTickLabel = strrep(eventList, '_', ' ');
+  figH.Children(1).YTick = 1:size(eventCountMat, 1);
+  figH.Children(1).YTickLabel = strrep(allStimuliVec, '_', ' ');
+  title('Events in Stimuli')
+  colorbar()
+
+  
+%   for ii = 1:length(sliceStart)
+%     figTitle = sprintf('StimEventGrid_%d', ii);
+%     h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 1 1]);
+%     XYGrid(h, eventData(sliceStart(ii):sliceEnd(ii), :), allStimuliVecNames(sliceStart(ii):sliceEnd(ii)), eventListPlot, params.xyEventparams)
+%     saveFigure(params.outDir, figTitle, [], params.figStruct, [])
+%   end
+%   
+%   % Simple subEvent visualization, which happen when.
+%   eventMat = generateEventImage(tmp.eventData, 2800); % Hard coded stim length.
+%   eventMat = eventMat(:, 1:2800, :);  % Remove excess due to events persisting longer than stim was shown.
+%   for event_i = 1:length(eventListPlot)
+%     for ii = 1:length(sliceStart)
+%       figTitle = sprintf('Time of %s event occurances - %d', eventListPlot{event_i}, ii);
+%       h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 1 1]);
+%       params.xyEventparams.plotTitle = figTitle;
+%       XYGrid(h, eventMat(sliceStart(ii):sliceEnd(ii), :, event_i), allStimuliVecNames(sliceStart(ii):sliceEnd(ii)), [], params.xyEventparams)
+%       saveFigure(params.outDir, figTitle, [], params.figStruct, [])
+%     end
+%   end
+%   
 catch
   disp('Not all events represented in eventData table');
 end
@@ -181,6 +231,7 @@ spikePathBank.stimPresCount = stimPresCountVec;
 spikePathBank.stimPresArray = stimPresArrayVec;
 spikePathBank.daysSinceLastRec = daysSinceLastRecVec;
 spikePathBank.chanCount = chanCount;
-spikePathBank.GridHole = gridHoleContents;
+
+close all
 
 end

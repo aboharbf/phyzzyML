@@ -56,7 +56,7 @@ for stim_ind = 1:size(plotMat,1)
 end
 
 % Remove catagories containing 0.
-if params.removeEmpty
+if isfield(params, 'removeEmpty') && params.removeEmpty;
   keepInd = sum(plotMat,1) > 0;
   plotMat = plotMat(:,keepInd);
   params.plotLabels = params.plotLabels(keepInd);
@@ -66,7 +66,7 @@ if params.removeEmpty
 end
 
 % If only logical output desired, convert here
-if params.outLogic
+if isfield(params, 'outLogic') && params.outLogic
   plotMat = logical(plotMat);
 end
 

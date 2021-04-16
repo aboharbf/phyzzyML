@@ -22,7 +22,6 @@ params.expParam = 'Random Note I want to store';
 expt = buildGLM.initExperiment(params.unitOfTime, params.binSize, params.uniqueID, 'Random Data I want to store');
 
 % Add all the expected variables
-
 expt = buildGLM.registerTiming(expt, 'stimOn', 'Stimulus Onset');     % events that happen 0 or more times per trial (sparse)
 expt = buildGLM.registerTiming(expt, 'stimOff', 'Stimulus Off');     % events that happen 0 or more times per trial (sparse)
 expt = buildGLM.registerTiming(expt, 'reward', 'Reward');             % events that happen 0 or more times per trial (sparse)

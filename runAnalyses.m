@@ -24,14 +24,19 @@ clear inputs
 clear spikesByCategoryForTF
 clear spikesByEventForTF
 clear taskDataAll
-clear lfpByEvent
 clear analogInByCategory
 
 %%% Load parameters from analysis and stim param files.
 load(analysisParamFilename);
 eventLabelsTmp = eventLabels; %note: hack to avoid overwriting list of not presented stimuli
+refStructTmp = refStruct;
 load(stimParamsFilename);
 eventLabels = eventLabelsTmp; % conclusion of hack
+refStruct = refStructTmp;
+
+if ~plotSwitch.neuroGLM
+  clear lfpByEvent
+end
 
 figStruct.channelUnitNames = channelUnitNames;
 figStruct.figDir = outDir;
@@ -74,8 +79,10 @@ for epoch_i = 1:length(frEpochsCell)
   end
 end
 
+gridHole = taskData.gridHole;
+recDepth = taskData.recDepth;
 analysisOutFilename = strcat(outDir,'analyzedData.mat');
-save(analysisOutFilename,'dateSubject','runNum','analysisParamFilename','taskData');
+save(analysisOutFilename, 'dateSubject', 'runNum', 'analysisParamFilename', 'gridHole', 'recDepth'); % Task data is already in preprocessed, not sure why I'd want to save it here.
 
 colors = {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5]};
 chColors = [{'b'}, {[0 .6 0]} , {'m'}];
@@ -338,14 +345,22 @@ if plotSwitch.eyeStatsAnalysis
 else
   % Reshapes analogInByEvent into eye signal. not smoothed
   eyeInByEvent = cellfun(@(n) squeeze(n(:,1:2,:,lfpPaddedBy+1:length(n)-(lfpPaddedBy+1))), analogInByEvent, 'UniformOutput', false);
+  eyeBehStatsByStim = [];
   save(analysisOutFilename, 'eyeInByEvent', '-append');
 end
 
 if plotSwitch.attendedObject
+  % See whats being attended
   eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct);
+
+  % Assign each Saccade labeled a target.
+  if plotSwitch.eyeStatsAnalysis
+    eyeBehStatsByStim = saccadeTarget(eyeDataStruct, eyeBehStatsByStim);
+  end
+  
 end
 
-save(analysisOutFilename,'eyeDataStruct','-append');
+save(analysisOutFilename, 'eyeBehStatsByStim', 'eyeDataStruct','-append');
 
 if plotSwitch.eyeCorrelogram 
   eyeCorrelogram(eyeInByEvent, psthParams, eventLabels, figStruct)
@@ -380,16 +395,13 @@ end
 
 %% Spike, Task data, Eye Data Analysis
 
-% Initalize a table which the 3 sensitivity functions will use.
-unitPerChan = cellfun('length', channelUnitNames);
-channelVec = arrayfun(@(chanInd) repmat(channelNames(chanInd), [unitPerChan(chanInd), 1]), 1:length(channelNames), 'UniformOutput', false);
-channelVec = string(vertcat(channelVec{:}));
-unitTypeVec = string([channelUnitNames{:}]');
-dateSubjVec = repmat(string(dateSubject), [length(channelVec), 1]);
-runNumVec = repmat(string(runNum), [length(channelVec), 1]);
+if plotSwitch.eyeStimOverlay
+  [eyeInByEventDS] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
+  save(analysisOutFilename,'eyeInByEventDS', '-append');
+end
 
-selTable = table(dateSubjVec, runNumVec, channelVec, unitTypeVec);
-selTable.Properties.VariableNames = extractBefore(selTable.Properties.VariableNames, 'Vec');
+% Initalize a table which the 3 sensitivity functions will use.
+selTable = initializeSelTable(channelUnitNames, channelNames, dateSubject, runNum, gridHole, recDepth);
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
 if plotSwitch.subEventAnalysis
@@ -397,32 +409,32 @@ if plotSwitch.subEventAnalysis
   ephysParams.channelUnitNames = channelUnitNames;
   subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
   subEventAnalysisParams.eventIDs = eventIDs;
-  
-  if ~exist('eyeBehStatsByStim', 'var')
-    eyeBehStatsByStim = [];
-  end
-  
+    
   [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, selTable, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
 %   clear subEventSigStruct spikesByChannel
 end
 
+epochStatsParams.groupLabelsByImage = groupLabelsByImage;
+selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, analysisGroups.stimulusLabelGroups, eventIDs, refStruct, epochStatsParams, selTable);
+
 % Determine which units are selective for saccades (direction).
 selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
 
 % Tests between epochs of the conditions
-epochStatsParams.groupLabelsByImage = groupLabelsByImage;
-selTable = epochStats(spikesByEvent, selTable, eventIDs, analysisGroups.stimulusLabelGroups, epochStatsParams);
+selTable = epochStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochStatsParams);
+
+if ~strcmp(taskData.paradigm, 'familiarFace')
+  selTable = epochCats(spikesByEventBinned, eyeDataStruct.saccadeByStim, selTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
+end
 
 save(analysisOutFilename, 'selTable', '-append');
-error('done');
+% error('Done with selTable')
 
-if plotSwitch.eyeStimOverlay
-  [eyeInByEventDS, spikeEyeData] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
-  save(analysisOutFilename,'eyeInByEventDS', '-append');
-  save(analysisOutFilenameBig, 'spikeEyeData', '-append')
-  clear spikeEyeData
-end
+% NeuroGLM time
+% if plotSwitch.neuroGLM
+%   neuroGLMStruct = runNeuroGLM(spikesByEvent, lfpByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
+% end
 
 %% Plotting and further analyses
 
@@ -439,19 +451,20 @@ if plotSwitch.imagePsth
       if isfield(psthParams, 'sortStim') && psthParams.sortStim
         if ~exist('NewStimOrder')
           sortOrder = psthParams.(taskData.paradigm).sortOrder;
+          groupLabelsByImagePSTH = zeros(length(eventIDs),1);
           for image_i = 1:length(eventLabels)
             for item_i = 1:length(sortOrder)
               if any(strcmp(eventCategories{image_i},sortOrder{item_i})) || strcmp(eventLabels{image_i}, sortOrder{item_i})
-                groupLabelsByImage(image_i) = item_i;
+                groupLabelsByImagePSTH(image_i) = item_i;
                 break
               end
             end
-            if groupLabelsByImage(image_i) == 0
+            if groupLabelsByImagePSTH(image_i) == 0
               Output.VERBOSE(sprintf('no stim category match found for %s\n',eventLabels{image_i}));
             end
           end
           %Sorts based on group membership.
-          [~, NewStimOrder] = sort(groupLabelsByImage);
+          [~, NewStimOrder] = sort(groupLabelsByImagePSTH);
         end
       else
         NewStimOrder = 1:length(eventLabels);
@@ -663,9 +676,6 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           raster(spikesByEvent(imageSortOrderInd(1:topStimToPlot)), sortedImageLabels(1:topStimToPlot), psthParams, stimTiming.ISI, channel_i, unit_i, colors);
           title(sprintf('Preferred Images, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
           saveFigure(outDir, sprintf('prefImRaster_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag );
-          if figStruct.closeFig
-            close(fh);
-          end
         end
         % Preferred Image Raster plots, Color coded
         if isfield(plotSwitch,'prefImRasterColorCoded') && plotSwitch.prefImRasterColorCoded
@@ -686,9 +696,6 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           rasterColorCoded(fh, spikesByEvent(imageSortOrderInd(1:topStimToPlot)), sortedEventIDs(1:topStimToPlot), psthParams, stimTiming.ISI, channel_i, unit_i, eyeDataStruct,  plotSwitch.prefImRasterColorCoded);
           title(sprintf('Preferred Images, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
           saveFigure(outDir, sprintf('prefImRaster_%s_%s_%s_Run%s',colorTag, chanUnitTag,epochTag,runNum), figData, figStruct, figStruct.figTag );
-          if figStruct.closeFig
-            close(fh);
-          end
         end
         % preferred images raster-evoked overlay
         if isfield(plotSwitch,'prefImRasterEvokedOverlay') && plotSwitch.prefImRasterEvokedOverlay
@@ -697,9 +704,6 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           rasterEvoked(spikesByEvent(imageSortOrderInd), lfpByEvent(imageSortOrderInd), sortedImageLabels, psthPre, psthPost, psthImDur, stimTiming.ISI, lfpPaddedBy, channel_i, colors, 1)
           title(sprintf('Preferred Images, from top, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
           saveFigure(outDir, sprintf('prefImRaster-LFP_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag );
-          if figStruct.closeFig
-            close(fh);
-          end
         end
         % preferred images average evoked
         if isfield(plotSwitch,'prefImAverageEvoked') && plotSwitch.prefImRasterAverageEvokedOverlay
@@ -708,9 +712,6 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           averageEvoked(spikesByEvent(imageSortOrderInd), lfpByEvent(imageSortOrderInd), sortedImageLabels, psthPre, psthPost, psthImDur, stimTiming.ISI, lfpPaddedBy, channel_i, colors)
           title(sprintf('Preferred Images - Average Evoked, from top, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
           saveFigure(outDir, sprintf('prefImAverage-LFP_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag );
-          if figStruct.closeFig
-            close(fh);
-          end
         end
         % preferred images raster-evoked overlay, with other channels
         if isfield(plotSwitch,'prefImMultiChRasterEvokedOverlay') && plotSwitch.prefImMultiChRasterEvokedOverlay
@@ -719,9 +720,6 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           rasterEvokedMultiCh(spikesByEvent(imageSortOrderInd), lfpByEvent(imageSortOrderInd), sortedImageLabels, psthPre, psthPost, psthImDur, stimTiming.ISI, lfpPaddedBy, 1:length(lfpChannels), channelNames, colors)
           title(sprintf('Preferred Images, from top, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
           saveFigure(outDir, sprintf('prefImRaster-LFP-MultiChannel_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag );
-          if figStruct.closeFig
-            close(fh);
-          end
         end
       end
       % Image preference barplot
@@ -759,9 +757,6 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           figData.y = imageSortedRates;
           figData.e = imFrErrSorted;
           saveFigure(outDir, sprintf('imageTuningSorted, %s %s %s R%s',groupName, chanUnitTag, epochTag,runNum), figData, figStruct, figStruct.figTag );
-          if figStruct.closeFig
-            close(fh);
-          end
         end
       end
     end

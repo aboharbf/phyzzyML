@@ -101,6 +101,8 @@ if isfield(taskData, 'eventData')
 end
 
 % Not per trial, can be passed as is.
+taskDataValid.recDepth = taskData.recDepth;
+taskDataValid.gridHole = taskData.gridHole;
 taskDataValid.taskDataSummary = taskData.taskDataSummary;
 taskDataValid.taskEventList = taskData.taskEventList;
 taskDataValid.frameMotionData = taskData.frameMotionData;
@@ -108,11 +110,13 @@ taskDataValid.RFmap = taskData.RFmap;
 taskDataValid.eyeCal = taskData.eyeCal;
 taskDataValid.runTime = taskData.runTime;
 taskDataValid.paradigm = taskData.paradigm;
+taskDataValid.rewardParadigm = taskData.rewardParadigm;
 taskDataValid.scaleFactor = taskData.scaleFactor;
 
 % Per trial values, which need to be changed
 taskDataValid.fixTime = taskData.fixTime(trialValid);
 taskDataValid.taskEventIDs = taskData.taskEventIDs(trialValid);
+taskDataValid.taskEventIDsMerged = taskData.taskEventIDsMerged(trialValid);
 taskDataValid.stimFramesLost = taskData.stimFramesLost(trialValid);
 taskDataValid.taskEventStartTimes = taskData.taskEventStartTimes(trialValid);
 taskDataValid.taskEventEndTimes = taskData.taskEventEndTimes(trialValid);

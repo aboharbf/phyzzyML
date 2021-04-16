@@ -16,18 +16,20 @@ blinkVals = taskData.eyeCal.blinkVals;
 PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
 
 % Code for the output saccadeByStim Image.
-eventInds = [1, 2, 3];      
-eventNames = {'Fix','Saccade','Blink'};
+eventInds = [1, 2, 3, 4];      
+eventNames = {'Fix', 'PreSaccade', 'Saccade','Blink'};
+preSaccPeriod = 200;
 
 % A few switches.
 filterSaccades = 1;         % Performs a filter on saccades to exclude microsaccades, defined with respect to duration
 saccadeDurThres = 35;       % Additional saccade filtering outside of clusterFix, removes saccades which don't last this long or more.
-saccadeDistThrs = 1;        % As above, removes saccades with mean distances of less than this. 
+saccadeDistThrs = 1.5;        % As above, removes saccades with mean distances of less than this. 
 plotPaths = 0;              % Code below which visualizes things trial by trial.
+
 % visualized trial by trial trace parameters
 saccadeColors = 'rbgcm';
 
-% ITI = eyeStatsParams.ITI;
+% ITI = eyeStatsParams.ITI; % ITI already in psthPre.
 stimDir = eyeStatsParams.stimDir;
 psthPre = eyeStatsParams.psthPre;
 psthImDur = eyeStatsParams.psthImDur;
@@ -110,6 +112,9 @@ for stim_i = 1:length(fixStats)
       for fix_i = 1:size(fixationTimes,2)
         eyeBehImg(trial_i, fixationTimes(1, fix_i):fixationTimes(2, fix_i)) = deal(eventInds(strcmp(eventNames, 'Fix')));
       end
+    end
+    
+    if ~isempty(stimEye{trial_i}.saccadetimes)
       
       % Extract Saccades and mark their times
       saccadeTimes = stimEye{trial_i}.saccadetimes;
@@ -132,9 +137,16 @@ for stim_i = 1:length(fixStats)
         fixStats{stim_i}{trial_i}.SaccadeClusterValues = fixStats{stim_i}{trial_i}.SaccadeClusterValues(sacKeepInd,:);
       end
       
-      % Label Saccade times in the image
-      for sac_i = 1:size(saccadeTimes,2)
+      % Count in reverse to avoid overwriting a saccade w/ pre saccade
+      % period of a subsequent event.
+      for sac_i = size(saccadeTimes,2):-1:1
+        % Label Saccade times in the image
         eyeBehImg(trial_i, saccadeTimes(1, sac_i):saccadeTimes(2, sac_i)) = deal(eventInds(strcmp(eventNames, 'Saccade')));
+        
+        % If possible, label the period prior to the saccade
+        preSaccWin = saccadeTimes(1, sac_i) - preSaccPeriod :saccadeTimes(1, sac_i);
+        preSaccWin = preSaccWin(preSaccWin > 0);
+        eyeBehImg(trial_i, preSaccWin) = deal(eventInds(strcmp(eventNames, 'PreSaccade')));
       end
       
       % 0s represents saccades which don't get over the threshold, for now

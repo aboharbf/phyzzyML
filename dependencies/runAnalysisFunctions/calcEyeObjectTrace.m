@@ -214,11 +214,30 @@ if length(unique(frameCounts)) > 1
   
 end
 
+% For each stimulus, return the number of frames spent looking at each
+% label
+simpleObjList = {'Face', 'Body', 'Hand', 'Object', 'bkg'};
+[attendedPerStim, attendedPerStimRate] = deal(nan(length(eventIDs), length(simpleObjList)));
+
+for stim_i = 1:length(attendedObjVect)
+  stimFrames = length(attendedObjVect{stim_i}(:));
+  for obj_i = 1:length(simpleObjList)
+    attendedPerStim(stim_i, obj_i) = sum(sum(contains(attendedObjVect{stim_i}, simpleObjList{obj_i})));
+    attendedPerStimRate(stim_i, obj_i) = attendedPerStim(stim_i, obj_i)/stimFrames;
+  end
+  
+end
+
+objAttendRates = struct();
+objAttendRates.simpleObjList = simpleObjList;
+objAttendRates.attendedPerStim = attendedPerStim;
+objAttendRates.attendedPerStimRate = attendedPerStimRate;
+
+
 %Plot the Result as an area plot, where X = frames
 areaColors = [shapeColors{:} {[.5 .5 .5]}]'; %Shape colors + Background
 %Hard coded for now, will need adjustment for other task sets.
 objList = [{'Face1'},{'Body1'},{'HandL1'},{'HandR1'},{'GazeFollow1'},{'Object1'},{'Face2'},{'Body2'},{'HandL2'},{'HandR2'},{'GazeFollow2'},{'Object2'},{'bkg'}]';
-handleArray = gobjects(length(channelUnitNames), length(eventIDs));
 tracePlotData = cell(1,length(eventIDs));
 
 switch plotType
@@ -305,6 +324,7 @@ switch plotType
       end
     end
   case 'trace'
+    handleArray = gobjects(length(channelUnitNames), length(eventIDs));
     tag2color = @(n) areaColors{strcmp(objList, n)}; %Returns appropriate color for each object
     for channel_i = 1:length(channelUnitNames)
       for event_i = 1:length(eventIDs)
@@ -352,9 +372,12 @@ switch plotType
       end
     end
     
+    attendedObjData.handleArray = handleArray;
+    
 end
 
 %Package outputs
+attendedObjData.objAttendRates = objAttendRates;
 attendedObjData.eventIDs = eventIDs;
 attendedObjData.attendedObjVect = attendedObjVect;
 attendedObjData.tracePlotData = tracePlotData;
@@ -362,7 +385,6 @@ attendedObjData.colorCode = areaColors';
 attendedObjData.objList = objList;
 attendedObjData.frameStartInd = frameStartInd;
 attendedObjData.frameEndInd = frameEndInd;
-attendedObjData.handleArray = handleArray;
 eyeDataStruct.attendedObjData = attendedObjData;
 
 end

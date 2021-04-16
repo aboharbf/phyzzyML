@@ -240,6 +240,10 @@ end
 % Event Type 3 - add the Reward as an event
 if subEventParams.RewardEvent
   
+  % If this is one of the 'rewardParadigm' runs (where some trials are
+  % intentially unrewarded to see if reward effects persist)
+  
+  
   % Generate a distribution of null times 
   rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
   firstTime = min(rewardTimes);
@@ -274,11 +278,36 @@ if subEventParams.RewardEvent
   
   onsetsByEvent = [onsetsByEvent; rewardTimes];
   onsetsByEventNull = [onsetsByEventNull; rewardTimesNull];
+  
+  % Stick onto larger structures
   if isempty(subEventNames)
     subEventNames = {'reward'};
   else
     subEventNames = [subEventNames; 'reward'];
   end
+  
+  % Generate a 2nd reward comparison, contraining null samples to
+  % unrewarded trials.
+  if taskData.rewardParadigm
+    unRewardedTrials = isnan(taskData.juiceOnTimes);
+    unRewardedStimStart = taskData.taskEventStartTimes(unRewardedTrials);
+    rewardTime = subEventParams.stimPlotParams.psthImDur + 200;
+    
+    % When rewards would have taken place, normally.
+    unRewardedStimRewardTimes = unRewardedStimStart + rewardTime;
+    unRewardedStimRewardTimes = repmat(unRewardedStimRewardTimes, [10, 1]);
+    
+    onsetsByEvent = [onsetsByEvent; rewardTimes];
+    onsetsByEventNull = [onsetsByEventNull; unRewardedStimRewardTimes];
+    
+    % Stick onto larger structures
+    subEventNames = [subEventNames; 'rewardAbsent'];
+    addFalseRowRewardAbsent = 0;
+  else
+    addFalseRowRewardAbsent = 1;
+  end
+ 
+
 end
 
 %Ideally this would happen in some form after alignSpikes, instead of
@@ -288,7 +317,7 @@ end
 % Sample the null times, expand each onsertsByEventNull cell by the
 % parameter below (subEventParams.nullSampleMult).
 % onsetsByEventNull = cellfun(@(x) repmat(x, [subEventParams.nullSampleMult,1]), onsetsByEventNull, 'UniformOutput', false);
-if exist('onsetsByEvent', 'var')
+if ~isempty(onsetsByEvent)
   subEventParams.refOffset = 0;
   [spikesBySubEvent, spikesEmptyBySubEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ones(length(spikesByChannel),1), subEventParams);
   [spikesBySubEventNull, spikesEmptyBySubEventNull] = alignSpikes(spikesByChannel, onsetsByEventNull, ones(length(spikesByChannel),1), subEventParams);
@@ -332,6 +361,10 @@ if exist('onsetsByEvent', 'var')
   % Statistics - for every event
   % Method 1 - perform T test on spike rates for the period assigned.
   selArray = zeros(size(selTable,1), length(subEventNames));
+  [spikeCounts, spikeCountsNull] = deal(cell(length(subEventNames), 1));
+  chanCount =  length(spikesBySubEvent{1});
+  unitCount = cellfun('length', spikesBySubEvent{1});
+  
   for event_i = 1:length(subEventNames)
     
     unitInd = 1;
@@ -341,31 +374,36 @@ if exist('onsetsByEvent', 'var')
     assert(~isempty(testPeriod), 'Event %s is missing from array', subEventNames{event_i})
     
     % Count the spikes
-    [spikeCounts, ~, ~] = spikeCounter(spikesBySubEvent(event_i), testPeriod(1), testPeriod(2));
-    [spikeCountsNull, ~, ~] = spikeCounter(spikesBySubEventNull(event_i), testPeriod(1), testPeriod(2));
+    [spikeCounts{event_i}, ~, ~] = spikeCounter(spikesBySubEvent(event_i), testPeriod(1), testPeriod(2));
+    [spikeCountsNull{event_i}, ~, ~] = spikeCounter(spikesBySubEventNull(event_i), testPeriod(1), testPeriod(2));
     
     % Initialize test arrays
     if event_i == 1
-      [testResults, cohensD] = deal(initNestedCellArray(spikeCounts, 'ones', [1 1], 3));
+      [testResults, cohensD] = deal(initNestedCellArray(spikeCounts{1}, 'ones', [1 1], 3));
     end
-    
-    for chan_i = 1:length(testResults)
-      for unit_i = 1:length(testResults{chan_i})
+        
+    for chan_i = 1:chanCount
+      for unit_i = 1:unitCount(chan_i)
         % Collect relevant spikes
-        eventSpikes = [spikeCounts{chan_i}{unit_i}{1}.rates];
-        nullSpikes = [spikeCountsNull{chan_i}{unit_i}{1}.rates];
+        eventSpikes = [spikeCounts{event_i}{chan_i}{unit_i}{1}.rates];
+        nullSpikes = [spikeCountsNull{event_i}{chan_i}{unit_i}{1}.rates];
         
         % Perform the test, and store results.
         if subEventParams.nonParametric
-          [~, sigSwitch, ~] = ranksum(eventSpikes,  nullSpikes);
+          [pVal, sigSwitch, ~] = ranksum(eventSpikes,  nullSpikes);
         else
-          [sigSwitch, ~, ~] = ttest2(eventSpikes,  nullSpikes);
+          [sigSwitch, pVal, ~] = ttest2(eventSpikes,  nullSpikes);
         end
         
-        if ~isnan(sigSwitch) && sigSwitch
-          selArray(unitInd, event_i) = mean(eventSpikes) - mean(nullSpikes);
-        end
+        testResults{chan_i}{unit_i}{event_i} = pVal;
         
+        
+        if ~isnan(sigSwitch) && (subEventParams.alpha > pVal)
+          [selArray(unitInd, event_i), cohensD{chan_i}{unit_i}{event_i}] = deal(mean(eventSpikes) - mean(nullSpikes));
+        else
+          cohensD{chan_i}{unit_i}{event_i} = 0;
+        end
+                
         % Increment units
         unitInd = unitInd + 1;
         
@@ -416,7 +454,7 @@ if exist('onsetsByEvent', 'var')
             
             plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
             plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
-            plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i},2) ,length(spikeCounts{chan_i}{unit_i}{event_i}.rates));
+            plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i}), length(spikeCounts{event_i}{chan_i}{unit_i}{1}.rates));
             [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
             hold on
             if event_i ~= length(subEventNames)
@@ -483,6 +521,10 @@ tableVarNames = strcat("subSel_", subEventNames)';
 
 for ev_i = 1:length(tableVarNames)
   selTable.(tableVarNames{ev_i}) = selArray(:, ev_i);
+end
+
+if addFalseRowRewardAbsent
+  selTable.subSel_rewardAbsent = nan(size(selArray(:,1), 1), 1);
 end
 
 specSubEventStruct = struct();

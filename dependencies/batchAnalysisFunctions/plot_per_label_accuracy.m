@@ -1,4 +1,4 @@
-function figh = plot_per_label_accuracy(decoding_results, ds, analysisStruct, params)
+function figh = plot_per_label_accuracy(decoding_results, figTitle, ds, analysisStruct, params)
 % a function which generates a plot containing:
 % - single trace per label used in the decoder
 % - a mean trace of the overall accuracy
@@ -12,13 +12,20 @@ points_to_label = params.plotParams.points_to_label;
 points_for_lines = params.plotParams.points_for_lines;
 shift = params.plotParams.shift;
 the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1);
+justMean = 0; %params.plot_per_label_acc.justMean;
+plotMean = params.plot_per_label_acc.plotMean;
 
-figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
-figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
+% figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
+if ~isempty(figTitle)
+  title(figTitle)
+  figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
+else
+  figh = figure('units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
+end
+
 axesh = axes(figh);
-axesh.FontSize = 16;
+axesh.FontSize = 24;
 
-title(figTitle)
 hold on
 
 % Find Unique Labels, extract them from confusionMatrix, plot them
@@ -34,6 +41,13 @@ end
 % Cycle through decoding results
 confusionMatSize = size(decoding_results{1}.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix);
 confusionMat = nan([confusionMatSize, length(decoding_results)]);
+
+% Create trace w/ mean and std - * Need to explore this structure further
+% to understand error bars.
+% cvCount = size(decoding_results{1}.ZERO_ONE_LOSS_RESULTS.decoding_results, 1);
+% meanTracePerCat = squeeze(mean(decoding_results{1}.ZERO_ONE_LOSS_RESULTS.decoding_results, 1));
+% stdTracePerCat = decoding_results{1}.ZERO_ONE_LOSS_RESULTS.stdev.over_CVs_combined_over_resamples;
+
 for dec_i = 1:length(decoding_results)
   confusionMatTmp = decoding_results{dec_i}.ZERO_ONE_LOSS_RESULTS.confusion_matrix_results.confusion_matrix;
   confusionMat(:,:,:, dec_i) = confusionMatTmp ./ sum(confusionMatTmp, 1);
@@ -60,14 +74,14 @@ end
 
 if length(labels) == 2
   warning('Binary Decoder forced to plotting of just Mean')
-  params.plot_per_label_acc.justMean = 1;
+  justMean = 1;
 end
 
 % Create the traces and labels to plot
 % - Either just the mean
 % - the mean across individual preset groups
 % - Individual traces 
-if params.plot_per_label_acc.justMean
+if justMean
   % Initialize this if only plotting.
   plotLabels = {};
 elseif ~params.plot_per_label_acc.plotEachLabel
@@ -112,8 +126,9 @@ end
 
 % Plot the mean and chance
 sigBarLabel = sprintf('Significant regions (>%s%%)', num2str((1 - params.p_val_threshold) * 100));
-if params.plot_per_label_acc.plotMean || params.plot_per_label_acc.justMean
+if plotMean || justMean
   linePlotHandles(length(plotLabels) + 1) = plot(mean(correctLineMean), 'linewidth', 5, 'color', 'k');
+  linePlotHandles(length(plotLabels) + 1).Tag = 'All Label Mean';
   linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
   allLabels = [plotLabels; 'All Label Mean'; 'Theoretical chance'; sigBarLabel];
 else
@@ -149,8 +164,8 @@ xlabel('Bin start time')
 xticks(bins_to_label);
 xticklabels(points_to_label);
 
-if params.plot_per_label_acc.chanceAtBottom
-  ylim([round(min(correctLineStack(:)),1), 1]);
+if params.plot_per_label_acc.chanceAtBottom && min(linePlotHandles(1).YData) > 0.2
+  ylim([floor(min(correctLineStack(:))*10)/10, 1]);
 else
   ylim([0, 1]);
 end
@@ -162,7 +177,6 @@ end
 % Re-adjust significance bar to align with slightly changed size of plot.
 for ii = 1:length(sigBarImgAxs)
   sigBarImgAxs(ii).Position(1:3) = decodingAx.Position(1:3);
+  sigBarImgAxs(ii).Position(2) = sigBarImgAxs(ii).Position(2)*1.1;
 end
-
-
 

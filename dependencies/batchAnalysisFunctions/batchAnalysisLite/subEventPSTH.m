@@ -7,10 +7,14 @@ disp('running subEventPSTH()...');
 baselineSubtract = 1;
 runList = spikePathBank.Properties.RowNames;
 
+if ~exist(params.subEventPSTHParams.outputDir)
+  mkdir(params.subEventPSTHParams.outputDir);
+end
+
 % Load and extract key things from subEvents. Plots 1 and 2 only need the
 % eventList, 3 and after use more features.
 load(params.subEventPSTHParams.eventData);
-eventList = [eventData.Properties.VariableNames 'saccades', 'blinks', 'reward'];
+eventList = [eventData.Properties.VariableNames 'saccades', 'blinks', 'reward', 'rewardAbsent'];
 groupIterInd = 3;
 
 % Decide which variables to extract from the runs (Any amount of

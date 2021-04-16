@@ -3,6 +3,11 @@ function NeuralDecodingTBLite(spikePathBank, params)
 % the spikeDataBank, generates the appropriate structure for the toolbox if
 % not already generated, and runs the analysis specified in the NBTDParams.
 
+% IMPORTANT SWITCHES 
+swap2libsvm = 0;          % Swaps whatever classifier is defined in the file to libsvm.
+expandLabelPerSplit = 1;  % Divides the number of labels per split by 3.
+dontZScoreFeatures = 1;   % Turns off the Z scoring
+
 % Add the path to the NB
 addpath(genpath(params.NDTPath));
 
@@ -14,7 +19,7 @@ params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Generate the appropriate binned data
-for paradigm_i = 3:length(paradigmList)
+for paradigm_i = 2:length(paradigmList)
   pName = paradigmList{paradigm_i};
   spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
   pFolder = fullfile(params.outputDir, pName);
@@ -42,10 +47,6 @@ for paradigm_i = 3:length(paradigmList)
     binnedFileName = binnedFileNameOut;
   end
   
-% end
-% 
-% if 1
-
   % Grab a variable which will be useful later
   tmp = dir(rasterDataPath);
   tmp = tmp(1);
@@ -70,12 +71,21 @@ for paradigm_i = 3:length(paradigmList)
       templateAnalysisParams.(fieldsToReplace{field_i}) = tmp.(fieldsToReplace{field_i});    % Load in fields
     end
     
+    if swap2libsvm
+      templateAnalysisParams.classifier = 'libsvm_CL';
+    end
+    
+    if dontZScoreFeatures
+      templateAnalysisParams.preProc = [];
+    end
+    
     if ~isfield(templateAnalysisParams, 'num_features_to_use')
       % Adding k to all for the sake of seeing p values for features.
       templateAnalysisParams.preProc = [templateAnalysisParams.preProc, {'select_or_exclude_top_k_features_FP'}];
       templateAnalysisParams.num_features_to_exclude = 0;
       templateAnalysisParams.num_features_to_use = length(templateAnalysisParams.sites);
     end
+    
     [~, fileName, ~] = fileparts(analysesFiles(ii).name);
     templateAnalysisParams.plotTitle = tmp.plotTitle;
     templateAnalysisParams.load_data_as_spike_counts = strcmp(templateAnalysisParams.classifier, 'poisson_naive_bayes_CL');
@@ -90,10 +100,19 @@ for paradigm_i = 3:length(paradigmList)
     % Step 2 - generate the data source object
     analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
     
+    % TESTING 4/3/21
+    if expandLabelPerSplit
+      analysisStruct.num_cv_splits = floor(analysisStruct.num_cv_splits/3);
+    end
+    
     % create the basic datasource object
     % analysisStruct.load_data_as_spike_counts = 1; % FOR TESTING PNB CLASSIFIER
     ds = basic_DS(binnedFileName, analysisStruct.label,  analysisStruct.num_cv_splits, analysisStruct.load_data_as_spike_counts);
-    ds.num_times_to_repeat_each_label_per_cv_split = 1;
+    if expandLabelPerSplit
+      ds.num_times_to_repeat_each_label_per_cv_split = 3;
+    else
+      ds.num_times_to_repeat_each_label_per_cv_split = 1;
+    end
     
     % Add in steps to ensure only sites with adequate repeats are used
     ds.label_names_to_use = analysisStruct.label_names_to_use;
@@ -101,6 +120,11 @@ for paradigm_i = 3:length(paradigmList)
     
     % Step 3 - Generate a classifier and data preprocessor objects compatible with that data source.
     the_classifier = eval(analysisStruct.classifier);
+    
+    if swap2libsvm
+      the_classifier.kernel = 'rbf';
+      the_classifier.gaussian_gamma = 1;
+    end
     
     the_feature_preprocessors = cell(length(analysisStruct.preProc), 1);
     for pp_i = 1:length(analysisStruct.preProc)
@@ -136,8 +160,7 @@ for paradigm_i = 3:length(paradigmList)
       
       % Step 4 - Generate a cross validator, define some parameters on newly generated object
       cross_val_resample = analysisStruct.cross_validator_num_resample;
-      analysisStruct.real_shuffle_count = 1;
-      runShuff = [false(analysisStruct.real_shuffle_count, 1); true(7,1)]';
+      runShuff = [false(1, 1); true(7,1)]';
       
       % Cycle through the runs
       parfor shuff_ind = 1:length(runShuff)
@@ -158,6 +181,15 @@ for paradigm_i = 3:length(paradigmList)
         
         the_cross_validator = standard_resample_CV(tmpds, the_classifier, the_feature_preprocessors);
         the_cross_validator.num_resample_runs = cross_val_resample;
+        the_cross_validator.test_only_at_training_times = 1; % For speeding up testing.
+        
+        % Only stop once results have converged.
+        if runShuff(shuff_ind)
+          the_cross_validator.stop_resample_runs_only_when_specfic_results_have_converged.zero_one_loss_results = [];
+        else
+          the_cross_validator.stop_resample_runs_only_when_specfic_results_have_converged.zero_one_loss_results = 0.1;
+        end
+        
         the_cross_validator.display_progress.zero_one_loss = 0;
         the_cross_validator.display_progress.resample_run_time = 0;
         
@@ -202,17 +234,17 @@ for paradigm_i = 3:length(paradigmList)
     
     % Per Label Accuracy Trace, Figure 1
     figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
-    plot_per_label_accuracy(decoding_results, ds, analysisStruct, params);
+    plot_per_label_accuracy(decoding_results, [], ds, analysisStruct, params);
     saveFigure(pFolder, ['1. ' figTitle], analysisStruct, params.figStruct, [])
     
     % TCT Matrix, Figure 2
-    params.figTitle = sprintf('Cross Temporal Decoding of %s', analysisStruct.plotTitle);
-    if params.addTCTSigShading
-      sigStr = sprintf(', %s%% threshold', num2str(100 - (params.p_val_threshold * 100)));
-      params.figTitle = horzcat([params.figTitle, sigStr]);
-    end
-    generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
-    saveFigure(pFolder, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
+%     params.figTitle = sprintf('Cross Temporal Decoding of %s', analysisStruct.plotTitle);
+%     if params.addTCTSigShading
+%       sigStr = sprintf(', %s%% threshold', num2str(100 - (params.p_val_threshold * 100)));
+%       params.figTitle = horzcat([params.figTitle, sigStr]);
+%     end
+%     generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
+%     saveFigure(pFolder, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
     
   end
 end

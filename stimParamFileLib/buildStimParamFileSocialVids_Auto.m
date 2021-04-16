@@ -77,6 +77,8 @@ for lab_i = 1:length(socCatagoryArray)
   socCatagory2Find{lab_i} = [upper(socCatagoryArray{lab_i}(1)) socCatagoryArray{lab_i}(2:end)];
 end
 
+% reference structure
+
 for ii = 1:length(stimList)
   stim = stimList{ii};
   modWord = [];
@@ -85,6 +87,7 @@ for ii = 1:length(stimList)
   stimParts = stimParts(1:end-1); %Remove the tag
   code = stimParts{2};
   stimLabels = {};
+  refStruct(ii).stimName = stim;
       
   if ~isempty(str2num(code(1)))
     
@@ -107,6 +110,9 @@ for ii = 1:length(stimList)
     % ID
     if strcmp(code(1:3), '110')
       stimLabels = horzcat(stimLabels ,'goalDirected');
+      refStruct(ii).category = 'goalDirected';
+      refStruct(ii).socInt = 0;
+      refStruct(ii).paradigm = 'NaturalSocial';
     end
     
     % Adding 'social interaction' tag to Natural Stim paradigm
@@ -120,6 +126,9 @@ for ii = 1:length(stimList)
         end
       else
         stimLabels = [stimLabels, socCatagoryArray(socIntInd), 'socialInteraction']; % socCatagoryArray = {'chasing', 'fighting', 'mounting', 'grooming', 'holding', 'following', 'observing', 'foraging', 'sitting'};
+        refStruct(ii).category = socCatagoryArray{socIntInd};
+        refStruct(ii).socInt = 1;
+        refStruct(ii).paradigm = 'NaturalSocial';
       end
     end
     
@@ -129,6 +138,8 @@ for ii = 1:length(stimList)
     end
     
     if code(2) == '4'     % Code in the name of isolated head turning paradigm stim.
+      refStruct(ii).paradigm = 'headTurnIso';
+      
       % code = sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
       codeAdd = stimParts{3};
       
@@ -151,10 +162,15 @@ for ii = 1:length(stimList)
       stimLabels = horzcat(stimLabels , turnDirection{turnDirInd});
       stimLabels = horzcat(stimLabels , mesh{meshInd});
       
+      refStruct(ii).motionType = motionType{condInd};
+      refStruct(ii).turnDirection = turnDirection{turnDirInd};
+      refStruct(ii).mesh = mesh{meshInd};
+      
       if condInd == 1
         % Use a combination of the turn direction and camera to determine
         % either 'turnAway' or 'turnToward'.
         if turnDirInd ~= 3
+          refStruct(ii).turn = 1;
           stimLabels = horzcat(stimLabels , 'headTurn');
           dynLabels = {'turnToward', 'turnAway'};
           if (camInd == 3 && turnDirInd > 3) || (camInd == 1 && turnDirInd < 3)
@@ -163,9 +179,11 @@ for ii = 1:length(stimList)
             turnConInd = 2;
           end
           stimLabels = horzcat(stimLabels , dynLabels{turnConInd});
+          refStruct(ii).turnDir = dynLabels{turnConInd};
         else
           staticLabels = {'leftProfile', 'frontal', 'rightProfile'};
           stimLabels = horzcat(stimLabels , staticLabels{camInd});
+          refStruct(ii).staticLabels = staticLabels{camInd};
         end
       end
       
@@ -188,21 +206,36 @@ for ii = 1:length(stimList)
       turnCode = logical(str2double(code(6)));
       
       stimLabels = horzcat(stimLabels ,scenes{sceneInd});
+      refStruct(ii).category = scenes{sceneInd};
       
+      % Agent label for decoding
+      if sceneInd == 7 || sceneInd == 8
+        refStruct(ii).agent = 0;
+      else
+        refStruct(ii).agent = 1;
+        stimLabels = horzcat(stimLabels ,'agents');
+      end
+
+      % Social interaction label
       if sceneInd < 5
         stimLabels = horzcat(stimLabels ,'socialInteraction');
+        refStruct(ii).socInt = 1;
       else
         stimLabels = horzcat(stimLabels ,'nonSocialInteraction');
+        refStruct(ii).socInt = 0;
       end
       
       if turnCode
         stimLabels = horzcat(stimLabels ,'headTurn');
+        refStruct(ii).turn = 1;
       else
         stimLabels = horzcat(stimLabels , 'noTurn');
+        refStruct(ii).turn = 0;
       end
       
     end
-    
+    refStruct(ii).paradigm = 'headTurnCon';
+
     % Animation Processing
     if strcmp(stimParts{2}(end),'A')
       stimLabels = horzcat(stimLabels ,'animated');
@@ -286,6 +319,7 @@ for ii = 1:length(stimList)
     end
     
   else
+    refStruct(ii).paradigm = 'FamiliarFace';
     
     % Replace the Entering part w/ Movement.
     if strcmp('Entering', stimParts{2})
@@ -327,7 +361,7 @@ stimList = AddComboCategoryLabels(stimList, comboCat);
 %% Adding merged stimuli
 % Function which attaches a label to all of the stimuli variants in the
 % headTurn paradigms with the 'core name'.
-[stimList, pictureLabels] = mergeStimuliParam(stimList, pictureLabels);
+[stimList, refStruct, pictureLabels] = mergeStimuliParam(stimList, refStruct, pictureLabels);
 
 %% Adding subEvents
 % events within Phyzzy may be stimuli or subEvents within the stimuli. to
@@ -378,10 +412,10 @@ end
 paramArray = paramArray(uInd);
 pictureLabels = pictureLabels(uInd);
 
-save('StimParamFileSocialVids_Full.mat','paramArray','categoryLabels','pictureLabels')
+save('StimParamFileSocialVids_Full.mat','paramArray','categoryLabels','pictureLabels', 'refStruct')
 end
 
-function [taskEventIDs, pictureLabels] = mergeStimuliParam(taskEventIDs, pictureLabels)
+function [taskEventIDs, refStruct, pictureLabels] = mergeStimuliParam(taskEventIDs, refStruct, pictureLabels)
 
 % Identify the paradigm
 stimuliNames = cellfun(@(x) x(1), taskEventIDs);
@@ -477,6 +511,7 @@ for paradigm_i = 1:2
   
   for ii = 1:length(headTurnInds2Add)
     taskEventIDs{headTurnInds2Add(ii)} = [taskEventIDs{headTurnInds2Add(ii)}, catagoryLabels2Add(ii)];
+    refStruct(headTurnInds2Add(ii)).stimNameMerge = catagoryLabels2Add{ii};
   end
   
 end

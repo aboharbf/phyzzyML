@@ -4,7 +4,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
 runNum = '001';
-dateSubject = '20201123Mo';
+dateSubject = '20201117Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -47,10 +47,11 @@ verbosity = 'INFO';               % other options, 'DEBUG', 'VERBOSE';
 %% Plot switches
 plotSwitch.pupilDilation = 0;               % plots image which illustrates continuous values for pupil dilation. 
 plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vector characterizing eye movements. used by subEventAnalysis, and subsequently selDir. 
-plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
+plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
 plotSwitch.imageEyeMap = 0;                 
 plotSwitch.eyeCorrelogram = 0;              % Eye Gram
-plotSwitch.attendedObject = 0;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
+
+plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
@@ -68,7 +69,7 @@ plotSwitch.prefImRasterEvokedOverlay = 0;   % Produces images for MUA and Unsort
 plotSwitch.prefImRasterAverageEvokedOverlay = 0;
 plotSwitch.prefImMultiChRasterEvokedOverlay = 0;
 plotSwitch.imageTuningSorted = 0;           % Barplot per image, Required for stimPSTHoverlay, sigStruct
-plotSwitch.stimPrefBarPlot = 1;             % Per event bar graph.
+plotSwitch.stimPrefBarPlot = 0;             % Per event bar graph.
 plotSwitch.stimPrefBarPlotEarly = 0;
 plotSwitch.stimPrefBarPlotLate = 0;
 plotSwitch.tuningCurves = 0;
@@ -335,7 +336,7 @@ psthParams.sortStim = 1;
 psthParams.headTurnIso.sortOrder = {'leftFull', 'noTurn', 'rightFull', 'headTurn'};
 psthParams.familiarFace.sortOrder = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes', 'Empty'};
 psthParams.headTurnCon.sortOrder = {'socialInteraction';'goalDirected';'idle';'objects';'scene'};
-psthParams.naturalStim.sortOrder = {'socialInteraction';'goalDirected';'idle';'objects';'scene';'scramble';'headTurn';'subEvents'};
+psthParams.naturalSocial.sortOrder = {'socialInteraction';'goalDirected';'idle';'objects';'scene';'scramble';'headTurn';'subEvents'};
 psthParams.psthColormapFilename = 'cocode2.mat'; % a file with one variable, a colormap called 'map'
 load(psthParams.psthColormapFilename);
 psthParams.colormap = map;
@@ -380,11 +381,12 @@ subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
-subEventAnalysisParams.genPlots = false;                                % Asks if you want to generate plots.
+subEventAnalysisParams.genPlots = 0;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
-subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'blinks', 'reward'};
-subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-250 50]; [0 200];];
-subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
+subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'blinks', 'reward', 'rewardAbsent'};
+subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-250 50]; [50 200]; [50 200]];
+subEventAnalysisParams.nonParametric = 0;                               % Use non parametric test.
+subEventAnalysisParams.alpha = 0.05;                                    % Use non parametric test.
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
@@ -436,13 +438,45 @@ preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
 Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
 stimOnset = [0 500];
 stimPres = [500 psthParams.psthImDur];
+stimWhole = [0 psthParams.psthImDur];
 reward = [psthParams.psthImDur psthParams.psthImDur + 250];
 
 epochStatsParams.stimParamsFilename = stimParamsFilename;
-epochStatsParams.targetEpochs = [[0 0 1 1 1]; [0 0 0 1 1]; [0 0 1 1 1]; [0 0 0 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
-epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'reward'};    
-epochStatsParams.nonParametric = 1;                                                     % run non Parametric tests.
+epochStatsParams.nonParametric = 0;                      % switch to run non Parametric tests.
+epochStatsParams.alpha = 0.01;                           % alpha value to set while looking for units.
+
+epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
+epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'stimWhole', 'reward'};    
+
+epochStatsParams.naturalSocial.targNames = {'socVNonSoc'};
+epochStatsParams.naturalSocial.targ = {{'agents', 'socialInteraction'}};
+epochStatsParams.naturalSocial.targetEpochs = [[0 0 1 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+
+epochStatsParams.headTurnCon.targNames = {'socVNonSoc'};
+epochStatsParams.headTurnCon.targ = {{'agents', 'socialInteraction'}};
+epochStatsParams.headTurnCon.targetEpochs = [[0 0 1 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+
+epochStatsParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
+epochStatsParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};
+epochStatsParams.headTurnIso.targetEpochs = [[0 0 1 1 1 1]; [0 0 0 1 1 1]; [0 0 1 1 1 1]; [0 0 0 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+
+% model using ANOVAs to detect encoding of variable features.
+epochCatsParams.stimParamsFilename = stimParamsFilename;
+epochCatsParams.binSize = 150;
+epochCatsParams.binStep = 25;
+epochCatsParams.alpha = 0.01;                           % alpha value to set while looking for units.
+
+epochCatsParams.naturalSocial.comparisonLabel = {'category', 'socInt'};
+epochCatsParams.naturalSocial.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected'}, {'socialInteraction', 'agents'}};
+
+epochCatsParams.headTurnCon.comparisonLabel = {'category', 'socInt'};
+epochCatsParams.headTurnCon.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected'}, {'socialInteraction', 'agents'}};
+
+epochCatsParams.headTurnIso.comparisonLabel = {'Model', 'headTurn', 'headvArms'};
+epochCatsParams.headTurnIso.comparisonCategoryLabels = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}};
+
+epochCatsParams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
+epochCatsParams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.
 
 neuroGLMParams.neuroGLMPath = neuroGLMPath;
 neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 
@@ -507,11 +541,6 @@ analysisGroups.stimPrefBarPlot.groupDepth = 2; %2 subplots, each figure is defin
 analysisGroups.stimulusLabelGroups.groups = {{'socialInteraction'; 'goalDirected'; 'idle'; 'objects'; 'scene'; 'scramble'},{'headTurn', 'noTurn'}, {'fullModel', 'dotModel', 'smoothModel'}, {'turnToward', 'turnAway'}};
 analysisGroups.stimulusLabelGroups.names = {'Soc V Non Soc', 'Head Turn', 'Model', 'Turn Dir'};
 analysisGroups.stimulusLabelGroups.colors = {{[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5];[0.15, 0.20, 0.5]; [.5 0 .5]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}, {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13]}, {[0.55 0.13 0.16];[0.93 .2 0.15]}};
-
-epochStatsParams.names = analysisGroups.stimulusLabelGroups.names;
-epochStatsParams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
-epochStatsParams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.
-assert(length(epochStatsParams.names) == size(epochStatsParams.targetEpochs, 1), "these should be the same length");
 
 %Essentially LFP selectivity/strength/quality
 analysisGroups.evokedPotentials.groups = {{'socialInteraction';'nonInteraction';'objects'};{'socialInteraction';'nonInteraction'}};

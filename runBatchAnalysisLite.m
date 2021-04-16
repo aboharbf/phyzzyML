@@ -24,6 +24,10 @@ if plotSwitch.selCount
   selCount(spikePathBank, batchAnalysisParams)
 end
 
+if plotSwitch.selectivityCurve
+  selectivityCurve(spikePathBank, batchAnalysisParams)
+end
+
 % Prepare things to run in DataHigh
 if calcSwitch.dataHigh
   dataHighPrep(spikePathBank, batchAnalysisParams)
@@ -42,7 +46,7 @@ if ~any(strcmp(batchAnalysisParams.spikePathLoadParams.files, 'batchAnalyzedData
   save(spikePathFile, 'spikePathBank', 'batchAnalysisParams', '-append')
 end
 
-crossParadigmCheck(spikePathBank, batchAnalysisParams)
+% crossParadigmCheck(spikePathBank, batchAnalysisParams)
 
 % Combine PSTH across all runs for a particular stimulus.
 if plotSwitch.meanPSTH
@@ -50,6 +54,7 @@ if plotSwitch.meanPSTH
 end
 
 if plotSwitch.subEventPSTH %&& ~exist('meanPSTHStruct','var')
+  spikePathBank = spikePathBank(~strcmp(spikePathBank.paradigmName, 'FamiliarFace'), :);
   subEventPSTHStruct = subEventPSTH(spikePathBank, batchAnalysisParams, figStruct);
 end
 

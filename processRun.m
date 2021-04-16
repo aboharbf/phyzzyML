@@ -204,6 +204,7 @@ if ~usePreprocessed
   tmp = load(stimParamsFilename); 
   eventCategories = tmp.paramArray;
   categoryList = tmp.categoryLabels;
+  refStruct = tmp.refStruct;
   try
     eventLabels = tmp.eventLabels;
   catch
@@ -243,6 +244,7 @@ if ~usePreprocessed
   end
   
   if ~keepItemsNotPresented
+    refStruct = tmp.refStruct(eventsObserved);
     onsetsByEvent = onsetsByEvent(eventsObserved);
     offsetsByEvent = offsetsByEvent(eventsObserved);
     trialIDsByEvent = trialIDsByEvent(eventsObserved);
@@ -308,13 +310,13 @@ if ~usePreprocessed
   analogInByEvent = alignAnalogIn(analogInData, onsetsByEvent, analogInChannels, lfpAlignParams);
   analogInByCategory = alignAnalogIn(analogInData, onsetsByCategory, analogInChannels, lfpAlignParams);
   
-%   for cat_i = 1:length(categoryList)
-%     Output.VERBOSE(categoryList{cat_i});
-%     Output.VERBOSE(size(lfpByCategory{cat_i}));
-%   end
-%   
+  %   for cat_i = 1:length(categoryList)
+  %     Output.VERBOSE(categoryList{cat_i});
+  %     Output.VERBOSE(size(lfpByCategory{cat_i}));
+  %   end
+  
   if savePreprocessed
-    save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'psthImDur', 'preAlign', 'postAlign',...
+    save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'psthImDur', 'preAlign', 'postAlign', 'refStruct', ...
       'categoryList', 'eventLabels', 'eventIDs', 'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByCategory', 'psthEmptyByCategory',...
       'spikesByEventForTF', 'spikesByCategoryForTF', 'lfpByEvent', 'lfpByCategory', 'analogInByEvent','analogInByCategory','channelUnitNames', ...
       'stimTiming', 'eventCategories', 'onsetsByEvent', 'offsetsByEvent', 'onsetsByCategory', 'offsetsByCategory', 'trialIDsByEvent','trialIDsByCategory', 'excludeStimParams');
@@ -331,6 +333,7 @@ runAnalysisInputs.taskDataAll = taskDataAll;
 runAnalysisInputs.psthImDur = psthImDur;
 runAnalysisInputs.preAlign = preAlign;
 runAnalysisInputs.postAlign = postAlign;
+runAnalysisInputs.refStruct = refStruct;
 runAnalysisInputs.categoryList = categoryList;
 runAnalysisInputs.eventLabels = eventLabels;
 runAnalysisInputs.eventIDs = eventIDs;

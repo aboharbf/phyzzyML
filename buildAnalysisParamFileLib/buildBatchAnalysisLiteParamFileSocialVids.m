@@ -39,7 +39,7 @@ figStruct.saveFig = 1;      % save the figure in its output directory.
 figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 0;  % save data with the figure.
-figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
+figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Switches
@@ -47,10 +47,11 @@ calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
-plotSwitch.meanPSTH = 1;              % figure showing mean PSTH across all units, MUA, and Unsorted.
+plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
+plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
-plotSwitch.spikeEyeOverlay = 1;       % Generate an overlay of activity across units according to eye signal.
+plotSwitch.spikeEyeOverlay = 0;       % Generate an overlay of activity across units according to eye signal.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
 plotSwitch.slidingWindowANOVA = 0;    % 
@@ -58,9 +59,10 @@ plotSwitch.slidingWindowANOVA = 0;    %
 %% Parameters
 spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
 
-preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList'}; %Variables extracted from preprocessedData.mat
+preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData'}; %Variables extracted from preprocessedData.mat
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
-                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'psthByCategory', 'psthErrByCategory'}; %Variables extracted from analyzedData.mat
+                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'psthByCategory', ...
+                                  'psthErrByCategory', 'gridHole', 'recDepth'}; %Variables extracted from analyzedData.mat
 AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
 
@@ -92,8 +94,8 @@ selParam.figStruct = figStruct;
 selParam.selCheck = {'socInt', 'headTurn', 'fullModel', 'turnToward'};
 selParam.UnitTypes = {'MUA', digitsPattern};
 selParam.UnitTypePlot = {'MUA', 'Units'};
-selParam.colNamePoss = {'stimOnset','stimPres','reward'};
-selParam.colNamePlotAll = {'stim Onset','stim Presentation','Reward'};
+selParam.colNamePoss = {'stimOnset','stimPres', 'stimWhole', 'reward'};
+selParam.colNamePlotAll = {'stim Onset','stim Presentation', 'stim Whole Presentation', 'Reward'};
 
 meanPSTHParams.spikePathLoadParams = spikePathLoadParams;
 meanPSTHParams.runInclude = 30;                                     % 0 = everything, N = Nth first runs of the stimulus.
@@ -221,8 +223,8 @@ subEventPSTHParams.psthImDur = 400;
 subEventPSTHParams.psthPost = 200;             
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
-subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
-subEventPSTHParams.stimPlusEvents_extracted = 0;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
+subEventPSTHParams.meanSubEventPSTH = 1;                        % Plot 2 - Mean event PSTHes, line plots
+subEventPSTHParams.stimPlusEvents_extracted = 1;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
 subEventPSTHParams.eventPsthColorPlots = 0;                     % Plot 3.1 - event PSTH color plots, each individual trace, stacked. Takes length of event into account.
 subEventPSTHParams.eventPsthMeanLinePlots = 0;                  % Plot 3.2 - event PSTH mean line plots, shows the full slice of event related activity to the PSTH. ACTIVATES PLOT 3 CODE!
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).
@@ -284,7 +286,7 @@ NDTParams.spikeToRasterParams.NaturalSocial.plotIndParams.plotLabels = {{'agents
   'scramble', 'foraging', 'following', 'observing','animControl', 'animSocialInteraction'}}; % a cell array list of labels for inclusion.
 
 NDTParams.spikeToRasterParams.headTurnCon.rasterLabels = {'headTurn', 'social', 'socialCat'};
-NDTParams.spikeToRasterParams.headTurnCon.plotIndParams.plotLabels = {'headTurn', 'socialInteraction', {'chasing', 'fighting' ,'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}};
+NDTParams.spikeToRasterParams.headTurnCon.plotIndParams.plotLabels = {'headTurn', {'agents', 'socialInteraction'}, {'chasing', 'fighting' ,'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}};
 
 NDTParams.spikeToRasterParams.headTurnIso.rasterLabels = {'stimuli', 'turnDirection', 'turnSubj', 'mesh', 'meshTurn'};
 NDTParams.spikeToRasterParams.headTurnIso.plotIndParams.plotLabels = {meanPSTHParams.analysisGroups.headTurnIso.stimuli, {'leftFull', 'noTurn', 'rightFull', 'headTurn'}, {'turnToward', 'turnAway', 'noTurn'}, {'fullModel', 'smoothModel', 'dotModel'}, meanPSTHParams.analysisGroups.headTurnIso.mesh};
@@ -299,10 +301,10 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
-NDTParams.AnalysesDefault.real_shuffle_count = 1;            % The number of times to randomly shuffle the data to generate a null distribution.
+NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.null_shuffle_count = 10;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
-NDTParams.AnalysesDefault.cross_validator_num_resample = 10;  % Number of times to resample runs for cross validator.
+NDTParams.AnalysesDefault.cross_validator_num_resample = 50;  % Number of times to resample runs for cross validator.
 
 NDTParams.figStruct = figStruct;
 NDTParams.plotParams = figStruct;
@@ -331,7 +333,6 @@ NDTParams.plot_per_label_acc.chanceAtBottom = 1;                              % 
 NDTParams.plot_per_label_acc.plotEachLabel = 1;                               % Plot a mean of different groups represented in each trace.
 NDTParams.plot_per_label_acc.groupNames = {'Social Categories', 'Non-Social Categories'};
 NDTParams.plot_per_label_acc.groups = {{'socialInteraction', 'chasing', 'fighting' 'mounting', 'grooming'}, {'goalDirected', 'idle', 'objects', 'scene'}};
-
 
 NDTParams.plot_per_label_acc.p_val_threshold  = NDTParams.p_val_threshold;    % The thrshold to use for determining significant regions
 NDTParams.plot_per_label_acc.sig_bar_pos = 'bottom';                          % Determines position of significance bar as top or bottom of plot.

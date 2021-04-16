@@ -72,6 +72,9 @@ saccadeSpikes = zeros(saccadeCount, 1);
 % variables accordingly.
 saccKeep = saccadetimes(1,:) > 0;
 saccadeDir = saccadeDir(saccKeep);
+circleInRadians = linspace(0, 2*pi, 9);
+saccadeDir = circleInRadians(saccadeDir)';
+
 saccadetimes = saccadetimes(:, saccKeep) + psthPre;
 saccadeSpikes = saccadeSpikes(saccKeep);
 trialInds = trialInds(saccKeep);
@@ -106,25 +109,33 @@ for chan_i = 1:chanCount
       scrambR(scramb_i) = circ_r(scrambDir, saccadeSpikes);
     end
     
-%     % plots
+    % plots
 %     figure()
-%     % Plot the Mu for the mean of the direction.
+    % Plot the Mu for the mean of the direction.
 %     subplot(1,2,1)
 %     h = histogram(scrambMu);
 %     hold on
 %     title(sprintf('true Mu = %d', trueMu));
 %     ylim(h.Parent.YLim);
 %     plot([trueMu trueMu], ylim(), 'linewidth', 3, 'color', 'r');
-%     
+    
 %     subplot(1,2,2)
-%     h = histogram(scrambR);
-%     hold on
-%     title(sprintf('true R = %d', trueR));
-%     ylim(h.Parent.YLim);
-%     plot([trueR trueR], ylim(), 'linewidth', 3, 'color', 'r');
+    if 0
+      figure()
+      h = histogram(scrambR);
+      hold on
+      title(sprintf('true R = %s', num2str(trueR, 2)));
+      ylim(h.Parent.YLim);
+      plot([trueR trueR], ylim(), 'linewidth', 3, 'color', 'r');
+    end
     
     % Preform a t test
-    [unitSelVec(unitTabInd), ~, ~, ~] = ttest2(scrambR, trueR);
+    [~, pVal, ~, ~] = ttest2(scrambR, trueR);
+    if pVal < 0.05
+      unitSelVec(unitTabInd) = 1;
+    else
+      unitSelVec(unitTabInd) = 0;
+    end
     %     [A, B, C, D] = ttest2(scrambMu, trueMu);
     
     unitTabInd = unitTabInd + 1;
