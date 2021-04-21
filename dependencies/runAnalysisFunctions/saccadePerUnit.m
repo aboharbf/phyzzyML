@@ -1,4 +1,4 @@
-function  selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, stimulusLabelGroups, eventIDs, refStruct, epochStatsParams, selTable)
+function  selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, paradigm, epochStatsParams, selTable)
 % A function which uses the circStats toolbox to implement saccade
 % selectivity.
 
@@ -24,19 +24,20 @@ function  selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psth
 
 psthPad = psthParams.psthPre + psthParams.movingWin(1)/2;
 
+targNames = epochStatsParams.(paradigm).targNames;
+targLabelList = epochStatsParams.(paradigm).targ;
 
-analysisGroups = stimulusLabelGroups.groups;
-[~, group2Analyze] = intersect(epochStatsParams.names, stimulusLabelGroups.names);
-group2Analyze = sort(group2Analyze);
-epochStatsParams.names = epochStatsParams.names(group2Analyze);
-epochStatsParams.targ = epochStatsParams.targ(group2Analyze);
-epochStatsParams.targNames = epochStatsParams.targNames(group2Analyze);
-alpha = epochStatsParams.alpha;
+% For plotIndex
+plotParams.stimParamsFilename = epochStatsParams.stimParamsFilename;
+plotParams.plotLabels = targLabelList;
+plotMat = plotIndex(eventIDs, plotParams);
 
 % Variables
 scrambleCount = 2000;
 preSacc = 250;
 postSacc = 50;
+alpha = epochStatsParams.alpha;
+nonParametric = epochStatsParams.nonParametric;
 
 % Reorganize spikesByEventBinned{event}{chan}{unit} into
 % spikesByUnitBinned{chan}{unit}
@@ -44,90 +45,73 @@ chanCount = length(spikesByEventBinned{1});
 chanUnits = cellfun('length', spikesByEventBinned{1});
 
 % Create index for table
-unitSelVec = nan(size(selTable,1), length(epochStatsParams.targNames));
+[unitSelVec, pValVec] = deal(nan(size(selTable,1), length(targNames)));
 
-for group_i = 1:length(epochStatsParams.targNames)
+for group_i = 1:length(targNames)
   
   % Extract relevant variables for this specific group
-  target = epochStatsParams.targ{group_i};                        % When performing tests, the label from groups which is used.
-  targName = epochStatsParams.targNames{group_i};
-  groups = analysisGroups{group_i};
-  groupLabelsByEvent = epochStatsParams.groupLabelsByImage(:, group_i);
+  targName = targNames{group_i};
+  groupLabelsByEvent = plotMat(:, group_i);
   
   % ID Target vs Non-target events
-  targInd = find(strcmp(groups, target));
-  if ~isempty(targInd)
-    targEventInd = groupLabelsByEvent == targInd;
-    if any(contains(eventIDs, 'monkey')) % hack, since SocVNonSoc comparisons should be only for agent containing stim.
-      agentInd = ~(contains(eventIDs, 'landscape') | contains(eventIDs, 'objects'));
-      nonTargEventInd = ~(groupLabelsByEvent == targInd) & agentInd;
-    else
-      nonTargEventInd = ~(groupLabelsByEvent == targInd) & groupLabelsByEvent ~= 0;    % 0 is not part of the analysis group.
-    end
-    
-    stimTargetInd = double(targEventInd);
-    stimTargetInd(nonTargEventInd) = deal(2);
-    
-    % Initialize matrix of entries for results.
-    trueUnitInd = 1;
-    
-    for chan_i = 1:chanCount
-      for unit_i = 1:chanUnits(chan_i);
+  targInd = max(groupLabelsByEvent);
+  targEventInd = groupLabelsByEvent == targInd;                                     % Find the target index
+  nonTargEventInd = ~(groupLabelsByEvent == targInd) & groupLabelsByEvent ~= 0;     % 0 is not part of the analysis group.
+  
+  stimTargetInd = double(targEventInd);
+  stimTargetInd(nonTargEventInd) = deal(2);
+  
+  % Initialize matrix of entries for results.
+  trueUnitInd = 1;
+  
+  for chan_i = 1:chanCount
+    for unit_i = 1:chanUnits(chan_i);
+      
+      % Group Saccade
+      targSacc = cell(2, 1);
+      
+      for stim_i = find(stimTargetInd)'
         
-        % Group Saccade
-        targSacc = cell(2, 1);
+        % Extract saccades for stim
+        saccadeData = [eyeBehStatsByStim{stim_i}{:}]';
+        saccadetimes = [saccadeData.saccadetimes];
+        saccadeDir = [saccadeData.saccadeDirection]';
         
-        for stim_i = 1:length(spikesByEventBinned)
-          if stimTargetInd(stim_i) ~= 0
-            
-            % Extract saccades for stim
-            saccadeData = [eyeBehStatsByStim{stim_i}{:}]';
-            saccadetimes = [saccadeData.saccadetimes];
-            saccadeDir = [saccadeData.saccadeDirection]';
-            
-            saccKeep = saccadetimes(1,:) > 0;
-            
-            saccadetimes = saccadetimes(:, saccKeep) + psthPad;
-            saccadeDir = saccadeDir(saccKeep);
-            saccadeSpikes = zeros(size(saccadeDir));
-            
-            % For each saccade, gather spikes which occured during that period.
-            for sacc_i = 1:size(saccadetimes,2)
-              %       spikeBin = saccadetimes(1, sacc_i):saccadetimes(2, sacc_i); % Use actual sacc times
-              spikeBin = saccadetimes(1, sacc_i)-preSacc:saccadetimes(1, sacc_i) + postSacc; % use method in paper
-              spikeBin = spikeBin(spikeBin > 0);
-              saccadeSpikes(sacc_i) = sum(sum(spikesByEventBinned{stim_i}{chan_i}{unit_i}(:, spikeBin)));
-            end
-            
-            targSacc{stimTargetInd(stim_i)} = [targSacc{stimTargetInd(stim_i)}; saccadeSpikes];
-            
-          end
+        saccKeep = saccadetimes(1,:) > 0;
+        
+        saccadetimes = saccadetimes(:, saccKeep) + psthPad;
+        saccadeDir = saccadeDir(saccKeep);
+        saccadeSpikes = zeros(size(saccadeDir));
+        
+        % For each saccade, gather spikes which occured during that period.
+        for sacc_i = 1:size(saccadetimes,2)
+          %       spikeBin = saccadetimes(1, sacc_i):saccadetimes(2, sacc_i); % Use actual sacc times
+          spikeBin = saccadetimes(1, sacc_i)-preSacc:saccadetimes(1, sacc_i) + postSacc; % use method in paper
+          spikeBin = spikeBin(spikeBin > 0);
+          saccadeSpikes(sacc_i) = sum(sum(spikesByEventBinned{stim_i}{chan_i}{unit_i}(:, spikeBin)));
         end
         
-        % Do the test on the collected bins
-        if epochStatsParams.nonParametric
-          [pVal, ~, ~] = ranksum(targSacc{1}, targSacc{2});
-        else
-          [~, pVal, ~] = ttest2(targSacc{1}, targSacc{2});
-        end
-        
-        % If sig, save the difference
-        if ~isnan(pVal) && pVal < alpha
-          unitSelVec(trueUnitInd, group_i) = mean(targSacc{1}) - mean(targSacc{2});
-        else
-          unitSelVec(trueUnitInd, group_i) = 0;
-        end
-        
-        trueUnitInd = trueUnitInd + 1;
+        targSacc{stimTargetInd(stim_i)} = [targSacc{stimTargetInd(stim_i)}; saccadeSpikes];
         
       end
+      
+      % Do the test on the collected bins
+      if nonParametric
+        [pValVec(trueUnitInd, group_i), ~, ~] = ranksum(targSacc{1}, targSacc{2});
+      else
+        [~, pValVec(trueUnitInd, group_i), ~] = ttest2(targSacc{1}, targSacc{2});
+      end
+      
+      % Save the difference
+      unitSelVec(trueUnitInd, group_i) = mean(targSacc{1}) - mean(targSacc{2});
+      
+      trueUnitInd = trueUnitInd + 1;
+      
     end
-         
   end
-  
-  
+
   % Add to selTable
-  selTable.(sprintf('saccSel_%s', targName)) = unitSelVec(:, group_i);
-  
+  selTable.(sprintf('saccSel_%s_pVal', targName)) = pValVec(:, group_i);
+  selTable.(sprintf('saccSel_%s_diff', targName)) = unitSelVec(:, group_i);
   
 end

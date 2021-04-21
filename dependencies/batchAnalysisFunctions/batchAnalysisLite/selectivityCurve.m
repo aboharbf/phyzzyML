@@ -55,10 +55,10 @@ for par_i = 2:3 %length(paradigmList)
     figTitle = sprintf('ANOVA on Label %s - Paradigm %s', dataLabels{label_i}, paradigmList{par_i});
     figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.0214    0.2287    0.9615    0.5213]);
     sgtitle(figTitle);
-    AllUnitTrace = zeros();
     
     for factor_i = 1:factorCount
       for unit_i = 1:2
+        
         % Grab one of the unit types
         if unit_i == 1
           unitInd = contains(selTableParadigm.unitType, 'MUA');
@@ -92,16 +92,18 @@ for par_i = 2:3 %length(paradigmList)
           
           % For units with the right length of stretches, visualize them
           [stretchIndMat{unit_i, factor_i}, ind2Keep] = deal(stretchLength >= 6);
-          dataStack = dataStack(ind2Keep,:);
-          stretchLength = stretchLength(ind2Keep,:);
-          [~, ai] = sort(stretchLength);
-          dataStack = dataStack(ai,:);
+          dataStackKeep = dataStack(ind2Keep,:);
+          stretchLengthKeep = stretchLength(ind2Keep,:);
+          [~, ai] = sort(stretchLengthKeep);
+          dataStackKeep = dataStackKeep(ai,:);
           
           % convert to negative log 2 to 5
-          dataStackFinal = -log10(dataStack);
+          dataStackFinal = -log10(dataStackKeep);
           dataStackFinal(dataStackFinal > 5) = 5;
           dataStackFinal(dataStackFinal < 2) = 2;
+          
         else
+          
           % Sort the explained variance in the same way the p value stacks
           % were sorted.
           ind2Keep = stretchIndMat{unit_i, factor_i};

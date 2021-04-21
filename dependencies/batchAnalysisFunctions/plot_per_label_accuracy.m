@@ -28,15 +28,11 @@ sig_bar_pos = params.plot_per_label_acc.sig_bar_pos;
 figStruct = params.figStruct;
 
 figTitle = sprintf('Per Label accuracy trace for %s', analysisStruct.plotTitle);
-if ~isempty(figTitle)
-  title(figTitle)
-  figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
-else
-  figh = figure('units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
-end
+figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
 
 axesh = axes(figh);
 axesh.FontSize = 24;
+title(figTitle)
 
 hold on
 
@@ -199,4 +195,4 @@ figData.lineSTD = correctLineSTD;
 figData.meanTrace = mean(correctLineMean);
 figData.analysisStruct = analysisStruct; % Save the analysisStruct with the figure
 
-saveFigure(pFolder, ['1. ' figTitle], figData, figStruct, [])
+saveFigure(analysisStruct.plotOutDir, ['1. ' figTitle], figData, figStruct, [])

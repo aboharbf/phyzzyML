@@ -21,8 +21,10 @@ allUnitInd = 1;
 pullRates = @(x) x.rates;
 chanCount = length(spikesByEvent{1});
 unitCounts = cellfun('length', spikesByEvent{1});
-
-[labelVsBaseMeans, labelVsBasePVal] = deal(zeros(sum(unitCounts), length(timeLabels(2:end))));
+labelVsBaseline = timeLabels(2:end);
+[labelVsBaseMeans, labelVsBasePVal] = deal(zeros(sum(unitCounts), length(labelVsBaseline)));
+epochSelName = cell(sum(unitCounts), 1);
+epochSelInd = zeros(sum(unitCounts), 1);
 
 for chan_i = 1:chanCount
   for unit_i = 1:unitCounts(chan_i)
@@ -32,10 +34,12 @@ for chan_i = 1:chanCount
     allBaseline = vertcat(allBaseline{:});
     
     % Cycle through epochs which aren't baseline.
-    for epoch_i = 2:length(timeLabels)
+    epochValues = cell(length(labelVsBaseline),1);
+    for epoch_i = 1:length(labelVsBaseline)
 
-      allEpoch = cellfun(pullRates, spikeCountsByImageByEpoch{epoch_i}{chan_i}{unit_i}, 'UniformOutput', false);
+      allEpoch = cellfun(pullRates, spikeCountsByImageByEpoch{strcmp(timeLabels, labelVsBaseline{epoch_i})}{chan_i}{unit_i}, 'UniformOutput', false);
       allEpoch = vertcat(allEpoch{:});
+      epochValues{epoch_i} = allEpoch;
       
       % Run the Test
       if epochStatsParams.nonParametric
@@ -51,13 +55,23 @@ for chan_i = 1:chanCount
       
     end
     
+    % Epoch selectivity index - Single comparison across epochs.
+    tmpVals = labelVsBaseMeans(allUnitInd, :) + mean(allBaseline);
+    [maxEp, maxEpI] = max(tmpVals);
+    epochSelName(allUnitInd) = labelVsBaseline(maxEpI);
+    tmpVals(maxEpI) = NaN;
+    epochSelInd(allUnitInd) = (maxEp - nanmean(tmpVals))/(maxEp + nanmean(tmpVals));    
+
     allUnitInd = allUnitInd + 1;
     
   end
 end
 
+% Add Epoch Selectivity Label and index
+selTable.epochPrefName = epochSelName;
+selTable.epochPrefInd = epochSelInd;
+
 % Add to Sel table
-labelVsBaseline = timeLabels(2:end);
 for col_i = 1:length(labelVsBaseline)
   % Store p values
   tableVarNames = strcat('BaseV', labelVsBaseline{col_i}, '_PVal');
@@ -67,7 +81,6 @@ for col_i = 1:length(labelVsBaseline)
   tableVarNames = strcat('BaseV', labelVsBaseline{col_i}, '_Mean');
   selTable.(tableVarNames) = labelVsBaseMeans(:, col_i);
 end
-
 
 %% Determine Selectivity per Epoch selectivity, comparing target and non-target
 

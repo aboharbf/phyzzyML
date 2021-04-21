@@ -416,7 +416,7 @@ if plotSwitch.subEventAnalysis
 end
 
 epochStatsParams.groupLabelsByImage = groupLabelsByImage;
-selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, analysisGroups.stimulusLabelGroups, eventIDs, refStruct, epochStatsParams, selTable);
+selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochStatsParams, selTable);
 
 % Determine which units are selective for saccades (direction).
 selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
@@ -425,16 +425,12 @@ selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre
 selTable = epochStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochStatsParams);
 
 if ~strcmp(taskData.paradigm, 'familiarFace')
+  selTable = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, selTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
   selTable = epochCats(spikesByEventBinned, eyeDataStruct.saccadeByStim, selTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
 end
 
 save(analysisOutFilename, 'selTable', '-append');
 % error('Done with selTable')
-
-% NeuroGLM time
-% if plotSwitch.neuroGLM
-%   neuroGLMStruct = runNeuroGLM(spikesByEvent, lfpByEvent, taskData, trialIDsByEvent, catIndStruct, eyeDataStruct, eyeBehStatsByStim, eyeInByEvent, neuroGLMParams);
-% end
 
 %% Plotting and further analyses
 

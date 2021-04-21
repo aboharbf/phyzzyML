@@ -1,4 +1,4 @@
-function [selTable] = epochCats(spikesByEvent, saccadeByStim, selTable, eventIDs, paradigm, psthParams, params)
+function [selTable] = epochCatsSlidingWindow(spikesByEvent, saccadeByStim, selTable, eventIDs, paradigm, psthParams, params)
 % This function performs a sliding window ANOVA, taking into account
 % Social Label, Category Labe, and eye behavior label. It adds columns to
 % selTable corresponding to the p-Val for each factor in each bin, as well
@@ -8,10 +8,9 @@ stimParamsFilename = params.stimParamsFilename;
 preStimSpikePad = (psthParams.movingWin(1)/2) + psthParams.psthPre;
 preStimEyePad = psthParams.psthPre;
 totalTime = psthParams.psthImDur + psthParams.psthPost;
-includeTime = false;
 
-binSize = 100;
-binStep = binSize;
+binSize = params.binSize;
+binStep = params.binStep;
 alpha = params.alpha;                           % alpha value to set while looking for units.
 
 % Simple variables necessary for later
@@ -135,7 +134,7 @@ for group_i = 1:length(comparisonLabel)
   trialsTotal = sum(trialsPerCat);
   
   timeBin = ones(trialsTotal, size(timeBinSpikes,1)); 
-  timeBin = timeBin .* [1:size(timeBinSpikes,1)];
+  timeBin = timeBin .* [1:127];
   timeBin = timeBin(:);
   
   % Labels for category
@@ -144,60 +143,46 @@ for group_i = 1:length(comparisonLabel)
     labelNum{lab_i} = repmat(lab_i, [trialsPerCat(lab_i), 1]);
   end
   labelNum = vertcat(labelNum{:});
-  labelNum = repmat(labelNum, [size(spikesPerLabel,2), 1]);
-
-  
+   
   % Run the comparison
-  if includeTime
-    pMat = nan(size(spikesPerLabel,3), 9);
-    explainedVar = nan(size(spikesPerLabel,3), 9);
-    totalError = nan(size(spikesPerLabel,3), 3);
-  else
-    pMat = nan(size(spikesPerLabel,3), 5);
-    explainedVar = nan(size(spikesPerLabel,3), 5);
-    totalError = nan(size(spikesPerLabel,3), 3);    
-  end
-  
+  pMat = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 5);
+  explainedVar = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 5);
+  totalError = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 3);
+
   % Add in Social vs non-social to make a nested model
   socLabelNum = (labelNum >= 5) + 1;
-  
-  
-  for unit_i = 1:size(spikesPerLabel,3)
-    % Find spikes for this epoch and unit
-    spikeCounts = spikesPerLabel(:, :, unit_i);
-    spikeCounts = vertcat(spikeCounts{:});
-    
-    % Find eye movements for this epoch.
-    labelEye = vertcat(eyePerLabel{:, :});
-    
-    % Perform Test
-    if includeTime
-      [pMat(unit_i, :), B, ~, ~] = anovan(spikeCounts, [{stimCatLabels(socLabelNum)}; {stimLabels(labelNum)}; {eyeLabels(labelEye)} ; timeBin], 'model', 'interaction', 'nested', ...
-        [0 0 0 0; 1 0 0 0; 0 0 0 0; 0 0 0 0], 'display', 'off', 'varnames', {'SocialLabel', 'Category', 'Eye', 'Time'}, 'alpha', alpha);
-    else
-      [pMat(unit_i, :), B, ~, ~] = anovan(spikeCounts, [{stimCatLabels(socLabelNum)}; {stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', 'nested', ...
-        [0 0 0; 1 0 0; 0 0 0], 'display', 'off', 'varnames', {'SocialLabel', 'Category', 'Eye'}, 'alpha', alpha);
+ 
+  for ep_i = 1:size(spikesPerLabel,2);
+    for unit_i = 1:size(spikesPerLabel,3)
+      % Find spikes for this epoch and unit
+      spikeCounts = spikesPerLabel(:, ep_i, unit_i);
+      spikeCounts = vertcat(spikeCounts{:});
+      
+      % Find eye movements for this epoch.
+      labelEye = vertcat(eyePerLabel{:, ep_i});
+      
+      % Perform Test
+      [pMat(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{stimCatLabels(socLabelNum)}; {stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', 'nested', ...
+        [0 0 0; 1 0 0; 0 0 0;], 'display', 'off', 'varnames', {'SocialLabel', 'Category', 'Eye'}, 'alpha', alpha);
+      
+      % labelsUsed
+      labelsForTable = B(2:end-2, 1);
+      labelsForTable = strrep(labelsForTable, '(', '_');
+      labelsForTable = strrep(labelsForTable, ')', '_');
+      labelsForTable = strrep(labelsForTable, '*', '_');
+      
+      SS_PerFactor = [B{2:end, 2}];
+      
+      % Store the explained variance of the total variance for each factor.
+      for SS_i = 1:length(labelsForTable)
+        explainedVar(unit_i, ep_i, SS_i) = SS_PerFactor(SS_i)/SS_PerFactor(end);
+      end
+      
+      totalError(unit_i, ep_i, 1) = sum(SS_PerFactor(1:end-2));
+      totalError(unit_i, ep_i, 2) = SS_PerFactor(end-1);
+      totalError(unit_i, ep_i, 3) = SS_PerFactor(end);
+
     end
-    
-    % labelsUsed
-    labelsForTable = B(2:end-2, 1);
-    labelsForTable = strrep(labelsForTable, '(', '_');
-    labelsForTable = strrep(labelsForTable, ')', '_');
-    labelsForTable = strrep(labelsForTable, '*', '_');
-    
-    SS_PerFactor = [B{2:end, 2}];
-    
-    % Store the explained variance of the total variance for each factor.
-    for SS_i = 1:length(labelsForTable)
-      explainedVar(unit_i, SS_i) = SS_PerFactor(SS_i)/SS_PerFactor(end);
-    end
-    
-    totalError(unit_i, 1) = sum(SS_PerFactor(1:end-2));
-    totalError(unit_i, 2) = SS_PerFactor(end-1);
-    totalError(unit_i, 3) = SS_PerFactor(end);
-    
-%     save('allBinData', 'pMat', 'explainedVar', 'totalError')
-    
   end
   
   % Plotting

@@ -5,8 +5,8 @@ function NeuralDecodingTBLite(spikePathBank, params)
 
 % IMPORTANT SWITCHES 
 expandLabelPerSplit = 1;  % Divides the number of labels per split by 3.
-swap2libsvm = 0;          % Swaps whatever classifier is defined in the file to libsvm.
-dontZScoreFeatures = 0;   % Turns off the Z scoring
+swap2libsvm = 1;          % Swaps whatever classifier is defined in the file to libsvm.
+dontZScoreFeatures = 1;   % Turns off the Z scoring
 
 % Add the path to the NB
 addpath(genpath(params.NDTPath));
