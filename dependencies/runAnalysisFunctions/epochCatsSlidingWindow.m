@@ -133,10 +133,6 @@ for group_i = 1:length(comparisonLabel)
   trialsPerCat = cellfun('length', spikesPerLabel(:, 1, 1));
   trialsTotal = sum(trialsPerCat);
   
-  timeBin = ones(trialsTotal, size(timeBinSpikes,1)); 
-  timeBin = timeBin .* [1:127];
-  timeBin = timeBin(:);
-  
   % Labels for category
   labelNum = cell(length(trialsPerCat),1);
   for lab_i = 1:stimLabelCount

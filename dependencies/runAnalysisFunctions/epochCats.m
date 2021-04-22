@@ -222,12 +222,12 @@ for group_i = 1:length(comparisonLabel)
   end
   
   % Add to the output table
-  pValPerBin = mat2cell(pMat, ones(size(pMat,1), 1), size(pMat,2), ones(size(pMat,3), 1));
-  ExpVarPerBin = mat2cell(explainedVar, ones(size(explainedVar,1), 1), size(explainedVar,2), ones(size(explainedVar,3), 1));
+%   pValPerBin = mat2cell(pMat, ones(size(pMat,1), 1), size(pMat,2), ones(size(pMat,3), 1));
+%   ExpVarPerBin = mat2cell(explainedVar, ones(size(explainedVar,1), 1), size(explainedVar,2), ones(size(explainedVar,3), 1));
   
   for tab_i = 1:length(labelsForTable)
-    selTable.([labelsForTable{tab_i} 'pVal']) = pValPerBin(:, :, tab_i);
-    selTable.([labelsForTable{tab_i} 'VarExp']) = ExpVarPerBin(:, :, tab_i);
+    selTable.([labelsForTable{tab_i} 'pVal']) = pMat(:, tab_i);
+    selTable.([labelsForTable{tab_i} 'VarExp']) = explainedVar(:, tab_i);
   end
     
 end

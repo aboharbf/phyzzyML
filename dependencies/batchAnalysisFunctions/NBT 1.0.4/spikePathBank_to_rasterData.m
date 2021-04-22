@@ -38,6 +38,7 @@ selTable = expandSelTableComboEvents(selTable, params);
 selTable = replaceChanNum_1123(selTable);
 
 vars2Add = [selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'Sel_')), 'fixationSel', 'saccSel'];
+countPerVar = zeros(length(vars2Add),1);
 
 for run_i = 1:length(runList)
   
@@ -137,7 +138,8 @@ for run_i = 1:length(runList)
     % Units were not labeled as expected. Not every channel has unsorted
     % activity.
     chLabel = channels(chan_i);
-    ULabelList = selTableRows.unitType(strcmp(selTableRows.channel, chLabel));
+    selTableChRows = selTableRows(strcmp(selTableRows.channel, chLabel), :);
+    ULabelList = selTableChRows.unitType;
     
     for unit_i = 1:length(runData.spikesByEventBinned{1}{chan_i})
       
@@ -155,11 +157,15 @@ for run_i = 1:length(runList)
       
       rasterFileName = strjoin([runList(run_i), chLabel, ULabel], '_');
       
-      % use generated label to look up eventData, subEvent significance.
-      gridRow = selTableRows(unit_i, :);
+      % use selTable to add selectivities for individual events.
+      gridRow = selTableChRows(unit_i, :);
       for event_i = 1:length(vars2Add)
+        
         assert(~isempty(gridRow.(vars2Add{event_i}) ~= 0), 'Error found')
-        raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) ~= 0;
+        nonZeroEntries = gridRow.(vars2Add{event_i}) ~= 0;
+        raster_site_info.(vars2Add{event_i}) = nonZeroEntries;
+        countPerVar(event_i) = countPerVar(event_i) + sum(nonZeroEntries);
+        
       end
       
       % If desired, remove data and accompanying labels if the labels are

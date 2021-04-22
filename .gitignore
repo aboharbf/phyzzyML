@@ -16,3 +16,5 @@ genStatsDev.mat
 tmpDevFile.mat
 subEventAnalysisTesting.mat
 subEventAnalysisTesting_naturalSocial.mat
+allBinData.mat
+slidingWindowData.mat

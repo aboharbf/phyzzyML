@@ -401,7 +401,7 @@ if plotSwitch.eyeStimOverlay
 end
 
 % Initalize a table which the 3 sensitivity functions will use.
-selTable = initializeSelTable(channelUnitNames, channelNames, dateSubject, runNum, gridHole, recDepth);
+[selTable, anovaTable] = deal(initializeSelTable(channelUnitNames, channelNames, dateSubject, runNum, gridHole, recDepth));
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
 if plotSwitch.subEventAnalysis
@@ -425,12 +425,10 @@ selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre
 selTable = epochStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochStatsParams);
 
 if ~strcmp(taskData.paradigm, 'familiarFace')
-  selTable = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, selTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
-  selTable = epochCats(spikesByEventBinned, eyeDataStruct.saccadeByStim, selTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
+  anovaTable = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
 end
 
-save(analysisOutFilename, 'selTable', '-append');
-% error('Done with selTable')
+save(analysisOutFilename, 'selTable', 'anovaTable', '-append');
 
 %% Plotting and further analyses
 
