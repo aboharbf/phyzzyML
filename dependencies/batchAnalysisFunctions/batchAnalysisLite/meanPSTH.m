@@ -9,7 +9,7 @@ meanPSTHStruct = struct();
 
 % Step 1 - Unpack variables, generate those needed for plotting.
 allStimuliVec = unique(vertcat(spikePathBank.stimuli{:}));
-allCategoryVec = unique(vertcat(spikePathBank.categories{:}));
+allCategoryVec = unique(horzcat(spikePathBank.categories{:}));
 groupingType = {'Unsorted', 'Unit', 'MUA'};
 
 % Make stimPresCount for stimuli and categories
@@ -28,7 +28,7 @@ stimCatPresCounts = sum(logical(small2BigInd),2);
 stimCatCounts = sum(logical(small2BigIndCat),2);
 
 stimCatPresCounts = [stimCatPresCounts; stimCatCounts];
-stimCatVec = [allStimuliVec; allCategoryVec];
+stimCatVec = [allStimuliVec; allCategoryVec'];
 params.meanPSTHParams.topStimPresThreshold = 1;
 
 % Step 2 - modify PSTHes - rewardEpoch removal, firstXRuns, animations,

@@ -1,6 +1,5 @@
 function selCount(spikePathBank, batchAnalysisParams)
 % A Function to tally across processed runs and the 'selTable' produced.
-runNames = extractAfter(spikePathBank.Properties.RowNames, 'S');
 
 % Collect unit selectivity
 [selTablePerRun] = spikePathLoad(spikePathBank, {'selTable'}, batchAnalysisParams.spikePathLoadParams);
@@ -15,11 +14,10 @@ selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
 
 paradigmList = unique(spikePathBank.paradigmName);
 
-for par_i = 2:3 %length(paradigmList)
+for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   spikePathBankParadigm = spikePathBank(pInd,:);
-  runNamesParadigm = runNames(pInd,:);
   selTableParadigmPerRun = selTablePerRun(pInd);
   
   % Commented code below is for checking specific stimulus sets within
@@ -47,15 +45,21 @@ for par_i = 2:3 %length(paradigmList)
   % Expand the table with combined events.
   selTableParadigm = expandSelTableComboEvents(selTableParadigm, batchAnalysisParams.selParam);
   
-  % Make bar plots per Epoch
-  selectivityPerEpochBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  % Make a bar plot and distribution describing epoch preferences (Activity
+  % above baseline during an epoch).
+  EpochPreferenceBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
-  % Make bar plots for fixed events
+  % Make bar plots per Epoch Selectivity - comparing an rates within an
+  % epoch across categories. Either Barplots or Venn Diagram.
+  selectivityPerEpochBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  selectivityPerEpochVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  
+  % Make bar plots for fixed events (Reward delivery, Fixation)
   selectivityPerEventBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
   % Now, for each unitType and selectivity, map out gridHole contents.
   batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
-  selectivityPerGridHole(spikePathBankParadigm, batchAnalysisParams.selParam, selTableParadigm)
+%   selectivityPerGridHole(spikePathBankParadigm, batchAnalysisParams.selParam, selTableParadigm)
 
 end
 

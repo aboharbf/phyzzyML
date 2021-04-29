@@ -1,35 +1,136 @@
-function [dirList] = buildRunList(dataDir, tag)
+function [dirList] = buildRunList(dataDir, tag, paradigms2Analyze)
 % Constructs the runList variable for the processRunBatch function based on
 % the selection of a directory and a tag, which both denotes the directory
 % contents of interest but also changes output formating.
 
-filesOfInterest = dir([dataDir filesep '**' filesep '*.' tag]);
+filesOfInterest = dir([dataDir filesep '**' filesep '*.nev']);
+paradigmListFile = fullfile(dataDir, 'paradigmList.mat');
 
-%Allows for customization of list
-filesOfInterest = uiDirChoose(filesOfInterest);
-
- switch tag
-  case 'nev'
-    %Find the name in the filename.
-    [~,B,~] = fileparts(filesOfInterest(1).folder);
-    nameInd = regexp(B,'\D');
-    %Extract folder names and run names.
-    fileNames = {filesOfInterest.name}';
-    dirNames = extractBetween(fileNames,1,max(nameInd));
-    runNames = extractBetween(fileNames,max(nameInd)+1,'.');
-    tmpDirName = unique(dirNames);
-    %Cycle through those folders
-    for ii = 1:length(tmpDirName)
-      runInd = strcmp(dirNames, tmpDirName{ii});
-      runListBlock = {tmpDirName{ii}, {runNames{runInd}}};
-      dirList_tmp{ii} = runListBlock;
+if ~exist(paradigmListFile, 'file') && ~isempty(paradigms2Analyze)
+  MLfilesOfInterest = fullfile({filesOfInterest.folder}, {filesOfInterest.name})';
+  MLfilesOfInterest = extractBefore(MLfilesOfInterest, '.');
+  MLfilesOfInterest = strcat(MLfilesOfInterest, '.bhv2');
+  
+  % Identify the monkeyLogic output files
+  for ii = 1:length(MLfilesOfInterest)
+    if ~exist(MLfilesOfInterest{ii}, 'file')
+      MLfilesOfInterest{ii} = [extractBefore(MLfilesOfInterest{ii}, '.bhv2'), '.mat'];
     end
-  case 'fig'
-    dirList = unique({filesOfInterest.folder}');
-    %Returns directories where .fig files are located, used in conjunction
-    %with the 'createSummaryDoc' function.
+  end
+  
+  % Identify the paradigm
+  paradigmList = cell(length(MLfilesOfInterest),1);
+  parfor ii = 1:length(MLfilesOfInterest)
+    [A, ~, ~] = mlread(MLfilesOfInterest{ii});
+    
+    if isfield(A(1).VariableChanges, 'stimFolder')
+      
+      paradigmFolder = A(1).VariableChanges.stimFolder{end};
+      if contains(paradigmFolder, 'headTurnCon')
+        paradigmList{ii} = 'headTurnCon';
+      elseif contains(paradigmFolder, 'headTurnIso')
+        paradigmList{ii} = 'headTurnIso';
+      elseif contains(paradigmFolder, 'SocVNonSoc')
+        paradigmList{ii} = 'naturalSocial';
+      elseif contains(paradigmFolder, 'Familiar')
+        paradigmList{ii} = 'familiarFace';
+      end
+      
+    else
+      
+      [~, fileName] = fileparts(MLfilesOfInterest{ii});
+      switch fileName(1:4)
+        case '2018'
+          paradigmList{ii} = 'naturalSocial_old';
+        case '2019'
+          
+          stimName = {A(1).TaskObject.Attribute.Name}; %Pull the string containing the stimulus name.
+          stimInd = find(~strcmp(stimName, 'Fixation Point'));
+          stimInRun = cell(length(A),1);
+          for stim_i = 1:length(A)
+            stimInRun{stim_i} = A(stim_i).TaskObject.Attribute(stimInd).Name;
+          end
+          
+          stimInRun = extractBefore(stimInRun, '.avi');
+          
+          % Tag for old animated stimuli
+          if any(strcmp(string(cellfun(@(x) x(end), stimInRun)), "A"))
+            paradigmList{ii} = 'animatedSocial_old';
+          elseif all(contains(stimInRun, 'scramble'))
+            paradigmList{ii} = 'scrambles';
+          elseif any(contains(stimInRun, 'monkey'))
+            paradigmList{ii} = 'naturalSocial_old';
+          end
+          
+        case '2020'
+          % Before the addition of the paradigm folder
+          
+          stimName = {A(1).TaskObject.Attribute.Name}; %Pull the string containing the stimulus name.
+          stimInd = find(~strcmp(stimName, 'Fixation Point'));
+          stimInRun = cell(length(A),1);
+          for stim_i = 1:length(A)
+            stimInRun{stim_i} = A(stim_i).TaskObject.Attribute(stimInd).Name;
+          end
+          
+          if any(contains(stimInRun, 'headTurnCon'))
+            paradigmList{ii} = 'headTurnCon';
+          elseif any(contains(stimInRun, 'headTurnIso'))
+            paradigmList{ii} = 'headTurnIso';
+          elseif any(contains(stimInRun, 'monkey'))
+            paradigmList{ii} = 'naturalSocial';
+          elseif any(contains(stimInRun, 'Barney'))
+            paradigmList{ii} = 'familiarFace';
+          end
+          
+      end
+      
+    end
+  end
+  
+  save(paradigmListFile, 'paradigmList', 'filesOfInterest')
 end
-dirList = dirList_tmp;
+
+% If Paradigm, shift the cells
+if strcmp(tag, 'paradigm')
+  paradigmListStruct = load(paradigmListFile);
+  
+  if length(paradigmListStruct.filesOfInterest) ~= length(filesOfInterest)
+    delete(paradigmListFile)
+    error('Paradigm list deleted due to incompleteness, rerun')
+  end
+  
+  paradigmList = paradigmListStruct.paradigmList;
+  
+  run2KeepInd = false(length(filesOfInterest),1);
+  for par_i = 1:length(paradigms2Analyze)
+    run2KeepInd = run2KeepInd | strcmp(paradigmList, paradigms2Analyze{par_i});
+  end
+  filesOfInterest = filesOfInterest(run2KeepInd);
+  
+else
+  
+  %Allows for customization of list
+  filesOfInterest = uiDirChoose(filesOfInterest);  
+  
+end
+
+%Find the name in the filename.
+[~,B,~] = fileparts(filesOfInterest(1).folder);
+nameInd = regexp(B,'\D');
+%Extract folder names and run names.
+fileNames = {filesOfInterest.name}';
+dirNames = extractBetween(fileNames,1,max(nameInd));
+runNames = extractBetween(fileNames,max(nameInd)+1,'.');
+tmpDirName = unique(dirNames);
+
+%Cycle through those folders
+dirList = cell(length(tmpDirName),1);
+for ii = 1:length(tmpDirName)
+  runInd = strcmp(dirNames, tmpDirName{ii});
+  runListBlock = {tmpDirName{ii}, {runNames{runInd}}};
+  dirList{ii} = runListBlock;
+end
+
 end
 
 function filesOfInterestUpdated = uiDirChoose(filesOfInterest)

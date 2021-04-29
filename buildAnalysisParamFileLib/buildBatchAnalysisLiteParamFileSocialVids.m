@@ -48,6 +48,7 @@ calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
 plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
@@ -61,7 +62,7 @@ spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, n
 
 preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData'}; %Variables extracted from preprocessedData.mat
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
-                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'psthByCategory', ...
+                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'anovaTable', 'psthByCategory', ...
                                   'psthErrByCategory', 'gridHole', 'recDepth'}; %Variables extracted from analyzedData.mat
 AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
@@ -87,14 +88,19 @@ stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
 % selParam for function below - move to paramFile eventually.
 selParam.outputDir =  fullfile(outputDir,'selCount');
-selParam.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socIntSel_any', 'headTurnSel_any'};
+selParam.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socVNonSocSel_any'};
 selParam.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
-  {'socIntSel_stimOnset', 'socIntSel_stimPres', 'socIntSel_reward'}, {'headTurn_baseDiff_stimPres', 'headTurn_baseDiff_reward'}};
+  {'socVNonSocSel_stimOnset', 'socVNonSocSel_stimPres', 'socVNonSocSel_stimWhole', 'socVNonSocSel_reward'}};
 selParam.figStruct = figStruct;
-selParam.selCheck = {'socInt', 'headTurn', 'fullModel', 'turnToward'};
+
+selParam.NaturalSocial.selCheck = {'socVNonSoc', 'broadCategories'};
+selParam.headTurnCon.selCheck = {'socVNonSoc', 'broadCategories'};
+selParam.headTurnIso.selCheck = {'headTurn', 'fullModel', 'turnToward'};
+
 selParam.UnitTypes = {'MUA', digitsPattern};
+
 selParam.UnitTypePlot = {'MUA', 'Units'};
-selParam.colNamePoss = {'stimOnset','stimPres', 'stimWhole', 'reward'};
+selParam.colNamePoss = {'stimOnset','stimPres', 'reward'};
 selParam.colNamePlotAll = {'stim Onset','stim Presentation', 'stim Whole Presentation', 'Reward'};
 
 meanPSTHParams.spikePathLoadParams = spikePathLoadParams;
@@ -275,10 +281,9 @@ NDTParams.spikeToRasterParams.subEventBatchStructPath = subEventBatchStructPath;
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
 % spikeDataBank to rasterData Parameters.
-NDTParams.spikeToRasterParams.fixShorten = 400; % Push the start of the data collected an additional X past the start (not including the ITI). No point in decoding full fixation.
-NDTParams.spikeToRasterParams.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socIntSel_any', 'headTurnSel_any'};
-NDTParams.spikeToRasterParams.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
-  {'socIntSel_stimOnset', 'socIntSel_stimPres', 'socIntSel_reward'}, {'headTurn_baseDiff_stimPres', 'headTurn_baseDiff_reward'}};
+NDTParams.spikeToRasterParams.fixShorten = 0; % Push the start of the data collected an additional X past the start (not including the ITI). No point in decoding full fixation.
+NDTParams.spikeToRasterParams.comboEvents = selParam.comboEvents;
+NDTParams.spikeToRasterParams.comboSubEvents = selParam.comboSubEvents;
 
 % Paradigm specific
 NDTParams.spikeToRasterParams.NaturalSocial.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.

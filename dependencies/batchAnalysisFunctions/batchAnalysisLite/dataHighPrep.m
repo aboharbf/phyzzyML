@@ -13,7 +13,7 @@ end
 
 paradigmList = unique(spikePathBank.paradigmName);
 
-for par_i = 2:length(paradigmList)
+for par_i = 1:length(paradigmList)
   % Pull the fraction of the table relevant to the paradigm
   parRunInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   spikePathBankParadigm = spikePathBank(parRunInd,:);
@@ -141,7 +141,6 @@ for par_i = 2:length(paradigmList)
         dhStruct(totalTrialCount).epochStarts = epochStarts;
         dhStruct(totalTrialCount).epochColors = colors;
         
-        
         totalTrialCount = totalTrialCount + 1;
         
       end
@@ -154,10 +153,6 @@ for par_i = 2:length(paradigmList)
     save(fullfile(saveDir, dbStructFileName), 'dhStruct')
     
   end
-  
-
- 
-  
   
 end
 

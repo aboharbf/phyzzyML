@@ -50,7 +50,4 @@ for par_i = 1:length(paradigm2Compare)
     
 end
 
-
-
-
 end

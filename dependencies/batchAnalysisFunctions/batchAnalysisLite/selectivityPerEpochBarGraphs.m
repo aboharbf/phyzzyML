@@ -1,21 +1,32 @@
-function selectivityPerEpochBarGraphs(selTableParadigm, paradigm, barPlotParams)
+function selectivityPerEpochBarGraphs(selTable, paradigm, params)
+% a function which grabs counts of determined selectivities from the
+% selTable passed in, and generates bar plots for the different entries on
+% a per epoch basis (stim early, late, and reward). columns are generated
+% during runAnalysis > epochStats, and it is an epoch based ANOVA (as
+% opposed to the sliding scale, which is more granular).
 
-selCheck = barPlotParams.selCheck;
-UnitTypes = barPlotParams.UnitTypes;
-UnitTypePlot = barPlotParams.UnitTypePlot;
-colNamePoss = barPlotParams.colNamePoss;
-colNamePlotAll = barPlotParams.colNamePlotAll;
+% Inputs:
+% - params, containing data which is extracted below.
+% - paradigm, a string denoting the paradigm (must match a struct in
+% params.
+
+selCheck = params.(paradigm).selCheck;
+UnitTypes = params.UnitTypes;
+UnitTypePlot = params.UnitTypePlot;
+colNamePoss = params.colNamePoss;
+colNamePlotAll = params.colNamePlotAll;
+alpha = 0.01;                             % This is the alpha from the previous processRunBatch. Change it accordingly.
 
 % Generate bar plots showing total counts in each category
 for unitType_i = 1:length(UnitTypes)
   % Filter the table per unit
-  unitInd = contains(selTableParadigm.unitType, UnitTypes{unitType_i});
-  selTableParadigmUnit = selTableParadigm(unitInd, :);
+  unitInd = contains(selTable.unitType, UnitTypes{unitType_i});
+  selTableParadigmUnit = selTable(unitInd, :);
   
   if ~isempty(selTableParadigmUnit)
     % Plots 1 - fixation/saccade
     unitCount = sum(unitInd);
-    chanceUnitCount = round(sum(unitCount)*0.025);
+    chanceUnitCount = round(sum(unitCount)*(alpha/2));
     
     for sel_i = 1:length(selCheck)
       % Identify which columns were part of this analysis
@@ -26,81 +37,48 @@ for unitType_i = 1:length(UnitTypes)
         % reward at most).
         
         % Create the groups + their intersections
-        selTableParadigmUnitCat = selTableParadigmUnit{:, columns2Combine};
         selTableParadigmVarNames = selTableParadigmUnit.Properties.VariableNames(columns2Combine);
         colNames = extractAfter(selTableParadigmVarNames, [selCheck{sel_i} 'Sel_']);
-        [~, A] = intersect(colNamePoss, colNames);
+        %         colNames = colNames(~(strcmp(colNames, 'stimWhole') | strcmp(colNames, 'any'))); % Don't include these.
+        [~, A] = intersect(colNames, colNamePoss);
         A = sort(A);
-        colNames = colNames(A);
         colNamesPlot = colNamePlotAll(A);
+        selTableParadigmVarNames = selTableParadigmVarNames(A);
+        sigInd = selTableParadigmUnit{:, selTableParadigmVarNames};
         
-        colNamesPlot = colNamesPlot(~contains(colNames' ,'stimWhole'));
-        colNames = colNames(~contains(colNames' ,'stimWhole'));
-        
-        % make the names easier
-        for col_i = 1:length(colNames)
-          eval(sprintf('%s = selTableParadigmUnit.%s;', colNames{col_i}, selTableParadigmVarNames{col_i}));
-          eval(sprintf('%s(isnan(%s)) = 0;', colNames{col_i}, colNames{col_i}));
+        if iscell(sigInd)
+          
+          % Find unique labels and create a 3rd dimension for each.
+          uniqueLabels = unique(sigInd(:));
+          sigIndTmp = zeros([size(sigInd), length(uniqueLabels)]);
+          for lab_i = 1:length(uniqueLabels)
+            sigIndTmp(:, :, lab_i) = strcmp(sigInd, uniqueLabels(lab_i));
+          end
+          
+          % Get rid of 'None'.
+          sigInd = sigIndTmp(:, :, ~strcmp(uniqueLabels, 'None'));
+          uniqueLabels = uniqueLabels(~strcmp(uniqueLabels, 'None'));
+          
+          % Make the dataMat
+          dataMat = squeeze(sum(sigInd,1));
+          legendLabels = uniqueLabels;
+          
+        else
+          % Get rid of the NaNs.
+          sigInd(isnan(sigInd)) = 0;
+%           sigInd = logical(sigInd);
+          
+          dataMat = [sum(sigInd > 0)',sum(sigInd < 0)'];
+          atleastOne = sum(logical(sum(sigInd ~= 0, 2)));
+          
+          legendLabels = {'Increased firing', 'decreased firing'};
+          
         end
-        
-        % Get rid of redundant elements
-        
-        
-        % Generate Data structure
-        switch length(colNames)
-          case 3
-            dataMat = [[sum(stimOnset > 0), sum(stimOnset < 0)];...
-              [sum(stimPres > 0), sum(stimPres < 0)];...
-              [sum(reward > 0), sum(reward < 0)]];
-            
-            atleastOne = sum(stimOnset | stimPres | reward);
-            
-%             dataMat = [[sum(stimOnset > 0), sum(stimOnset < 0)];...
-%               [sum(stimPres > 0), sum(stimPres < 0)]];
-%             colNamesPlot = colNamesPlot(1:2);
-%             
-%             atleastOne = sum(stimOnset | stimPres);
-          case 2
-            dataMat = [[sum(stimPres > 0), sum(stimPres < 0)];...
-              [sum(reward > 0), sum(reward < 0)]];
-            
-            atleastOne = sum(stimPres | reward);
-            
-        end
-        
+                
         % Plot
         figTitle = sprintf('%s activity selective for %s during %s (%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, paradigm, atleastOne);
-        figH = figure('Name', figTitle, 'NumberTitle','off','units','normalized', 'outerposition', [.3 .3 .4 .6]);
-        
-        %       dataMat = dataMat(~strcmp(colNamesPlot, 'stim Whole Presentation'), :);
-        %       colNamesPlot = colNamesPlot(~strcmp(colNamesPlot, 'stim Whole Presentation'));
-        
-        X = categorical(colNamesPlot);
-        X = reordercats(X,colNamesPlot);
-        barh = bar(X, dataMat);
-        for bar_i = 1:length(barh)
-          xtips1 = barh(bar_i).XEndPoints;
-          ytips1 = barh(bar_i).YEndPoints;
-          labels1 = string(barh(bar_i).YData);
-          labels2 = string(round(barh(bar_i).YData/unitCount,3));
-          labels3 = strcat(labels1, '(', labels2, ')');
-          
-          text(xtips1, ytips1, labels3, 'HorizontalAlignment', 'center', 'VerticalAlignment','bottom')
-        end
-        YlimN = figH.Children.YLim;
-        figH.Children.YLim(2) = YlimN(2) * 1.2;
-        legend('Increased firing', 'decreased firing', 'Location','northeastoutside');
-        xlim(xlim());
-        hold on
-        chanceLine = plot([X(1) X(end)], [chanceUnitCount chanceUnitCount], 'Color', 'red', 'LineStyle', '--', 'linewidth', 3);
-        chanceLine.DisplayName = 'Chance (2.5%)';
-        figH.Children(2).FontSize = 16;
-        xlabel('Epoch Compared')
-        ylabel('Unit Count')
-        
-        %       title(figTitle);
-        
-        saveFigure(barPlotParams.outputDir, figTitle, [], barPlotParams.figStruct, [])
+        createBarPlotWithChanceLine(colNamesPlot, dataMat, alpha, unitCount, figTitle, legendLabels)
+        saveFigure(params.outputDir, figTitle, [], params.figStruct, [])
         
       end
     end

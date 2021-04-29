@@ -3,7 +3,10 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-runNum = '002';
+% headTurnCon Test - 20201115Mo001
+% naturalSocial Test - 20201117Mo001
+
+runNum = '001';
 dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
@@ -448,17 +451,20 @@ epochStatsParams.alpha = 0.01;                           % alpha value to set wh
 epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
 epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'stimWhole', 'reward'};    
 
-epochStatsParams.naturalSocial.targNames = {'socVNonSoc'};
-epochStatsParams.naturalSocial.targ = {{'agents', 'socialInteraction'}};
-epochStatsParams.naturalSocial.targetEpochs = [[0 0 1 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.naturalSocial.targNames = {'socVNonSoc', 'broadCategories'};
+epochStatsParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'objects', 'idle', 'goalDirected', 'socialInteraction'}};
+epochStatsParams.naturalSocial.targetEpochs = [0 0 1 1 1 1; 0 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.naturalSocial.oneVsAll = [1 0];
 
-epochStatsParams.headTurnCon.targNames = {'socVNonSoc'};
-epochStatsParams.headTurnCon.targ = {{'agents', 'socialInteraction'}};
-epochStatsParams.headTurnCon.targetEpochs = [[0 0 1 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.headTurnCon.targNames = {'socVNonSoc', 'broadCategories'};
+epochStatsParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'objects', 'idle', 'goalDirected', 'socialInteraction'}};
+epochStatsParams.headTurnCon.targetEpochs = [0 0 1 1 1 1; 0 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.headTurnCon.oneVsAll = [1 0];
 
 epochStatsParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
 epochStatsParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};
 epochStatsParams.headTurnIso.targetEpochs = [[0 0 1 1 1 1]; [0 0 0 1 1 1]; [0 0 1 1 1 1]; [0 0 0 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.headTurnIso.oneVsAll = [1 1 1 1];
 
 % model using ANOVAs to detect encoding of variable features.
 epochCatsParams.stimParamsFilename = stimParamsFilename;
@@ -466,14 +472,17 @@ epochCatsParams.binSize = 150;
 epochCatsParams.binStep = 25;
 epochCatsParams.alpha = 0.01;                           % alpha value to set while looking for units.
 
-epochCatsParams.naturalSocial.comparisonLabel = {'category', 'socInt'};
-epochCatsParams.naturalSocial.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected'}, {'socialInteraction', 'agents'}};
+epochCatsParams.naturalSocial.comparisonLabel = {'broadCategory', 'socInt'};
+epochCatsParams.naturalSocial.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}};
+epochCatsParams.naturalSocial.nestedModel = [false true];
 
-epochCatsParams.headTurnCon.comparisonLabel = {'category', 'socInt'};
-epochCatsParams.headTurnCon.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected'}, {'socialInteraction', 'agents'}};
+epochCatsParams.headTurnCon.comparisonLabel = {'broadCategory', 'socInt'};
+epochCatsParams.headTurnCon.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}};
+epochCatsParams.headTurnCon.nestedModel = [false true];
 
 epochCatsParams.headTurnIso.comparisonLabel = {'Model', 'headTurn', 'headvArms'};
 epochCatsParams.headTurnIso.comparisonCategoryLabels = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}};
+epochCatsParams.headTurnIso.nestedModel = [false false false];
 
 epochCatsParams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
 epochCatsParams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.

@@ -13,6 +13,7 @@ binSize = params.binSize;
 binStep = params.binStep;
 alpha = params.alpha;                           % alpha value to set while looking for units.
 
+
 % Simple variables necessary for later
 chanCount = length(spikesByEvent{1});
 unitCounts = cellfun('length', spikesByEvent{1});
@@ -20,6 +21,7 @@ trialCounts = cellfun(@(x) size(x{1}{1}, 1), spikesByEvent);
 groupsAndLabels = params.(paradigm);
 comparisonLabel = groupsAndLabels.comparisonLabel;
 comparisonCategoryLabel = groupsAndLabels.comparisonCategoryLabels;
+nestedModel = groupsAndLabels.nestedModel; % Do not include nested variables in the comparison.
 
 %% Binning for regression
 
@@ -70,15 +72,13 @@ eyeLevels = unique(vertcat(binnedEye{:}));
 eyeLabels = {'Fix', 'preSacc', 'Sacc', 'Blink'};
 
 %% For every group
-
+stimCatLabels = {'Social', 'nonSocial'};
+  
 for group_i = 1:length(comparisonLabel)
   
   % Extract labels + group labels
-  %   catLabel = comparisonLabel{group_i};
-  %   stimCat = contains(comparisonCategoryLabel{group_i}, 'ing') + 1;
   stimLabels = comparisonCategoryLabel{group_i};
   stimLabelCount = length(stimLabels);
-  stimCatLabels = {'Social', 'nonSocial'};
   
   % Use plotInd
   plotParams.stimParamsFilename = stimParamsFilename;
@@ -89,7 +89,6 @@ for group_i = 1:length(comparisonLabel)
   % Rates for tests
   spikesPerLabel = cell(stimLabelCount, size(timeBinSpikes,1), sum(unitCounts));
   eyePerLabel = cell(stimLabelCount, size(timeBinSpikes,1));
-  %   [spikesPerLabel{:}] = deal(nan(150,1));
   
   % Initialize matrix of entries for results.
   allUnitInd = 1;
@@ -131,7 +130,6 @@ for group_i = 1:length(comparisonLabel)
   
   % For every unit, do the comparison
   trialsPerCat = cellfun('length', spikesPerLabel(:, 1, 1));
-  trialsTotal = sum(trialsPerCat);
   
   % Labels for category
   labelNum = cell(length(trialsPerCat),1);
@@ -141,13 +139,23 @@ for group_i = 1:length(comparisonLabel)
   labelNum = vertcat(labelNum{:});
    
   % Run the comparison
-  pMat = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 5);
-  explainedVar = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 5);
+  if nestedModel(group_i)
+    outSize = 2;
+  else
+    outSize = 1;
+  end
+  
+  pMat = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), outSize);
+  pMatNested = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 5);
+  explainedVar = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), outSize);
+  prefStimArray = cell(size(spikesPerLabel,3), size(spikesPerLabel,2));
+  prefStimMat = zeros(size(spikesPerLabel,3), size(spikesPerLabel,2));
+  
   totalError = nan(size(spikesPerLabel,3), size(spikesPerLabel,2), 3);
-
+  
   % Add in Social vs non-social to make a nested model
   socLabelNum = (labelNum >= 5) + 1;
- 
+  
   for ep_i = 1:size(spikesPerLabel,2);
     for unit_i = 1:size(spikesPerLabel,3)
       % Find spikes for this epoch and unit
@@ -158,9 +166,39 @@ for group_i = 1:length(comparisonLabel)
       labelEye = vertcat(eyePerLabel{:, ep_i});
       
       % Perform Test
-      [pMat(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{stimCatLabels(socLabelNum)}; {stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', 'nested', ...
-        [0 0 0; 1 0 0; 0 0 0;], 'display', 'off', 'varnames', {'SocialLabel', 'Category', 'Eye'}, 'alpha', alpha);
-      
+      if nestedModel(group_i)
+%         [pMat(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', ...  % 
+%           'display', 'off', 'varnames', {'Category', 'Eye'}, 'alpha', alpha);
+        
+        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, [{stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'display', 'off', 'varnames', {'Category', 'Eye'}, 'alpha', alpha);
+        
+%         [pMatNested(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{socLabelNum(labelNum)}; {stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', 'nested', [0 0 0;1 0 0; 0 0 0],...
+%           'display', 'off', 'varnames', {'SocialLabel', 'Category', 'Eye'}, 'alpha', alpha);
+        
+      else
+        % Just the label
+        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, {stimLabels(labelNum)}, 'display', 'off', 'varnames', comparisonLabel(group_i), 'alpha', alpha);
+        
+      end
+        % Multiple comparisons, save the category for which the unit is
+        % 'selective'.
+        [multTable, est] = multcompare(C, 'display', 'off');
+        multTable = multTable(multTable(:,end) < alpha, :);
+        if ~isempty(multTable)
+          groupsWithDiffs = multTable(:,1:2);
+          groupsWithDiffs = unique(groupsWithDiffs(:));
+          % See what the highest rate is across groups
+          estSig = est(groupsWithDiffs,1);
+          estLabels = stimLabels(groupsWithDiffs);
+          
+          % Find the highest rate participating in
+          [~, frInd] = sort(estSig(:,1), 'descend');
+          prefStimArray{unit_i, ep_i} = estLabels{frInd(1)};
+          prefStimMat(unit_i, ep_i) = frInd(1);
+        else
+          prefStimArray{unit_i, ep_i} = 'None';
+        end
+              
       % labelsUsed
       labelsForTable = B(2:end-2, 1);
       labelsForTable = strrep(labelsForTable, '(', '_');
@@ -205,10 +243,22 @@ for group_i = 1:length(comparisonLabel)
   % Add to the output table
   pValPerBin = mat2cell(pMat, ones(size(pMat,1), 1), size(pMat,2), ones(size(pMat,3), 1));
   ExpVarPerBin = mat2cell(explainedVar, ones(size(explainedVar,1), 1), size(explainedVar,2), ones(size(explainedVar,3), 1));
+  if ~nestedModel(group_i)
+    % only non-nested models can do multcompare, and generate this.
+    prefStimCatArray = cell(size(prefStimArray, 1), 1);
+    for jj = 1:length(prefStimCatArray)
+      prefStimCatArray{jj} = prefStimArray(jj, :);
+    end
+  end
   
   for tab_i = 1:length(labelsForTable)
     selTable.([labelsForTable{tab_i} 'pVal']) = pValPerBin(:, :, tab_i);
     selTable.([labelsForTable{tab_i} 'VarExp']) = ExpVarPerBin(:, :, tab_i);
+    
+    if ~nestedModel(group_i)
+      selTable.([labelsForTable{tab_i} 'prefSel']) = prefStimCatArray;
+    end
+    
   end
     
 end

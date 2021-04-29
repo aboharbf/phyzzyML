@@ -3,7 +3,6 @@ function selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParam
 % paradigms. 
 
 paradigmList = unique(spikePathBank.paradigmName);
-runNames = extractAfter(spikePathBank.Properties.RowNames, 'S');
 
 % Site identification - for the sake of saying which MUA are the same site
 % across paradigms
@@ -26,7 +25,7 @@ end
 
 % for each paradigm, make a list of unique sites
 siteListPerParadigm = cell(size(paradigmList));
-for par_i = 2:length(paradigmList)
+for par_i = 1:length(paradigmList)
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   selTableParadigmPerRun = selTablePerRun(pInd);
   
@@ -37,10 +36,9 @@ for par_i = 2:length(paradigmList)
 end
 
 % What NS sites have HTC, HTC, or both?
-NS_HTC = intersect(siteListPerParadigm{2}, siteListPerParadigm{3});
-NS_HTI = intersect(siteListPerParadigm{2}, siteListPerParadigm{4});
-NS_HTC_HTI = intersect(NS_HTC, NS_HTI);
-
+NS_HTC = intersect(siteListPerParadigm{strcmp(paradigmList, 'NaturalSocial')}, siteListPerParadigm{strcmp(paradigmList, 'headTurnCon')});
+% NS_HTI = intersect(siteListPerParadigm{strcmp(paradigmList, 'NaturalSocial')}, siteListPerParadigm{strcmp(paradigmList, 'headTurnIso')});
+% NS_HTC_HTI = intersect(NS_HTC, NS_HTI);
 
 % Find the Natural Social sites with selectivity of interest
 pInd = strcmp(spikePathBank.paradigmName, 'NaturalSocial');
@@ -60,12 +58,18 @@ NS_Sites = selTableNS.siteChID;
 HTC_Sites = selTableHTC.siteChID;
 [sitesInBoth, NS_ind, HTC_ind] = intersect(NS_Sites, HTC_Sites);
 
-crossParCheck = {'subSel_headTurn_all', 'socIntSel_any', 'subSel_reward', 'subSel_rewardAbsent', 'saccSel', 'fixationSel', 'socIntSel_reward'};
+crossParCheck = {'subSel_headTurn_all', 'socVNonSocSel_any', 'subSel_reward', 'subSel_rewardAbsent', 'saccSel'};
 
 for cross_i = 1:length(crossParCheck)
   
-  NS_sel = (selTableNS.(crossParCheck{cross_i}) ~= 0);
-  HTC_sel = (selTableHTC.(crossParCheck{cross_i}) ~= 0);
+  NS_data = selTableNS.(crossParCheck{cross_i});
+  HTC_data = selTableHTC.(crossParCheck{cross_i});
+  
+  NS_data(isnan(NS_data)) = 0;
+  HTC_data(isnan(HTC_data)) = 0;
+  
+  NS_sel = ((NS_data) ~= 0);
+  HTC_sel = ((HTC_data) ~= 0);
   
   % Which sites exist in both
   NS_sel_both = NS_sel(NS_ind);

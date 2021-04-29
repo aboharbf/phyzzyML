@@ -11,6 +11,8 @@ function  spikePathBank_to_rasterData(spikePathBank, rasterDataPath, params)
 % raster_site_info - file*1 labels/numbers - session_ID, channel, unit,
 % site.
 
+alpha = 0.01;
+
 %runData.spikesByEventBinned{stim}{chan}{unit} --> needs to be turned to
 %rasterDataUnit
 
@@ -37,8 +39,19 @@ selTable = expandSelTableComboEvents(selTable, params);
 % Update 20201123Mo channels...
 selTable = replaceChanNum_1123(selTable);
 
-vars2Add = [selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'Sel_')), 'fixationSel', 'saccSel'];
+epochSelInd = contains(selTable.Properties.VariableNames', 'BaseV') & contains(selTable.Properties.VariableNames', 'PVal');
+eventSelInd = contains(selTable.Properties.VariableNames', 'Sel_');
+removeInd = strcmp(selTable.Properties.VariableNames', 'saccSel_socVNonSoc_diff');
+var2AddInd = epochSelInd | eventSelInd & ~removeInd;
+
+vars2Add = selTable.Properties.VariableNames(var2AddInd);
+vars2Add = vars2Add(~contains(vars2Add, 'broadCategoriesSel'));
+vars2Add = vars2Add(~contains(vars2Add, 'saccSel_broadCategories_diff'));
+
 countPerVar = zeros(length(vars2Add),1);
+
+% Remove NaN's from the variables above.
+
 
 for run_i = 1:length(runList)
   
@@ -53,7 +66,8 @@ for run_i = 1:length(runList)
   
   % Collect data for this particular run
   runData = struct();
-  runData.start = -psthParams{run_i}.psthPre + psthParams{run_i}.ITI + params.fixShorten;
+%   runData.start = -psthParams{run_i}.psthPre + psthParams{run_i}.ITI + params.fixShorten;
+  runData.start = -psthParams{run_i}.psthPre - params.fixShorten;
   runData.end = psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost;
   padSize = psthParams{run_i}.movingWin(1)/2;
   
@@ -68,7 +82,8 @@ for run_i = 1:length(runList)
   assert(vecLength == theoreticalLength, 'Something is off w/ vector lengths');
 
   % Determine the slice of activity to be used.
-  startTime = psthParams{run_i}.psthPre - params.fixShorten + padSize;
+%   startTime = psthParams{run_i}.psthPre - params.fixShorten + padSize;
+  startTime = padSize;
   endTime = vecLength - padSize;
   dataLength = endTime - startTime + 1;
   
@@ -161,10 +176,14 @@ for run_i = 1:length(runList)
       gridRow = selTableChRows(unit_i, :);
       for event_i = 1:length(vars2Add)
         
-        assert(~isempty(gridRow.(vars2Add{event_i}) ~= 0), 'Error found')
-        nonZeroEntries = gridRow.(vars2Add{event_i}) ~= 0;
-        raster_site_info.(vars2Add{event_i}) = nonZeroEntries;
-        countPerVar(event_i) = countPerVar(event_i) + sum(nonZeroEntries);
+        assert(~isempty(gridRow.(vars2Add{event_i})), 'Error found');
+        
+        if contains(vars2Add{event_i}, 'pVal') || contains(vars2Add{event_i}, 'PVal')
+          raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) < alpha;
+        else
+          raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) ~= 0 && ~isnan(gridRow.(vars2Add{event_i}));
+        end
+        countPerVar(event_i) = countPerVar(event_i) + sum(raster_site_info.(vars2Add{event_i}));
         
       end
       

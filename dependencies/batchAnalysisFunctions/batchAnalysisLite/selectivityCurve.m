@@ -5,7 +5,7 @@ function selectivityCurve(spikePathBank, batchAnalysisParams)
 runNames = extractAfter(spikePathBank.Properties.RowNames, 'S');
 
 % Collect unit selectivity
-[selTablePerRun] = spikePathLoad(spikePathBank, {'selTable'}, batchAnalysisParams.spikePathLoadParams);
+[selTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
 outputDir = batchAnalysisParams.selParam.outputDir;
 
 if ~exist(outputDir, 'dir')

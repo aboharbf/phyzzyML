@@ -20,18 +20,27 @@ if ~strcmp('stimPresCount',spikePathBank.Properties.VariableNames)
   save(spikePathFile, 'spikePathBank', '-append')
 end
 
+% Prepare things to run in DataHigh
+if calcSwitch.dataHigh
+  dataHighPrep(spikePathBank, batchAnalysisParams)
+end
+
+%% Counting
+
+% crossParadigmCheck(spikePathBank, batchAnalysisParams)
+
 if plotSwitch.selCount
   selCount(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.selectivityCurve
-  selectivityCurve(spikePathBank, batchAnalysisParams)
+  selectivityCurveSel(spikePathBank, batchAnalysisParams)
 end
 
-% Prepare things to run in DataHigh
-if calcSwitch.dataHigh
-  dataHighPrep(spikePathBank, batchAnalysisParams)
+if plotSwitch.selectivityCounts
+  selectivityCurveCount(spikePathBank, batchAnalysisParams)
 end
+
 %% Analyses
 
 % Doesn't require preprocessing.
@@ -45,8 +54,6 @@ if ~any(strcmp(batchAnalysisParams.spikePathLoadParams.files, 'batchAnalyzedData
   spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;
   save(spikePathFile, 'spikePathBank', 'batchAnalysisParams', '-append')
 end
-
-% crossParadigmCheck(spikePathBank, batchAnalysisParams)
 
 % Combine PSTH across all runs for a particular stimulus.
 if plotSwitch.meanPSTH

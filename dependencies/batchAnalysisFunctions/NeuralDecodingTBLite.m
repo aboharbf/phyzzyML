@@ -5,8 +5,8 @@ function NeuralDecodingTBLite(spikePathBank, params)
 
 % IMPORTANT SWITCHES 
 expandLabelPerSplit = 1;  % Divides the number of labels per split by 3.
-swap2libsvm = 1;          % Swaps whatever classifier is defined in the file to libsvm.
-dontZScoreFeatures = 1;   % Turns off the Z scoring
+swap2libsvm = 0;          % Swaps whatever classifier is defined in the file to libsvm.
+dontZScoreFeatures = 0;   % Turns off the Z scoring
 
 % Add the path to the NB
 addpath(genpath(params.NDTPath));
@@ -19,7 +19,7 @@ params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Generate the appropriate binned data
-for paradigm_i = 2:length(paradigmList)
+for paradigm_i = 1:length(paradigmList)
   pName = paradigmList{paradigm_i};
   spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
   pFolder = fullfile(params.outputDir, pName);
@@ -39,6 +39,7 @@ for paradigm_i = 2:length(paradigmList)
   % Check if the raster data is present, if not, make it 
   binnedDirName = fullfile(pRasterDir, 'rasterData_binned');
   rasterDataPath = fullfile(pRasterDir, 'S20*');
+%   [params.binWidth, params.stepSize] = deal(100);
   binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedDirName, params.binWidth, params.stepSize);
   
   if ~exist(binnedFileNameOut, 'file')
@@ -46,7 +47,10 @@ for paradigm_i = 2:length(paradigmList)
   else
     binnedFileName = binnedFileNameOut;
   end
-  
+
+% end
+% 
+% if 1
   % Grab a variable which will be useful later
   tmp = dir(rasterDataPath);
   tmp = tmp(1);

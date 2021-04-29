@@ -14,7 +14,8 @@ the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1)
 p_val_threshold = params.p_val_threshold;
 sig_bins = params.sig_bins;
 sig_color = params.plot_per_label_acc.sig_color;
-shift = params.plotParams.shift;
+% shift = decoding_results{1}.DS_PARAMETERS.binned_site_info.binning_parameters.alignment_event_time;
+shift = 1300;
 
 justMean = params.plot_per_label_acc.justMean;
 plotMean = params.plot_per_label_acc.plotMean;
@@ -154,11 +155,6 @@ end
 
 decodingAx = gca;
 
-% Plot Significant p values
-[sigBarImgAxs, sigBarHands] = add_bars_to_plots([], [], {sig_bins}, sig_color, {sig_bins}, yLims);
-
-linePlotHandles = [linePlotHandles, sigBarHands];
-
 % Add the legend
 % legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
 legend(allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
@@ -167,18 +163,23 @@ legend(allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
 the_bin_start_times_shift = the_bin_start_times - shift;
 bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
 x_for_lines = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
+xMin = round(interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label(1) - 100));
 
 ylabel('Decoding Accuracy')
 xlabel('Bin start time')
 xticks(bins_to_label);
 xticklabels(points_to_label);
 
+% Plot Significant p values
+[sigBarImgAxs, sigBarHands] = add_bars_to_plots([], [], {sig_bins(xMin:end)}, sig_color, {sig_bins(xMin:end)}, yLims);
+linePlotHandles = [linePlotHandles, sigBarHands];
+
 if chanceAtBottom && min(linePlotHandles(1).YData) > 0.2
   ylim([floor(min(correctLineStack(:))*10)/10, 1]);
 else
   ylim([0, 1]);
 end
-xlim([1, length(the_bin_start_times)]);
+xlim([xMin, length(the_bin_start_times)]);
 for ii = 1:length(x_for_lines)
   plot([x_for_lines(ii), x_for_lines(ii)], ylim(), 'linewidth', 4, 'color', [0.2, 0.2, 0.2])
 end

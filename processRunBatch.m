@@ -6,7 +6,10 @@ function [] = processRunBatch(varargin)
 %     - one argument of the form paramBuilderFunctionName as a string i.e.
 %       'buildAnalysisParamFileSocVid'. User will be prompted to select
 %       directory with files.
-%     - two arguments, the first as described above, the second of the form 
+%     - two arguments, the first as described above, the 2nd in the form of
+%     a cell array with desired paradigms {'naturalSocial', 'headTurnCon',
+%     'headTurnIso', 'familiarFace'}
+%     - Currently commented out: two arguments, the first as described above, the second of the form 
 %       {{'param1', 'arg1'}; {'param2','arg2'}}, which will replace
 %       parameters defined in the analysisParamFile and the paramTable.
 
@@ -29,13 +32,14 @@ switch machine
 end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-usePreprocessed = 1;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
+usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
 %% Load Appropriate variables and paths
 addpath('buildAnalysisParamFileLib');
 addpath(genpath('dependencies'));
+
 if ~replaceAnalysisOut
   if nargin == 1 || nargin == 2
     %If there is only 1 file, it loads the analysisParamFile and composes a
@@ -47,8 +51,13 @@ if ~replaceAnalysisOut
        
     varargin = vararginInputs;
     runListFolder = ephysVolume;
-    runList = buildRunList(runListFolder, 'nev');
-  elseif nargin >= 3 || nargin == 0
+    
+    if nargin == 2
+      runList = buildRunList(runListFolder, 'paradigm', varargin{2});
+    elseif nargin ~= 2
+      runList = buildRunList(runListFolder, 'nev');
+    end
+  elseif nargin >= 4 || nargin == 0
     disp('Must have 1  or 2 inputs.')
     return
   end
@@ -82,11 +91,11 @@ if ~replaceAnalysisOut
       end
       
       % Evaluates each row of 2nd argument input as a variable argument pair.
-      if nargin == 2
-        for arg_i = 1:size(varargin{2},1)
-          eval(sprintf('%s = %s;', varargin{2}{arg_i, 1}, num2str(varargin{2}{arg_i, 2})));
-        end
-      end
+%       if nargin == 3
+%         for arg_i = 1:size(varargin{2},1)
+%           eval(sprintf('%s = %s;', varargin{2}{arg_i, 1}, num2str(varargin{2}{arg_i, 2})));
+%         end
+%       end
       
       % Update the psthPre w/ the ITI. 
       if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'psthParams.psthPre'))
@@ -331,6 +340,8 @@ if any(errorInd)
   errorStack = [errorMsg{:}];
   errorStack = [{errorStack.message}]';
   files2Check = analysisParamFileList(errorInd);
+else
+  error('All done');
 end
 
 firstEntry = find(~cellfun('isempty', analysisOutFilename), 3);
