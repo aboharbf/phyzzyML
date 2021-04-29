@@ -1,4 +1,4 @@
-function selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthPre, selTable)
+function selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthPre, selTable)
 % A function which uses the circStats toolbox to implement saccade
 % selectivity.
 
@@ -82,7 +82,7 @@ saccadeCount = sum(saccKeep);
 
 % Create index for table
 unitTabInd = 1;
-unitSelVec = nan(size(selTable,1), 1);
+unitSelVec = zeros(size(selTable,1), 1);
 
 for chan_i = 1:chanCount
   for unit_i = 1:length(spikesByUnitBinned{chan_i});
@@ -120,6 +120,7 @@ for chan_i = 1:chanCount
 %     plot([trueMu trueMu], ylim(), 'linewidth', 3, 'color', 'r');
     
 %     subplot(1,2,2)
+
     if 0
       figure()
       h = histogram(scrambR);
@@ -129,18 +130,14 @@ for chan_i = 1:chanCount
       plot([trueR trueR], ylim(), 'linewidth', 3, 'color', 'r');
     end
     
-    % Preform a t test
+    % Preform a t test, store
     [~, pVal, ~, ~] = ttest2(scrambR, trueR);
-    if pVal < 0.05
-      unitSelVec(unitTabInd) = 1;
-    else
-      unitSelVec(unitTabInd) = 0;
-    end
-    %     [A, B, C, D] = ttest2(scrambMu, trueMu);
+    unitSelVec(unitTabInd) = pVal;
     
+    % Increment
     unitTabInd = unitTabInd + 1;
     
   end
 end
 
-selTable.saccSel = unitSelVec;
+selTable.saccDir_pVal = unitSelVec;

@@ -31,9 +31,6 @@ for unitType_i = 1:length(UnitTypes)
         % Get rid of NaNs
         if iscell(sigInd)
           
-          warning('Venn diagrams for labels not currently fully implemented, make sure its worth finishing')
-          continue
-          
           % Find unique labels and create a 3rd dimension for each.
           uniqueLabels = unique(sigInd(:));
           sigIndTmp = zeros([size(sigInd), length(uniqueLabels)]);
@@ -45,16 +42,15 @@ for unitType_i = 1:length(UnitTypes)
           sigInd = sigIndTmp(:, :, ~strcmp(uniqueLabels, 'None'));
           uniqueLabels = uniqueLabels(~strcmp(uniqueLabels, 'None'));
           
-          % Filtering - since vennX only works w/ 3 max, remove the lowest
-          % count
-          % Needs to be written.
+          % Collapse across objects
+          sigInd = any(sigInd, 3);
                     
         else
           sigInd(isnan(sigInd)) = 0;
           sigInd = logical(sigInd);
         end
         
-        atleastOne = sum(logical(sum(sigInd ~= 0, 2)));               
+        atleastOne = sum(any(sigInd, 2));               
         figTitle = sprintf('%s activity selective for %s during %s (%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, paradigm, atleastOne);
         vennXExpanded(sigInd, figTitle, colNames)
         saveFigure(barPlotParams.outputDir, figTitle, [], barPlotParams.figStruct, [])

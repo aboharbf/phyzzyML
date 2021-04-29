@@ -7,7 +7,7 @@ stretchAllSame = false;
 
 % Collect unit selectivity
 [selTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
-outputDir = batchAnalysisParams.selParam.outputDir;
+outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveSel');
 
 if ~exist(outputDir, 'dir')
   mkdir(outputDir);
@@ -133,37 +133,38 @@ for par_i = 1:length(paradigmList)
     end
     
     % Save the Figure
-    saveFigure(batchAnalysisParams.selParam.outputDir, figTitle, [], batchAnalysisParams.selParam.figStruct, [])
+    saveFigure(batchAnalysisParams.selParam.outputDir, ['1. ' figTitle], [], batchAnalysisParams.selParam.figStruct, [])
     
-    % See if Units are together or not.
-    figTitleSum = sprintf('Counts of Traces with Significant Stretches %s', paradigmList{par_i});
-    figure('Name', figTitleSum, 'units', 'normalized', 'position', [0.0635    0.0380    0.6339    0.8833])
-    unitLabel = {'Units', 'MUA'};     % Units
-    for ii = 1:length(unitLabel)
-      ax = subplot(1,length(unitLabel),ii);
-      anyUnit = [stretchIndMat{ii, :}];
-      unitCountPerLabel = sum(anyUnit);
-      anyUnitCount = sum(anyUnit, 2) ~= 0;
-      allUnit = [anyUnit, anyUnitCount];
-      imagesc(allUnit);
-      title(sprintf('%s (Total %d/%d)', unitLabel{ii}, sum(anyUnitCount), length(anyUnitCount)))
-      
-      % Generate Labels
-      analysisLabelsPlot = analysisLabels;
-      for jj = 1:length(analysisLabels)
-        analysisLabelsPlot{jj} = sprintf('%s (%d)', analysisLabels{jj}, unitCountPerLabel(jj));
+    if ~contains(dataLabels{label_i}, 'Preferred')
+      % See if Units are together or not.
+      figTitleSum = sprintf('Counts of Traces with Significant Stretches %s', paradigmList{par_i});
+      figure('Name', figTitleSum, 'units', 'normalized', 'position', [0.0635    0.0380    0.6339    0.8833])
+      unitLabel = {'Units', 'MUA'};     % Units
+      for ii = 1:length(unitLabel)
+        ax = subplot(1,length(unitLabel),ii);
+        anyUnit = [stretchIndMat{ii, :}];
+        unitCountPerLabel = sum(anyUnit);
+        anyUnitCount = sum(anyUnit, 2) ~= 0;
+        allUnit = [anyUnit, anyUnitCount];
+        imagesc(allUnit);
+        title(sprintf('%s (Total %d/%d)', unitLabel{ii}, sum(anyUnitCount), length(anyUnitCount)))
+        
+        % Generate Labels
+        analysisLabelsPlot = analysisLabels;
+        for jj = 1:length(analysisLabels)
+          analysisLabelsPlot{jj} = sprintf('%s (%d)', analysisLabels{jj}, unitCountPerLabel(jj));
+        end
+        xticks(1:length(analysisLabelsPlot)+1)
+        xticklabels([analysisLabelsPlot, {'All Units'}])
+        ax.XTickLabelRotation = 45;
       end
-      xticks(1:length(analysisLabelsPlot)+1)
-      xticklabels([analysisLabelsPlot, {'All Units'}])
-      ax.XTickLabelRotation = 45;
+      sgtitle(figTitleSum);
+      ylabel('Unit #')
+      xlabel('ANOVA Factor');
+      
+      % Save the paneled image.
+      saveFigure(outputDir, ['2. ' figTitleSum ], [], batchAnalysisParams.selParam.figStruct, [])
     end
-    sgtitle(figTitleSum);
-    ylabel('Unit #')
-    xlabel('ANOVA Factor');
-    
-    % Save the paneled image.
-    saveFigure(batchAnalysisParams.selParam.outputDir, figTitleSum, [], batchAnalysisParams.selParam.figStruct, [])
-    
   end
   
 end

@@ -1,6 +1,5 @@
 function  selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, paradigm, epochStatsParams, selTable)
-% A function which uses the circStats toolbox to implement saccade
-% selectivity.
+% A function which compares saccades between different conditions.
 
 % Inputs:
 % - spikesByEventBinned: {stim}{chan}{unit}(trial*bin) structure of binned

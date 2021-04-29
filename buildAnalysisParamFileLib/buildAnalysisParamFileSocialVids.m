@@ -389,7 +389,6 @@ subEventAnalysisParams.specSubEvent = 0;                                % Analyz
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'blinks', 'reward', 'rewardAbsent'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-250 50]; [50 200]; [50 200]];
 subEventAnalysisParams.nonParametric = 0;                               % Use non parametric test.
-subEventAnalysisParams.alpha = 0.05;                                    % Use non parametric test.
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
@@ -441,36 +440,36 @@ preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
 Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
 stimOnset = [0 500];
 stimPres = [500 psthParams.psthImDur];
-stimWhole = [0 psthParams.psthImDur];
+% stimWhole = [0 psthParams.psthImDur];
 reward = [psthParams.psthImDur psthParams.psthImDur + 250];
 
 epochStatsParams.stimParamsFilename = stimParamsFilename;
 epochStatsParams.nonParametric = 0;                      % switch to run non Parametric tests.
-epochStatsParams.alpha = 0.01;                           % alpha value to set while looking for units.
 
-epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
-epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'stimWhole', 'reward'};    
+% epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
+% epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'stimWhole', 'reward'};    
+epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
+epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'reward'};    
 
 epochStatsParams.naturalSocial.targNames = {'socVNonSoc', 'broadCategories'};
 epochStatsParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'objects', 'idle', 'goalDirected', 'socialInteraction'}};
-epochStatsParams.naturalSocial.targetEpochs = [0 0 1 1 1 1; 0 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.naturalSocial.targetEpochs = [0 0 1 1 1; 0 0 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
 epochStatsParams.naturalSocial.oneVsAll = [1 0];
 
 epochStatsParams.headTurnCon.targNames = {'socVNonSoc', 'broadCategories'};
 epochStatsParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'objects', 'idle', 'goalDirected', 'socialInteraction'}};
-epochStatsParams.headTurnCon.targetEpochs = [0 0 1 1 1 1; 0 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.headTurnCon.targetEpochs = [0 0 1 1 1; 0 0 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
 epochStatsParams.headTurnCon.oneVsAll = [1 0];
 
 epochStatsParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
 epochStatsParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};
-epochStatsParams.headTurnIso.targetEpochs = [[0 0 1 1 1 1]; [0 0 0 1 1 1]; [0 0 1 1 1 1]; [0 0 0 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochStatsParams.headTurnIso.targetEpochs = [[0 0 1 1 1]; [0 0 0 1 1]; [0 0 1 1 1]; [0 0 0 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
 epochStatsParams.headTurnIso.oneVsAll = [1 1 1 1];
 
 % model using ANOVAs to detect encoding of variable features.
 epochCatsParams.stimParamsFilename = stimParamsFilename;
 epochCatsParams.binSize = 150;
 epochCatsParams.binStep = 25;
-epochCatsParams.alpha = 0.01;                           % alpha value to set while looking for units.
 
 epochCatsParams.naturalSocial.comparisonLabel = {'broadCategory', 'socInt'};
 epochCatsParams.naturalSocial.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}};

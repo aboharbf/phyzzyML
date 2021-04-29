@@ -360,7 +360,9 @@ if ~isempty(onsetsByEvent)
   
   % Statistics - for every event
   % Method 1 - perform T test on spike rates for the period assigned.
-  selArray = zeros(size(selTable,1), length(subEventNames));
+  selArray = ones(size(selTable,1), length(subEventNames));
+  diffArray = zeros(size(selTable,1), length(subEventNames));
+  
   [spikeCounts, spikeCountsNull] = deal(cell(length(subEventNames), 1));
   chanCount =  length(spikesBySubEvent{1});
   unitCount = cellfun('length', spikesBySubEvent{1});
@@ -390,20 +392,15 @@ if ~isempty(onsetsByEvent)
         
         % Perform the test, and store results.
         if subEventParams.nonParametric
-          [pVal, sigSwitch, ~] = ranksum(eventSpikes,  nullSpikes);
+          [pVal, ~, ~] = ranksum(eventSpikes,  nullSpikes);
         else
-          [sigSwitch, pVal, ~] = ttest2(eventSpikes,  nullSpikes);
+          [~, pVal, ~] = ttest2(eventSpikes,  nullSpikes);
         end
         
-        testResults{chan_i}{unit_i}{event_i} = pVal;
+        % Save the pValue and Cohen's D.
+        [selArray(unitInd, event_i), testResults{chan_i}{unit_i}{event_i}] = deal(pVal);
+        [diffArray(unitInd, event_i), cohensD{chan_i}{unit_i}{event_i}] = deal(mean(eventSpikes) - mean(nullSpikes));
         
-        
-        if ~isnan(sigSwitch) && (subEventParams.alpha > pVal)
-          [selArray(unitInd, event_i), cohensD{chan_i}{unit_i}{event_i}] = deal(mean(eventSpikes) - mean(nullSpikes));
-        else
-          cohensD{chan_i}{unit_i}{event_i} = 0;
-        end
-                
         % Increment units
         unitInd = unitInd + 1;
         
@@ -519,12 +516,17 @@ end
 
 tableVarNames = strcat("subSel_", subEventNames)';
 
+% In cases where adequate examples don't exist (seems like blinks) then NaN
+% is in the selTable, make them 1.
+selArray(isnan(selArray)) = 1;
+
 for ev_i = 1:length(tableVarNames)
-  selTable.(tableVarNames{ev_i}) = selArray(:, ev_i);
+  selTable.([tableVarNames{ev_i} '_pVal']) = selArray(:, ev_i);
+  selTable.([tableVarNames{ev_i} '_cohensD']) = diffArray(:, ev_i);
 end
 
 if addFalseRowRewardAbsent
-  selTable.subSel_rewardAbsent = nan(size(selArray(:,1), 1), 1);
+  selTable.subSel_rewardAbsent_pVal = ones(size(selArray(:,1), 1), 1);
 end
 
 specSubEventStruct = struct();

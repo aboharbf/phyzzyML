@@ -7,7 +7,7 @@ stretchAllSame = false;
 
 % Collect unit selectivity
 [selTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
-outputDir = batchAnalysisParams.selParam.outputDir;
+outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveCount');
 
 if ~exist(outputDir, 'dir')
   mkdir(outputDir);
@@ -21,6 +21,7 @@ unitTypePlot = {'MUA', 'U+US'};
 binStep = 25;
 binSize = 150;
 stimSize = 2800 + 500;
+
 the_bin_start_times = 0:binStep:stimSize-binSize;
 points_to_label = [0  1000 2000 2800];
 points_for_lines = [0 2800];
@@ -82,8 +83,9 @@ for par_i = 1:length(paradigmList)
       
       % Plot as Bar graph.
       figTitle = sprintf('Significant %s counts per Category, %s', unitTypePlot{unitType_i}, paradigmList{par_i});
-      createBarPlotWithChanceLine(labelOrder, countPerLabel, alpha^5, unitCount, figTitle)
-      
+      createBarPlotWithChanceLine(labelOrder, countPerLabel, alpha^5, unitCount, figTitle, [])
+      saveFigure(outputDir, figTitle, [], batchAnalysisParams.figStruct, [])
+
     end
   end
   

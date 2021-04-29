@@ -1,4 +1,4 @@
-function EpochPreferenceBarGraphs(selTable, paradigm, params)
+function EpochPreferenceBarGraphsAndVennDiagram(selTable, paradigm, params)
 % a function which grabs counts of determined selectivities from the
 % selTable passed in, and generates bar plots describing the preferred
 % epoch activity.

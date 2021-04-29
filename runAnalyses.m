@@ -412,23 +412,34 @@ if plotSwitch.subEventAnalysis
     
   [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, selTable, figStruct);
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
-%   clear subEventSigStruct spikesByChannel
 end
 
 epochStatsParams.groupLabelsByImage = groupLabelsByImage;
 selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochStatsParams, selTable);
 
 % Determine which units are selective for saccades (direction).
-selTable = saccadeSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
+selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
 
-% Tests between epochs of the conditions
-selTable = epochStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochStatsParams);
+% Compares epochs against baseline and each other.
+selTable = epochCompareStats(spikesByEvent, selTable, epochStatsParams);
+
+% Tests between epochs of the conditions between different targets.
+selTable = epochTargetStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochStatsParams);
 
 if ~strcmp(taskData.paradigm, 'familiarFace')
   anovaTable = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
 end
 
 save(analysisOutFilename, 'selTable', 'anovaTable', '-append');
+
+% Save a few of these for rapid testing.
+if strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '001')
+  save('subEventAnalysisTesting_naturalSocial.mat')
+elseif strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '002')
+  save('subEventAnalysisTesting_headTurnCon.mat')
+elseif strcmp(dateSubject, '20201115Mo') && strcmp(runNum, '002')
+  save('subEventAnalysisTesting_headTurnIso.mat')
+end
 
 %% Plotting and further analyses
 

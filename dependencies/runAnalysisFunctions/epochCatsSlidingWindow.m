@@ -1,4 +1,4 @@
-function [selTable] = epochCatsSlidingWindow(spikesByEvent, saccadeByStim, selTable, eventIDs, paradigm, psthParams, params)
+function [anovaTable] = epochCatsSlidingWindow(spikesByEvent, saccadeByStim, anovaTable, eventIDs, paradigm, psthParams, params)
 % This function performs a sliding window ANOVA, taking into account
 % Social Label, Category Labe, and eye behavior label. It adds columns to
 % selTable corresponding to the p-Val for each factor in each bin, as well
@@ -11,8 +11,7 @@ totalTime = psthParams.psthImDur + psthParams.psthPost;
 
 binSize = params.binSize;
 binStep = params.binStep;
-alpha = params.alpha;                           % alpha value to set while looking for units.
-
+alpha = 0.05;                           % alpha value to set while looking for units.
 
 % Simple variables necessary for later
 chanCount = length(spikesByEvent{1});
@@ -21,7 +20,7 @@ trialCounts = cellfun(@(x) size(x{1}{1}, 1), spikesByEvent);
 groupsAndLabels = params.(paradigm);
 comparisonLabel = groupsAndLabels.comparisonLabel;
 comparisonCategoryLabel = groupsAndLabels.comparisonCategoryLabels;
-nestedModel = groupsAndLabels.nestedModel; % Do not include nested variables in the comparison.
+largeModel = groupsAndLabels.nestedModel;                            % Do not include nested variables in the comparison.
 
 %% Binning for regression
 
@@ -72,7 +71,6 @@ eyeLevels = unique(vertcat(binnedEye{:}));
 eyeLabels = {'Fix', 'preSacc', 'Sacc', 'Blink'};
 
 %% For every group
-stimCatLabels = {'Social', 'nonSocial'};
   
 for group_i = 1:length(comparisonLabel)
   
@@ -139,7 +137,7 @@ for group_i = 1:length(comparisonLabel)
   labelNum = vertcat(labelNum{:});
    
   % Run the comparison
-  if nestedModel(group_i)
+  if largeModel(group_i)
     outSize = 2;
   else
     outSize = 1;
@@ -166,18 +164,18 @@ for group_i = 1:length(comparisonLabel)
       labelEye = vertcat(eyePerLabel{:, ep_i});
       
       % Perform Test
-      if nestedModel(group_i)
+      if largeModel(group_i)
 %         [pMat(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', ...  % 
 %           'display', 'off', 'varnames', {'Category', 'Eye'}, 'alpha', alpha);
         
-        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, [{stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'display', 'off', 'varnames', {'Category', 'Eye'}, 'alpha', alpha);
+        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, [{stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'display', 'off', 'varnames', {'Category', 'Eye'});
         
 %         [pMatNested(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{socLabelNum(labelNum)}; {stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', 'nested', [0 0 0;1 0 0; 0 0 0],...
 %           'display', 'off', 'varnames', {'SocialLabel', 'Category', 'Eye'}, 'alpha', alpha);
         
       else
         % Just the label
-        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, {stimLabels(labelNum)}, 'display', 'off', 'varnames', comparisonLabel(group_i), 'alpha', alpha);
+        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, {stimLabels(labelNum)}, 'display', 'off', 'varnames', comparisonLabel(group_i));
         
       end
         % Multiple comparisons, save the category for which the unit is
@@ -243,20 +241,28 @@ for group_i = 1:length(comparisonLabel)
   % Add to the output table
   pValPerBin = mat2cell(pMat, ones(size(pMat,1), 1), size(pMat,2), ones(size(pMat,3), 1));
   ExpVarPerBin = mat2cell(explainedVar, ones(size(explainedVar,1), 1), size(explainedVar,2), ones(size(explainedVar,3), 1));
-  if ~nestedModel(group_i)
-    % only non-nested models can do multcompare, and generate this.
-    prefStimCatArray = cell(size(prefStimArray, 1), 1);
-    for jj = 1:length(prefStimCatArray)
-      prefStimCatArray{jj} = prefStimArray(jj, :);
-    end
-  end
-  
-  for tab_i = 1:length(labelsForTable)
-    selTable.([labelsForTable{tab_i} 'pVal']) = pValPerBin(:, :, tab_i);
-    selTable.([labelsForTable{tab_i} 'VarExp']) = ExpVarPerBin(:, :, tab_i);
     
-    if ~nestedModel(group_i)
-      selTable.([labelsForTable{tab_i} 'prefSel']) = prefStimCatArray;
+  for tab_i = 1:length(labelsForTable)
+    
+    % All Models have pValues for the comparison and variance explained.
+    fieldName = sprintf('slidingWin_%sTest_%s_pVal', comparisonLabel{group_i}(1:6), labelsForTable{tab_i});
+    anovaTable.(fieldName) = pValPerBin(:, :, tab_i);
+    
+    fieldName = sprintf('slidingWin_%sTest_%s_VarExp', comparisonLabel{group_i}(1:6), labelsForTable{tab_i});
+    anovaTable.(fieldName) = ExpVarPerBin(:, :, tab_i);
+    
+    if ~largeModel(group_i)
+      
+      % If it isn't a larger model (doesn't have eye signal included) you
+      % have a preferred stimulus.
+      prefStimCatArray = cell(size(prefStimArray, 1), 1);
+      for jj = 1:length(prefStimCatArray)
+        prefStimCatArray{jj} = prefStimArray(jj, :);
+      end
+      
+      fieldName = sprintf('slidingWin_%sTest_prefStim', comparisonLabel{group_i});
+      anovaTable.(fieldName) = prefStimCatArray;
+      
     end
     
   end

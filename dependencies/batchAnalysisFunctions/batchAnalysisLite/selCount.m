@@ -47,7 +47,7 @@ for par_i = 1:length(paradigmList)
   
   % Make a bar plot and distribution describing epoch preferences (Activity
   % above baseline during an epoch).
-  EpochPreferenceBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  EpochPreferenceBarGraphsAndVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
   % Make bar plots per Epoch Selectivity - comparing an rates within an
   % epoch across categories. Either Barplots or Venn Diagram.
