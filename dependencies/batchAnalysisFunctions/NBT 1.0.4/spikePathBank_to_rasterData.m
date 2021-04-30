@@ -67,16 +67,16 @@ vars2Add = strrep(vars2AddOrig, 'epochSel_socVNonSoc', 'sVns');
 vars2Add = strrep(vars2Add, 'epochSel_broadCategories', 'bCat');
 vars2Add = strrep(vars2Add, 'slidingWin_broadCTest_broadCategory', 'slidingWinBroadCat');
 
-vars2AddOrig = [{'subSel_headTurn_all_selInd'    }
-    {'subSel_rewardCombo_selInd'                 }
-    {'sVns_stimOnset_selInd'      }
-    {'sVns_stimPres_selInd'       }
-    {'sVns_reward_selInd'         }
-    {'sVns_any_selInd'            }
-    {'bCat_stimOnset_selInd' }
-    {'bCat_stimPres_selInd'  }
-    {'bCat_reward_selInd'    }
-    {'slidingWinBroadCat_selInd'}];
+% vars2Added = [{'subSel_headTurn_all_selInd'    }
+%     {'subSel_rewardCombo_selInd'                 }
+%     {'sVns_stimOnset_selInd'      }
+%     {'sVns_stimPres_selInd'       }
+%     {'sVns_reward_selInd'         }
+%     {'sVns_any_selInd'            }
+%     {'bCat_stimOnset_selInd' }
+%     {'bCat_stimPres_selInd'  }
+%     {'bCat_reward_selInd'    }
+%     {'slidingWinBroadCat_selInd'}];
   
 countPerVar = zeros(length(vars2Add),1);
 

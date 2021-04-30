@@ -48,13 +48,9 @@ for paradigm_i = 1:length(paradigmList)
     binnedFileName = binnedFileNameOut;
   end
   
-end
-
-if 1
-  
   % Once these raster files have been generated, use this script to
   % generate analyses.
-  k_aid_generate_analyses()
+%   k_aid_generate_analyses()
 
   % Grab a variable which will be useful later
   tmp = dir(rasterDataPath);

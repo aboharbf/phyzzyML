@@ -4,10 +4,12 @@ function k_aid_generate_analyses()
 
 % Below are per paradigm values
 paradigmName = {'NS', 'HTC'};
-rasterFile = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB_HandDefined\NaturalSocial\rasterData\rasterData_binned_150ms_bins_50ms_sampled.mat', ...
-  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB_HandDefined\headTurnCon\rasterData\rasterData_binned_150ms_bins_50ms_sampled.mat'};
-analysisTemplate = {'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses\NaturalSocial_hand\NS_Categories_AllUnits.mat', ...
-  'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses\headTurnCon_hand\HTC_Categories_AllUnits.mat'};
+rasterFile = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\rasterData\rasterData_binned_150ms_bins_50ms_sampled.mat', ...
+  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\headTurnCon\rasterData\rasterData_binned_150ms_bins_50ms_sampled.mat'};
+
+analysisTemplate = {'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses\templateAnalysisNS.mat', ...
+  'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses\templateAnalysisHTC.mat'};
+
 analysisOutDir = {'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses\NaturalSocial',...
   'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses\headTurnCon'};
 
@@ -23,16 +25,22 @@ coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
 analyisTag = {'AllUnits', 'noHT', 'onlyHT', 'socIntSelAny', 'noSocIntSelAny', ...
   'socIntOnset', 'socIntstimPres', 'socIntReward', ...
   'socIntSel_noHT', 'socIntSel_onlyHT'...
-  };
+  'broadCatOnset', 'broadCatstimPres', 'broadCatReward', ...
+  'broadCatSliding', ...
+};
 
 % Matching set of variables to change, names must match what is defined in
 % the raster file.
 analyisTagVars = {'', {{'subSel_headTurn_all_selInd', 0}}, {{'subSel_headTurn_all_selInd', 1}}, {{'sVns_any_selInd', 1}}, {{'sVns_any_selInd', 0}}, ...
   {{'sVns_stimOnset_selInd', 1}}, {{'sVns_stimPres_selInd', 1}}, {{'sVns_reward_selInd', 1}},...
   {{'sVns_any_selInd', 1}, {'subSel_headTurn_all_selInd', 0}}, {{'sVns_any_selInd', 1}, {'subSel_headTurn_all_selInd', 1}}...
-  };
+  {{'bCat_stimOnset_selInd', 1}}, {{'bCat_stimPres_selInd', 1}}, {{'bCat_reward_selInd', 1}},...
+  {{'slidingWinBroadCat_selInd', 1}}};
 
-error('Need to define new analyses for bCat stuff');
+%     {'bCat_stimOnset_selInd' }
+%     {'bCat_stimPres_selInd'  }
+%     {'bCat_reward_selInd'    }
+%     {'slidingWinBroadCat_selInd'}];
 
 % Load the raster data
 for par_i = 1:length(paradigmName)
@@ -151,7 +159,7 @@ for par_i = 1:length(paradigmName)
       saveFileName = sprintf('%s_%s_%s', paradigmName{par_i}, analysisStruct.label, analyisTag{analysis_i});
       
       % Save structure
-      save(fullfile(analysisOutDir, saveFileName), 'analysisStruct');
+      save(fullfile(analysisOutDir{par_i}, saveFileName), 'analysisStruct');
       
     end
   end

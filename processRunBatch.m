@@ -107,9 +107,8 @@ if ~replaceAnalysisOut
         Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
         stimOnset = [0 500];
         stimPres = [500 psthParams.psthImDur];
-        stimWhole = [0 psthParams.psthImDur];
         reward = [psthParams.psthImDur psthParams.psthImDur + 250];
-        epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
+        epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
         
         % Update subevent Analysis stuff
         subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
