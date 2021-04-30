@@ -28,6 +28,7 @@ siteListPerParadigm = cell(size(paradigmList));
 for par_i = 1:length(paradigmList)
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   selTableParadigmPerRun = selTablePerRun(pInd);
+  spikePathBankParadigm = spikePathBank(pInd, :);
   
   % Combine across tables
   selTableParadigm = vertcat(selTableParadigmPerRun{:});

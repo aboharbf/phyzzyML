@@ -58,7 +58,7 @@ plotSwitch.novelty = 0;               %
 plotSwitch.slidingWindowANOVA = 0;    % 
 
 %% Parameters
-spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat, not included to allow for slicing (e.g. 'spikeDataBank_1.mat'...)
+spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat
 
 preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData'}; %Variables extracted from preprocessedData.mat
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
@@ -86,19 +86,22 @@ stimStructParams.xyEventparams.plotTitle = 'Events Per Stimulus Count, Sorted by
 stimStructParams.xyEventparams.XLabel = 'Event Name';
 stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
-% selParam for function below - move to paramFile eventually.
+
 selParam.outputDir =  fullfile(outputDir,'selCount');
 selParam.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socVNonSocSel_any'};
 selParam.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
   {'socVNonSocSel_stimOnset', 'socVNonSocSel_stimPres', 'socVNonSocSel_stimWhole', 'socVNonSocSel_reward'}};
 selParam.figStruct = figStruct;
 
+selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
+selParam.stretchThreshold = 5;    % For sliding scale tests, how many consecutive bins need to be significant for the unit to count as 'selective'?
+selParam.objectStretches = true;  % Only count stretches as significant in the sliding window test if the preferred object remains the same through out.
+
 selParam.NaturalSocial.selCheck = {'socVNonSoc', 'broadCategories'};
 selParam.headTurnCon.selCheck = {'socVNonSoc', 'broadCategories'};
 selParam.headTurnIso.selCheck = {'headTurn', 'fullModel', 'turnToward'};
 
 selParam.UnitTypes = {'MUA', digitsPattern};
-
 selParam.UnitTypePlot = {'MUA', 'Units'};
 selParam.colNamePoss = {'stimOnset','stimPres', 'reward'};
 selParam.colNamePlotAll = {'stim Onset','stim Presentation', 'stim Whole Presentation', 'Reward'};

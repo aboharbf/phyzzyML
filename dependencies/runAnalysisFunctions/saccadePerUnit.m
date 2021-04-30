@@ -35,7 +35,6 @@ plotMat = plotIndex(eventIDs, plotParams);
 scrambleCount = 2000;
 preSacc = 250;
 postSacc = 50;
-alpha = epochStatsParams.alpha;
 nonParametric = epochStatsParams.nonParametric;
 
 % Reorganize spikesByEventBinned{event}{chan}{unit} into

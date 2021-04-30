@@ -6,9 +6,11 @@ runNames = extractAfter(spikePathBank.Properties.RowNames, 'S');
 stretchAllSame = false;
 
 % Collect unit selectivity
-[selTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
-outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveCount');
+[anovaTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
 
+selTablePerRun = spikePathBank.selTable;
+
+outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveCount');
 if ~exist(outputDir, 'dir')
   mkdir(outputDir);
 end
@@ -35,14 +37,16 @@ alpha = 0.01;
 for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
-  selTableParadigmPerRun = selTablePerRun(pInd);
+  anovaTableParadigmPerRun = anovaTablePerRun(pInd);
+  selTablePerRunParadigm = selTablePerRun(pInd);
   
-  selTableParadigm = vertcat(selTableParadigmPerRun{:});
+  anovaTableParadigm = vertcat(anovaTableParadigmPerRun{:});
+  selTablePerRunParadigm = vertcat(selTablePerRunParadigm{:});
   
   % Find rows w/ Var
-  pValLabels = selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, 'pVal'));
+  pValLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, 'pVal'));
   pValLabels = pValLabels(1);
-  prefSelLabels = selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, 'prefSel'));
+  prefSelLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, '_prefStim'));
   
   % Turn the pVal vector into counts.
   for p_i = 1:length(pValLabels)
@@ -50,15 +54,15 @@ for par_i = 1:length(paradigmList)
       
       % Grab one of the unit types
       if unitType_i == 1
-        unitInd = contains(selTableParadigm.unitType, 'MUA');
+        unitInd = contains(anovaTableParadigm.unitType, 'MUA');
       else
-        unitInd = ~contains(selTableParadigm.unitType, 'MUA');
+        unitInd = ~contains(anovaTableParadigm.unitType, 'MUA');
       end
       
       unitCount = sum(unitInd);
       
-      unitDatapVal = selTableParadigm.(pValLabels{p_i})(unitInd,:);
-      unitDataPrefStim = selTableParadigm.(prefSelLabels{p_i})(unitInd,:); 
+      unitDatapVal = anovaTableParadigm.(pValLabels{p_i})(unitInd,:);
+      unitDataPrefStim = anovaTableParadigm.(prefSelLabels{p_i})(unitInd,:); 
       unitDatapVal = vertcat(unitDatapVal{:});
       unitDataPrefStim = vertcat(unitDataPrefStim{:});
       

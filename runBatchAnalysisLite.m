@@ -20,6 +20,12 @@ if ~strcmp('stimPresCount',spikePathBank.Properties.VariableNames)
   save(spikePathFile, 'spikePathBank', '-append')
 end
 
+if ~contains('selTable', spikePathBank.Properties.VariableNames)
+  spikePathBank = processAppendSelTable(spikePathBank, batchAnalysisParams);
+  spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;
+  save(spikePathFile, 'spikePathBank', '-append')
+end
+
 % Prepare things to run in DataHigh
 if calcSwitch.dataHigh
   dataHighPrep(spikePathBank, batchAnalysisParams)

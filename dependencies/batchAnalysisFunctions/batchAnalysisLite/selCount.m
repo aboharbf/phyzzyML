@@ -2,23 +2,20 @@ function selCount(spikePathBank, batchAnalysisParams)
 % A Function to tally across processed runs and the 'selTable' produced.
 
 % Collect unit selectivity
-[selTablePerRun] = spikePathLoad(spikePathBank, {'selTable'}, batchAnalysisParams.spikePathLoadParams);
 outputDir = batchAnalysisParams.selParam.outputDir;
-
 if ~exist(outputDir, 'dir')
   mkdir(outputDir);
 end
 
 % Now, selectivity across paradigms...
-selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
+% selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
 
 paradigmList = unique(spikePathBank.paradigmName);
 
 for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
-  spikePathBankParadigm = spikePathBank(pInd,:);
-  selTableParadigmPerRun = selTablePerRun(pInd);
+  selTableParadigmPerRun = spikePathBank.selTable(pInd);
   
   % Commented code below is for checking specific stimulus sets within
   % naturalSocial paradigm.
@@ -39,12 +36,6 @@ for par_i = 1:length(paradigmList)
     fprintf('%d %s traces \n', unitCount, UnitTypePlot{unit_i})
   end
 
-  % Replace the channel names for 20201123Mo
-  selTableParadigm = replaceChanNum_1123(selTableParadigm);
-  
-  % Expand the table with combined events.
-  selTableParadigm = expandSelTableComboEvents(selTableParadigm, batchAnalysisParams.selParam);
-  
   % Make a bar plot and distribution describing epoch preferences (Activity
   % above baseline during an epoch).
   EpochPreferenceBarGraphsAndVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)

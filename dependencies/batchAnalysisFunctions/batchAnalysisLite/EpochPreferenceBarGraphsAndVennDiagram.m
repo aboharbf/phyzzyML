@@ -14,8 +14,8 @@ alpha = 0.05;                             % This is the alpha is used to thresho
 epochList = {'Fix', 'stimOnset', 'stimPres', 'reward'};
 
 varNames = selTable.Properties.VariableNames';
-epochPrefVars = varNames(contains(varNames, 'epochPref'));
-BaseVsVars = varNames(contains(varNames, 'BaseV'));
+epochPrefVars = varNames(contains(varNames, 'epochPref_'));
+BaseVsVars = varNames(contains(varNames, 'baseV_'));
 unitTypePlot = {'MUA', 'U&US'};
 
 % Generate bar plots showing total counts in each category
@@ -32,12 +32,9 @@ for unitType_i = 1:2
   identifierVector = strcat(selTableParadigmUnit.dateSubj,selTableParadigmUnit.runNum, selTableParadigmUnit.channel);
   unitCount = sum(unitInd);
     
-  % Extract pVals and means for each comparison
-  BaseVsVars = BaseVsVars(~contains(BaseVsVars, 'stimWhole'));
-  
-  pValMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_PVal'))};
-  sigMat = pValMat <= alpha;
-  sigBaselineCount = sum(logical(sum(sigMat, 2)));
+  % Extract pVals and means for each comparison  
+  sigMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_selInd'))};
+  sigBaselineCount = sum(any(sigMat,2));
   sigPerEpochCount = sum(sigMat);
   
   % Plot 1

@@ -2,13 +2,13 @@ function selectivityCurveSel(spikePathBank, batchAnalysisParams)
 % a function which pulls encoding curves from the selectivity table for
 % each paradigm.
 
-runNames = extractAfter(spikePathBank.Properties.RowNames, 'S');
 stretchAllSame = false;
 
 % Collect unit selectivity
-[selTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
-outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveSel');
+[anovaTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
+% anovaTablePerRun = spikePathBank.selTable;
 
+outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveSel');
 if ~exist(outputDir, 'dir')
   mkdir(outputDir);
 end
@@ -32,14 +32,14 @@ x_for_lines = interp1(the_bin_start_times, 1:length(the_bin_start_times), points
 for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
-  selTableParadigmPerRun = selTablePerRun(pInd);
+  anovaTableParadigmPerRun = anovaTablePerRun(pInd);
   
-  selTableParadigm = vertcat(selTableParadigmPerRun{:});
+  anovaTableParadigm = vertcat(anovaTableParadigmPerRun{:});
   
   % Find rows w/ Var
-  pValLabels = selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, 'pVal'));
-  varLabels = selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, 'VarExp'));
-  prefSelLabels = selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, 'prefSel'));
+  pValLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, 'pVal'));
+  varLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, 'VarExp'));
+  prefSelLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, '_prefStim'));
   
   dataArray = {pValLabels; varLabels; prefSelLabels};
   dataLabels = {'-log10(p) Encoding Strength', 'Variance Explained', 'Preferred Stimuli'};
@@ -61,13 +61,13 @@ for par_i = 1:length(paradigmList)
         
         % Grab one of the unit types
         if unit_i == 1
-          unitInd = contains(selTableParadigm.unitType, 'MUA');
+          unitInd = contains(anovaTableParadigm.unitType, 'MUA');
         else
-          unitInd = ~contains(selTableParadigm.unitType, 'MUA');
+          unitInd = ~contains(anovaTableParadigm.unitType, 'MUA');
         end
         
         % Extract values for unit
-        dataStack = vertcat(selTableParadigm.(dataArray{label_i}{factor_i}){unitInd,:});
+        dataStack = vertcat(anovaTableParadigm.(dataArray{label_i}{factor_i}){unitInd,:});
         
         if contains(dataLabels{label_i}, 'Encoding')
           
