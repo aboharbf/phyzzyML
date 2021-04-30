@@ -528,7 +528,6 @@ end
 if addFalseRowRewardAbsent
   selTable.subSel_rewardAbsent_pVal = ones(size(selArray(:,1), 1), 1);
   selTable.subSel_rewardAbsent_cohensD = zeros(size(selArray(:,1), 1), 1);
-
 end
 
 specSubEventStruct = struct();

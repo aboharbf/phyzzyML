@@ -11,33 +11,42 @@ comboEvents = params.comboEvents;
 comboSubEvents = params.comboSubEvents;
 
 varNames = selTable.Properties.VariableNames;
+
 for combo_i = 1:length(comboEvents)
   
   % Initialize combo index, and collect subEvents.
   subEvents = comboSubEvents{combo_i};
   comboInd = zeros(size(selTable,1), length(subEvents));
   
-  % See if individual events are present
-  for sub_i = 1:length(subEvents)
-    if any(strcmp(varNames, subEvents{sub_i}))
-      comboInd(:, sub_i) = selTable.(subEvents{sub_i});
+  if all(contains(subEvents, 'selInd'))
+    % For simple indicies, combine like this
+    selTable.(comboEvents{combo_i}) = any(selTable{:, subEvents}, 2);
+  else
+    % For values (like 'diff' variables), combine as below, preserving
+    % sign.
+    
+    % See if individual events are present
+    for sub_i = 1:length(subEvents)
+      if any(strcmp(varNames, subEvents{sub_i}))
+        comboInd(:, sub_i) = selTable.(subEvents{sub_i});
+      end
     end
-  end
-  
-  % Identify largest activity
-  maxActInd = max(abs(comboInd),  [], 2);
-  
-  % Identify the correct sign
-  actInd = find(maxActInd ~= 0)';
-  for act_i = actInd
-    % If the max entry doesn't match the one from the original set, flip
-    % the sign.
-    if max(comboInd(act_i,:)) ~= maxActInd(act_i)
-      maxActInd(act_i) = -maxActInd(act_i);
+    
+    % Identify largest activity
+    maxActInd = max(abs(comboInd),  [], 2);
+    
+    % Identify the correct sign
+    actInd = find(maxActInd ~= 0)';
+    for act_i = actInd
+      % If the max entry doesn't match the one from the original set, flip
+      % the sign.
+      if max(comboInd(act_i,:)) ~= maxActInd(act_i)
+        maxActInd(act_i) = -maxActInd(act_i);
+      end
     end
+    
+    % Add to larger table
+    selTable.(comboEvents{combo_i}) = maxActInd;
   end
-  
-  % Add to larger table
-  selTable.(comboEvents{combo_i}) = maxActInd;
   
 end

@@ -9,7 +9,6 @@ spikeCountsByImageByEpoch = cell(size(timeBins,1),1);
 for epoch_i = 1:size(timeBins,1)
   [spikeCounts, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
   spikeCountsByImageByEpoch{epoch_i} = spikeCounts;
-  %spikeCountsByImageByEpoch{epoch}{channel}{unit}{event}.rates = trials*1
 end
 
 %% Determine Epoch selectivity, compared to baseline

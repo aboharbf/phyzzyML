@@ -18,9 +18,9 @@ varExcludesel = {'_cohensD'};
 
 for run_i = 1:length(selTablePerRun)
   
-  % Remove Table
   selTableRun = selTablePerRun{run_i};
   
+  % Remove undesired variables
   var2Remove = contains(selTableRun.Properties.VariableNames, varExcludesel);
   selTableRun(:, var2Remove) = [];
   
@@ -113,6 +113,13 @@ for run_i = 1:length(selTablePerRun)
   % Expand the table with combined events.
   selTableRun = expandSelTableComboEvents(selTableRun, params.selParam);
   
+  % For rewards, if rewardAbsent is present, use it, otherwise use the
+  % other comparison.
+  if all(selTableRun.subSel_rewardAbsent_pVal == 1)
+    selTableRun.subSel_rewardCombo_selInd = selTableRun.subSel_reward_selInd;
+  else
+    selTableRun.subSel_rewardCombo_selInd = selTableRun.subSel_rewardAbsent_selInd;
+  end
   % Add processed table to the array
   processedSelTableArray{run_i} = selTableRun;
   

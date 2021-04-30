@@ -10,7 +10,6 @@ function EpochPreferenceBarGraphsAndVennDiagram(selTable, paradigm, params)
 % - paradigm, a string denoting the paradigm (must match a struct in
 % params.
 
-alpha = 0.05;                             % This is the alpha is used to threshold pValues extracted.
 epochList = {'Fix', 'stimOnset', 'stimPres', 'reward'};
 
 varNames = selTable.Properties.VariableNames';
@@ -33,11 +32,16 @@ for unitType_i = 1:2
   unitCount = sum(unitInd);
     
   % Extract pVals and means for each comparison  
-  sigMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_selInd'))};
-  sigBaselineCount = sum(any(sigMat,2));
+  pValMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_pVal'))};
+  sigMat = pValMat <= 0.05;
+  sigBaselineCount = sum(logical(sum(sigMat, 2)));
+  
+%   sigMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_selInd'))};
+%   sigBaselineCount = sum(any(sigMat,2));
   sigPerEpochCount = sum(sigMat);
   
   % Plot 1
+  alpha = 0.05;
   figTitle = sprintf('%s - %s modulated during each Epoch, alpha = %s (%d of %d Unique)', paradigm, unitTypePlot{unitType_i}, num2str(alpha), sigBaselineCount, unitCount);
   createBarPlotWithChanceLine(epochList, sigPerEpochCount, alpha, unitCount, figTitle, [])
   saveFigure(params.outputDir, figTitle, [], params.figStruct, [])

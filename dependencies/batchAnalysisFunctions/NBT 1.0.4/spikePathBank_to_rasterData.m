@@ -11,8 +11,6 @@ function  spikePathBank_to_rasterData(spikePathBank, rasterDataPath, params)
 % raster_site_info - file*1 labels/numbers - session_ID, channel, unit,
 % site.
 
-alpha = 0.01;
-
 %runData.spikesByEventBinned{stim}{chan}{unit} --> needs to be turned to
 %rasterDataUnit
 
@@ -29,29 +27,58 @@ if exist(params.subEventBatchStructPath, 'file')
 end
 
 % Load the spike data to be turned into raster data.
-[spikesByEventBinned, psthParams, selTable] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams', 'selTable'}, params.spikePathLoadParams);
-selTable = vertcat(selTable{:});
-runList = spikePathBank.Properties.RowNames;
+% [spikesByEventBinned, psthParams, selTable] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams', 'selTable'}, params.spikePathLoadParams);
+% selTable = vertcat(selTable{:});
+% runList = spikePathBank.Properties.RowNames;
 
 % Add Combo events
-selTable = expandSelTableComboEvents(selTable, params);
+% selTable = expandSelTableComboEvents(selTable, params);
 
 % Update 20201123Mo channels...
-selTable = replaceChanNum_1123(selTable);
+% selTable = replaceChanNum_1123(selTable);
 
-epochSelInd = contains(selTable.Properties.VariableNames', 'BaseV') & contains(selTable.Properties.VariableNames', 'PVal');
-eventSelInd = contains(selTable.Properties.VariableNames', 'Sel_');
-removeInd = strcmp(selTable.Properties.VariableNames', 'saccSel_socVNonSoc_diff');
-var2AddInd = epochSelInd | eventSelInd & ~removeInd;
+[spikesByEventBinned, psthParams] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams'}, params.spikePathLoadParams);
+selTable = vertcat(spikePathBank.selTable{:});
+runList = spikePathBank.Properties.RowNames;
 
-vars2Add = selTable.Properties.VariableNames(var2AddInd);
-vars2Add = vars2Add(~contains(vars2Add, 'broadCategoriesSel'));
-vars2Add = vars2Add(~contains(vars2Add, 'saccSel_broadCategories_diff'));
+% epochSelInd = contains(selTable.Properties.VariableNames', 'BaseV') & contains(selTable.Properties.VariableNames', 'PVal');
+% eventSelInd = contains(selTable.Properties.VariableNames', 'Sel_');
+% removeInd = strcmp(selTable.Properties.VariableNames', 'saccSel_socVNonSoc_diff');
+% var2AddInd = epochSelInd | eventSelInd & ~removeInd;
+% 
+% vars2Add = selTable.Properties.VariableNames(var2AddInd);
+% vars2Add = vars2Add(~contains(vars2Add, 'broadCategoriesSel'));
+% vars2Add = vars2Add(~contains(vars2Add, 'saccSel_broadCategories_diff'));
 
+% Take sub selection here. give them shorter names for defining.
+% vars2AddOrig = selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'selInd'));
+vars2AddOrig = [{'subSel_headTurn_all_selInd'    }
+    {'subSel_rewardCombo_selInd'                 }
+    {'epochSel_socVNonSoc_stimOnset_selInd'      }
+    {'epochSel_socVNonSoc_stimPres_selInd'       }
+    {'epochSel_socVNonSoc_reward_selInd'         }
+    {'epochSel_socVNonSoc_any_selInd'            }
+    {'epochSel_broadCategories_stimOnset_selInd' }
+    {'epochSel_broadCategories_stimPres_selInd'  }
+    {'epochSel_broadCategories_reward_selInd'    }
+    {'slidingWin_broadCTest_broadCategory_selInd'}];
+  
+vars2Add = strrep(vars2AddOrig, 'epochSel_socVNonSoc', 'sVns');
+vars2Add = strrep(vars2Add, 'epochSel_broadCategories', 'bCat');
+vars2Add = strrep(vars2Add, 'slidingWin_broadCTest_broadCategory', 'slidingWinBroadCat');
+
+vars2AddOrig = [{'subSel_headTurn_all_selInd'    }
+    {'subSel_rewardCombo_selInd'                 }
+    {'sVns_stimOnset_selInd'      }
+    {'sVns_stimPres_selInd'       }
+    {'sVns_reward_selInd'         }
+    {'sVns_any_selInd'            }
+    {'bCat_stimOnset_selInd' }
+    {'bCat_stimPres_selInd'  }
+    {'bCat_reward_selInd'    }
+    {'slidingWinBroadCat_selInd'}];
+  
 countPerVar = zeros(length(vars2Add),1);
-
-% Remove NaN's from the variables above.
-
 
 for run_i = 1:length(runList)
   
@@ -175,16 +202,8 @@ for run_i = 1:length(runList)
       % use selTable to add selectivities for individual events.
       gridRow = selTableChRows(unit_i, :);
       for event_i = 1:length(vars2Add)
-        
-        assert(~isempty(gridRow.(vars2Add{event_i})), 'Error found');
-        
-        if contains(vars2Add{event_i}, 'pVal') || contains(vars2Add{event_i}, 'PVal')
-          raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) < alpha;
-        else
-          raster_site_info.(vars2Add{event_i}) = gridRow.(vars2Add{event_i}) ~= 0 && ~isnan(gridRow.(vars2Add{event_i}));
-        end
+        raster_site_info.(vars2Add{event_i}) = gridRow.(vars2AddOrig{event_i});
         countPerVar(event_i) = countPerVar(event_i) + sum(raster_site_info.(vars2Add{event_i}));
-        
       end
       
       % If desired, remove data and accompanying labels if the labels are

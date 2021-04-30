@@ -32,7 +32,7 @@ the_bin_start_times_shift = the_bin_start_times;
 bins_to_label = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_to_label);
 x_for_lines = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_for_lines);
 labelOrder = {'chasing', 'fighting' 'grooming', 'mounting', 'goalDirected', 'idle', 'objects'};
-alpha = 0.01;
+alpha = 0.05;
 
 for par_i = 1:length(paradigmList)
   
@@ -84,9 +84,10 @@ for par_i = 1:length(paradigmList)
       
       % Sig count per label
       countPerLabel = sum(squeeze(stretchRuns) >= 5);
+      atleastOne = sum(any(squeeze(stretchRuns) >= 5, 2));
       
       % Plot as Bar graph.
-      figTitle = sprintf('Significant %s counts per Category, %s', unitTypePlot{unitType_i}, paradigmList{par_i});
+      figTitle = sprintf('Significant %s counts per Category, %s (%d unique)', unitTypePlot{unitType_i}, paradigmList{par_i}, atleastOne);
       createBarPlotWithChanceLine(labelOrder, countPerLabel, alpha^5, unitCount, figTitle, [])
       saveFigure(outputDir, figTitle, [], batchAnalysisParams.figStruct, [])
 

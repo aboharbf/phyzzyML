@@ -46,7 +46,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
 plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
@@ -88,9 +88,9 @@ stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
 
 selParam.outputDir =  fullfile(outputDir,'selCount');
-selParam.comboEvents = {'subSel_headTurn_all', 'subSel_allTurn', 'socVNonSocSel_any'};
-selParam.comboSubEvents = {{'subSel_headTurn_left', 'subSel_headTurn_right'}, {'subSel_headTurn_left', 'subSel_headTurn_right', 'subSel_bodyTurn'}, ...
-  {'socVNonSocSel_stimOnset', 'socVNonSocSel_stimPres', 'socVNonSocSel_stimWhole', 'socVNonSocSel_reward'}};
+selParam.comboEvents = {'subSel_headTurn_all_selInd', 'epochSel_socVNonSoc_any_selInd'};
+selParam.comboSubEvents = {{'subSel_headTurn_left_selInd', 'subSel_headTurn_right_selInd'}, ...
+  {'epochSel_socVNonSoc_stimOnset_selInd', 'epochSel_socVNonSoc_stimPres_selInd', 'epochSel_socVNonSoc_reward_selInd'}};
 selParam.figStruct = figStruct;
 
 selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
