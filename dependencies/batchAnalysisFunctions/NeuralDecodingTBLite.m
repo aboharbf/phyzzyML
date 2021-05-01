@@ -47,6 +47,7 @@ for paradigm_i = 1:length(paradigmList)
   else
     binnedFileName = binnedFileNameOut;
   end
+
   
   % Once these raster files have been generated, use this script to
   % generate analyses.
@@ -262,6 +263,7 @@ for paradigm_i = 1:length(paradigmList)
     
   end
 end
+
 save(fullfile(params.outputDir, 'ndtParams.mat'), 'params')
 
 end

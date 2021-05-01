@@ -14,8 +14,9 @@ if ~exist(outputDir, 'dir')
 end
 
 paradigmList = unique(spikePathBank.paradigmName);
-unitType = {'MUA'};
+unitLabel = {'MUA', 'Units'};
 unitTypePlot = {'MUA', 'U+US'};
+testsPerformed = {'broadC', 'socInt'};
 
 % Bins for the x-axis
 binStep = 25;
@@ -25,7 +26,6 @@ the_bin_start_times = 0:binStep:stimSize-binSize;
 points_to_label = [0  1000 2000 2800];
 points_for_lines = [0 2800];
 
-the_bin_start_times_shift = the_bin_start_times;
 bins_to_label = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_to_label);
 x_for_lines = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_for_lines);
 
@@ -35,138 +35,149 @@ for par_i = 1:length(paradigmList)
   anovaTableParadigmPerRun = anovaTablePerRun(pInd);
   
   anovaTableParadigm = vertcat(anovaTableParadigmPerRun{:});
+  tableVars = anovaTableParadigm.Properties.VariableNames';
   
-  % Find rows w/ Var
-  pValLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, 'pVal'));
-  varLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, 'VarExp'));
-  prefSelLabels = anovaTableParadigm.Properties.VariableNames(contains(anovaTableParadigm.Properties.VariableNames, '_prefStim'));
-  
-  dataArray = {pValLabels; varLabels; prefSelLabels};
-  dataLabels = {'-log10(p) Encoding Strength', 'Variance Explained', 'Preferred Stimuli'};
-  stretchIndMat = cell(2, length(dataArray{1}));
-  
-  % Cycle through analyses, combining results and visualizing them
-  for label_i = 1:length(dataLabels)
-    % Grab the columns which represent this analysis
-    analysisLabels = strrep(dataArray{label_i}, '_', ' '); %selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, [anovaFactors{label_i} 'Var']));
+  % Cycle through tests
+  for test_i = 1:length(testsPerformed)
     
-    % For each factor of the analysis, plot a
-    factorCount = length(dataArray{label_i});
-    figTitle = sprintf('ANOVA on Label %s - Paradigm %s', dataLabels{label_i}, paradigmList{par_i});
-    figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.0214    0.2287    0.9615    0.5213]);
-    sgtitle(figTitle);
+    testInd = contains(tableVars, testsPerformed{test_i});
     
-    for factor_i = 1:factorCount
-      for unit_i = 1:2
-        
-        % Grab one of the unit types
-        if unit_i == 1
-          unitInd = contains(anovaTableParadigm.unitType, 'MUA');
-        else
-          unitInd = ~contains(anovaTableParadigm.unitType, 'MUA');
-        end
-        
-        % Extract values for unit
-        dataStack = vertcat(anovaTableParadigm.(dataArray{label_i}{factor_i}){unitInd,:});
-        
-        if contains(dataLabels{label_i}, 'Encoding')
-          
-          pValInd2Keep = dataStack < 0.05;
-          stretchLength = findStretchRuns(pValInd2Keep);
-          
-          % For units with the right length of stretches, visualize them
-          [stretchIndMat{unit_i, factor_i}, ind2Keep] = deal(stretchLength >= 5);
-          dataStackKeep = dataStack(ind2Keep,:);
-          stretchLengthKeep = stretchLength(ind2Keep,:);
-          [~, ai] = sort(stretchLengthKeep);
-          dataStackKeep = dataStackKeep(ai,:);
-          
-          % convert to negative log 2 to 5
-          dataStackFinal = -log10(dataStackKeep);
-          dataStackFinal(dataStackFinal > 5) = 5;
-          dataStackFinal(dataStackFinal < 2) = 2;
-          
-        elseif contains(dataLabels{label_i}, 'Preferred')
-          
-          % Preferred stimuli need to be turned into numbers
-          uniqueStimLabels = unique(dataStack(:));
-          dataStackFinalTmp = zeros([size(dataStack), length(uniqueStimLabels)]);
-          for ii = 1:length(uniqueStimLabels)
-            dataStackFinalTmp(:,:,ii) = strcmp(dataStack, uniqueStimLabels{ii}) * (ii - 1);
-          end
-          dataStack = sum(dataStackFinalTmp, 3);
-          
-          if stretchAllSame
-            stretchLengths = findStretchRuns(dataStackFinalTmp);
-            [ind2Keep, stretchIndMat{unit_i, factor_i}] = deal(logical(sum(squeeze(stretchLengths) >= 5, 2)));
-          else
-            ind2Keep = stretchIndMat{unit_i, factor_i};
-          end
-          
-          dataStackFinal = dataStack(ind2Keep,:);
-          
-        else
-          
-          % Sort the explained variance in the same way the p value stacks
-          % were sorted.
-          ind2Keep = stretchIndMat{unit_i, factor_i};
-          dataStackFinal = dataStack(ind2Keep,:);
-          
-        end
-                
-        % Plotting
-        ax = subplot(2, factorCount, sub2ind([factorCount 2], factor_i, unit_i));
-        imagesc(dataStackFinal)
-        title(sprintf('%s, %s - %d/%d', unitTypePlot{unit_i}, analysisLabels{factor_i}, sum(ind2Keep), length(ind2Keep)))
-        
-        if label_i == 2 || label_i == 3
-          cbHand = colorbar();
-        end
-        
-        % Convert Bins to times, add to X axis.
-        ax.XTick = bins_to_label;
-        ax.XTickLabel = points_to_label;
-        ylabel('Unit #');
-        xlabel('Bin (ms)');
-        
-      end
-    end
+    % Find rows w/ Var
+    pValLabels = tableVars(contains(tableVars, 'pVal') & testInd);
+    varLabels = tableVars(contains(tableVars, 'VarExp') & testInd);
+    prefSelLabels = tableVars(contains(tableVars, '_prefStim') & testInd);
     
-    % Save the Figure
-    saveFigure(batchAnalysisParams.selParam.outputDir, ['1. ' figTitle], [], batchAnalysisParams.selParam.figStruct, [])
+    dataArray = {pValLabels; varLabels; prefSelLabels};
+    dataLabels = {'-log10(p) Encoding Strength', 'Variance Explained', 'Preferred Stimuli'};
+    stretchIndMat = cell(2, length(dataArray{1}));
     
-    if ~contains(dataLabels{label_i}, 'Preferred')
-      % See if Units are together or not.
-      figTitleSum = sprintf('Counts of Traces with Significant Stretches %s', paradigmList{par_i});
-      figure('Name', figTitleSum, 'units', 'normalized', 'position', [0.0635    0.0380    0.6339    0.8833])
-      unitLabel = {'Units', 'MUA'};     % Units
-      for ii = 1:length(unitLabel)
-        ax = subplot(1,length(unitLabel),ii);
-        anyUnit = [stretchIndMat{ii, :}];
-        unitCountPerLabel = sum(anyUnit);
-        anyUnitCount = sum(anyUnit, 2) ~= 0;
-        allUnit = [anyUnit, anyUnitCount];
-        imagesc(allUnit);
-        title(sprintf('%s (Total %d/%d)', unitLabel{ii}, sum(anyUnitCount), length(anyUnitCount)))
-        
-        % Generate Labels
-        analysisLabelsPlot = analysisLabels;
-        for jj = 1:length(analysisLabels)
-          analysisLabelsPlot{jj} = sprintf('%s (%d)', analysisLabels{jj}, unitCountPerLabel(jj));
-        end
-        xticks(1:length(analysisLabelsPlot)+1)
-        xticklabels([analysisLabelsPlot, {'All Units'}])
-        ax.XTickLabelRotation = 45;
-      end
-      sgtitle(figTitleSum);
-      ylabel('Unit #')
-      xlabel('ANOVA Factor');
+    % Cycle through analyses, combining results and visualizing them
+    for label_i = 1:length(dataLabels)
+      % Grab the columns which represent this analysis
+      analysisLabels = strrep(dataArray{label_i}, '_', ' '); %selTableParadigm.Properties.VariableNames(contains(selTableParadigm.Properties.VariableNames, [anovaFactors{label_i} 'Var']));
       
-      % Save the paneled image.
-      saveFigure(outputDir, ['2. ' figTitleSum ], [], batchAnalysisParams.selParam.figStruct, [])
+      % For each factor of the analysis
+      factorCount = length(dataArray{label_i});
+      if factorCount > 0
+        figTitle = sprintf('%s ANOVA on Label %s - Paradigm %s', testsPerformed{test_i}, dataLabels{label_i}, paradigmList{par_i});
+        figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.2521    0.0630    0.4922    0.8296]);
+        sgtitle(figTitle);
+        
+        for factor_i = 1:factorCount
+          for unit_i = 1:2
+            
+            % Grab one of the unit types
+            if unit_i == 1
+              unitInd = contains(anovaTableParadigm.unitType, 'MUA');
+            else
+              unitInd = ~contains(anovaTableParadigm.unitType, 'MUA');
+            end
+            
+            % Extract values for unit
+            dataStack = vertcat(anovaTableParadigm.(dataArray{label_i}{factor_i}){unitInd,:});
+            
+            if contains(dataLabels{label_i}, 'Encoding')
+              
+              pValInd2Keep = dataStack < 0.05;
+              stretchLength = findStretchRuns(pValInd2Keep);
+              
+              % For units with the right length of stretches, visualize them
+              [stretchIndMat{unit_i, factor_i}, ind2Keep] = deal(stretchLength >= 5);
+              dataStackKeep = dataStack(ind2Keep,:);
+              stretchLengthKeep = stretchLength(ind2Keep,:);
+              [~, ai] = sort(stretchLengthKeep);
+              dataStackKeep = dataStackKeep(ai,:);
+              
+              % convert to negative log 2 to 5
+              dataStackFinal = -log10(dataStackKeep);
+              dataStackFinal(dataStackFinal > 5) = 5;
+              dataStackFinal(dataStackFinal < 2) = 2;
+              
+            elseif contains(dataLabels{label_i}, 'Preferred')
+              
+              if ~isempty(dataStack)
+                % Preferred stimuli need to be turned into numbers
+                uniqueStimLabels = unique(dataStack(:));
+                dataStackFinalTmp = zeros([size(dataStack), length(uniqueStimLabels)]);
+                for ii = 1:length(uniqueStimLabels)
+                  dataStackFinalTmp(:,:,ii) = strcmp(dataStack, uniqueStimLabels{ii}) * (ii - 1);
+                end
+                dataStack = sum(dataStackFinalTmp, 3);
+                
+                if stretchAllSame
+                  stretchLengths = findStretchRuns(dataStackFinalTmp);
+                  [ind2Keep, stretchIndMat{unit_i, factor_i}] = deal(logical(sum(squeeze(stretchLengths) >= 5, 2)));
+                else
+                  ind2Keep = stretchIndMat{unit_i, factor_i};
+                end
+                
+                dataStackFinal = dataStack(ind2Keep,:);
+              else
+                continue
+              end
+              
+            else
+              
+              % Sort the explained variance in the same way the p value stacks
+              % were sorted.
+              ind2Keep = stretchIndMat{unit_i, factor_i};
+              dataStackFinal = dataStack(ind2Keep,:);
+              
+            end
+            
+            % Plotting
+            ax = subplot(2, factorCount, sub2ind([factorCount 2], factor_i, unit_i));
+            imagesc(dataStackFinal)
+            title(sprintf('%s, %s - %d/%d', unitTypePlot{unit_i}, analysisLabels{factor_i}, sum(ind2Keep), length(ind2Keep)))
+            if factorCount == factor_i
+              colorbar();
+            end
+            
+            % Convert Bins to times, add to X axis.
+            ax.XTick = bins_to_label;
+            ax.XTickLabel = points_to_label;
+            ylabel('Unit #');
+            xlabel('Bin (ms)');
+            
+          end
+        end
+        
+        % Save the Figure
+        saveFigure(outputDir, ['1. ' figTitle], [], batchAnalysisParams.selParam.figStruct, [])
+        
+      end
+
+      % Additional plot - Are factors significant on different units?
+      if ~contains(dataLabels{label_i}, 'Preferred') && factorCount > 1
+        figTitleSum = sprintf('%s test Counts of Traces with Significant Stretches %s', testsPerformed{test_i}, paradigmList{par_i});
+        figure('Name', figTitleSum, 'units', 'normalized', 'position', [0.0635    0.0380    0.6339    0.8833])
+        for ii = 1:length(unitLabel)
+          ax = subplot(1,length(unitLabel),ii);
+          anyUnit = [stretchIndMat{ii, :}];
+          unitCountPerLabel = sum(anyUnit);
+          anyUnitCount = sum(anyUnit, 2) ~= 0;
+          allUnit = [anyUnit, anyUnitCount];
+          imagesc(allUnit);
+          title(sprintf('%s (Total %d/%d)', unitLabel{ii}, sum(anyUnitCount), length(anyUnitCount)))
+          
+          % Generate Labels
+          analysisLabelsPlot = analysisLabels;
+          for jj = 1:length(analysisLabels)
+            analysisLabelsPlot{jj} = sprintf('%s (%d)', analysisLabels{jj}, unitCountPerLabel(jj));
+          end
+          xticks(1:length(analysisLabelsPlot)+1)
+          xticklabels([analysisLabelsPlot; {'All Units'}])
+          ax.XTickLabelRotation = 45;
+        end
+        sgtitle(figTitleSum);
+        ylabel('Unit #')
+        xlabel('ANOVA Factor');
+        
+        % Save the paneled image.
+        saveFigure(outputDir, ['2. ' figTitleSum ], [], batchAnalysisParams.selParam.figStruct, [])
+      end
     end
   end
-  
 end
 
 end

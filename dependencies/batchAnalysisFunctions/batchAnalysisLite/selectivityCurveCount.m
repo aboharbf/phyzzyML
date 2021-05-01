@@ -88,7 +88,7 @@ for par_i = 1:length(paradigmList)
       
       % Plot as Bar graph.
       figTitle = sprintf('Significant %s counts per Category, %s (%d unique)', unitTypePlot{unitType_i}, paradigmList{par_i}, atleastOne);
-      createBarPlotWithChanceLine(labelOrder, countPerLabel, alpha^5, unitCount, figTitle, [])
+      createBarPlotWithChanceLine(labelOrder, countPerLabel, 0, unitCount, figTitle, [])
       saveFigure(outputDir, figTitle, [], batchAnalysisParams.figStruct, [])
 
     end

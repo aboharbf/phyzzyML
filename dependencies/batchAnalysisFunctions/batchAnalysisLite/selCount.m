@@ -41,9 +41,8 @@ for par_i = 1:length(paradigmList)
   EpochPreferenceBarGraphsAndVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
   % Make bar plots per Epoch Selectivity - comparing an rates within an
-  % epoch across categories. Either Barplots or Venn Diagram.
-  selectivityPerEpochBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
-  selectivityPerEpochVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  % epoch across categories. Barplots or Venn Diagram.
+  selectivityPerEpochBarGraphsAndVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
   % Make bar plots for fixed events (Reward delivery, Fixation)
   selectivityPerEventBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)

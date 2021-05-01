@@ -45,11 +45,11 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 %% Switches
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
-plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
+plotSwitch.stimPresCount = 1;         % Figures showing presentation counts across all runs, in development.
+plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selectivityCurve = 1;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.spikeEyeOverlay = 0;       % Generate an overlay of activity across units according to eye signal.
@@ -102,9 +102,9 @@ selParam.headTurnCon.selCheck = {'socVNonSoc', 'broadCategories'};
 selParam.headTurnIso.selCheck = {'headTurn', 'fullModel', 'turnToward'};
 
 selParam.UnitTypes = {'MUA', digitsPattern};
-selParam.UnitTypePlot = {'MUA', 'Units'};
+selParam.UnitTypePlot = {'MUA', 'Units & US'};
 selParam.colNamePoss = {'stimOnset','stimPres', 'reward'};
-selParam.colNamePlotAll = {'stim Onset','stim Presentation', 'stim Whole Presentation', 'Reward'};
+selParam.colNamePlotAll = {'stim Onset','stim Presentation', 'Reward'};
 
 meanPSTHParams.spikePathLoadParams = spikePathLoadParams;
 meanPSTHParams.runInclude = 30;                                     % 0 = everything, N = Nth first runs of the stimulus.
@@ -289,12 +289,13 @@ NDTParams.spikeToRasterParams.comboEvents = selParam.comboEvents;
 NDTParams.spikeToRasterParams.comboSubEvents = selParam.comboSubEvents;
 
 % Paradigm specific
-NDTParams.spikeToRasterParams.NaturalSocial.rasterLabels = {'social', 'agents', 'socialCat'}; % raster labels which are added as fields.
-NDTParams.spikeToRasterParams.NaturalSocial.plotIndParams.plotLabels = {{'agents', 'socialInteraction'}, 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene', ...
-  'scramble', 'foraging', 'following', 'observing','animControl', 'animSocialInteraction'}}; % a cell array list of labels for inclusion.
+NDTParams.spikeToRasterParams.NaturalSocial.rasterLabels = {'social', 'agents', 'socialCat', 'catBroad'}; % raster labels which are added as fields.
+NDTParams.spikeToRasterParams.NaturalSocial.plotIndParams.plotLabels = {{'agents', 'socialInteraction'}, 'agents', {'chasing', 'mounting','fighting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}...
+  {'objects', 'idle', 'goalDirected', 'socialInteraction'}}; % a cell array list of labels for inclusion.
 
-NDTParams.spikeToRasterParams.headTurnCon.rasterLabels = {'headTurn', 'social', 'socialCat'};
-NDTParams.spikeToRasterParams.headTurnCon.plotIndParams.plotLabels = {'headTurn', {'agents', 'socialInteraction'}, {'chasing', 'fighting' ,'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}};
+NDTParams.spikeToRasterParams.headTurnCon.rasterLabels = {'headTurn', 'social', 'socialCat', 'catBroad'};
+NDTParams.spikeToRasterParams.headTurnCon.plotIndParams.plotLabels = {'headTurn', {'agents', 'socialInteraction'}, {'chasing', 'fighting' ,'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}...
+  {'scramble', 'objects', 'idle', 'goalDirected', 'socialInteraction'}};
 
 NDTParams.spikeToRasterParams.headTurnIso.rasterLabels = {'stimuli', 'turnDirection', 'turnSubj', 'mesh', 'meshTurn'};
 NDTParams.spikeToRasterParams.headTurnIso.plotIndParams.plotLabels = {meanPSTHParams.analysisGroups.headTurnIso.stimuli, {'leftFull', 'noTurn', 'rightFull', 'headTurn'}, {'turnToward', 'turnAway', 'noTurn'}, {'fullModel', 'smoothModel', 'dotModel'}, meanPSTHParams.analysisGroups.headTurnIso.mesh};

@@ -16,6 +16,11 @@ varNames = selTable.Properties.VariableNames';
 epochPrefVars = varNames(contains(varNames, 'epochPref_'));
 BaseVsVars = varNames(contains(varNames, 'baseV_'));
 unitTypePlot = {'MUA', 'U&US'};
+outDir = fullfile(params.outputDir, 'epochPreference');
+
+if ~exist(outDir, 'dir')
+  mkdir(outDir);
+end
 
 % Generate bar plots showing total counts in each category
 for unitType_i = 1:2
@@ -32,26 +37,29 @@ for unitType_i = 1:2
   unitCount = sum(unitInd);
     
   % Extract pVals and means for each comparison  
-  pValMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_pVal'))};
-  sigMat = pValMat <= 0.05;
-  sigBaselineCount = sum(logical(sum(sigMat, 2)));
+  sigMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_selInd'))};
+  diffMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_diff'))};
+  possMat = diffMat > 0;
   
-%   sigMat = selTableParadigmUnit{:, BaseVsVars(contains(BaseVsVars, '_selInd'))};
-%   sigBaselineCount = sum(any(sigMat,2));
-  sigPerEpochCount = sum(sigMat);
+  sigBaselineCount = sum(any(sigMat,2));
+  sigPerEpochCountPos = sum(sigMat & possMat);
+  sigPerEpochCountNeg = sum(sigMat & ~possMat);
+  
+  dataMat = [sigPerEpochCountPos; sigPerEpochCountNeg];
+  legendLabels = {'Increased firing', 'decreased firing'};
   
   % Plot 1
   alpha = 0.05;
   figTitle = sprintf('%s - %s modulated during each Epoch, alpha = %s (%d of %d Unique)', paradigm, unitTypePlot{unitType_i}, num2str(alpha), sigBaselineCount, unitCount);
-  createBarPlotWithChanceLine(epochList, sigPerEpochCount, alpha, unitCount, figTitle, [])
-  saveFigure(params.outputDir, figTitle, [], params.figStruct, [])
+  createBarPlotWithChanceLine(epochList, dataMat, alpha, unitCount, figTitle, legendLabels)
+  saveFigure(outDir, figTitle, [], params.figStruct, [])
 
   % Venn Diagram
-  sigMatVenn = [sigMat(:,1), [sigMat(:,2) | sigMat(:,3)], sigMat(:,4)];
+  sigMatVenn = [sigMat(:,1), sigMat(:,2) | sigMat(:,3), sigMat(:,4)];
   colNames = {'Fix', 'stimAny', 'Reward'};
   figTitle = sprintf('%s - %s modulated during each Epoch, alpha = %s - Intersection ', paradigm, unitTypePlot{unitType_i}, num2str(alpha));
   vennXExpanded(sigMatVenn, figTitle, colNames)
-  saveFigure(params.outputDir, figTitle, [], params.figStruct, [])
+  saveFigure(outDir, figTitle, [], params.figStruct, [])
   
   % Plot 2 - preference index
   prefIndex = selTableParadigmUnit.(epochPrefVars{2}); % highest epoch - mean of the rest / sum;
@@ -88,7 +96,7 @@ for unitType_i = 1:2
       fprintf('Max Pref %s = %s @ %s \n', epochList{ep_i}, num2str(A(b_i)),  identifierVector{indSigAllInd(B(b_i))})
     end
   end
-  saveFigure(params.outputDir, figTitle, [], params.figStruct, [])
+  saveFigure(outDir, figTitle, [], params.figStruct, [])
 
 end
 

@@ -4,10 +4,14 @@ function selectivityPerGridHole(spikePathBankParadigm, barPlotParams, selTable)
 % Analyze the batch sheet
 batchSheet = 'D:\DataAnalysis\BatchRunResults.xlsx';
 phyzzyDir = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML';
-outDir = 'D:\DataAnalysis\batchAnalysis\Counts';
 runList = strcat(selTable.dateSubj, selTable.runNum);
 unitTypes = barPlotParams.UnitTypes;
 unitTypePlot = barPlotParams.UnitTypePlot;
+outDir = fullfile(params.outputDir, 'selectivityPerGridHole');
+
+if ~exist(outDir, 'dir')
+  mkdir(outDir);
+end
 
 % Add combo Events
 selTable = expandSelTableComboEvents(selTable, barPlotParams);

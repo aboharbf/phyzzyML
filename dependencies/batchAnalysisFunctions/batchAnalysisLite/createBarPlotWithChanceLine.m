@@ -27,10 +27,12 @@ figH.Children.YLim(2) = YlimN(2) * 1.2;
 
 xlim(xlim());
 hold on
-chanceUnitCount = round(sum(unitCount)*(alpha/2));
+if alpha ~= 0
+  chanceUnitCount = round(sum(unitCount)*(alpha/2));
+  chanceLine = plot([X(1) X(end)], [chanceUnitCount chanceUnitCount], 'Color', 'red', 'LineStyle', '--', 'linewidth', 3);
+  chanceLine.DisplayName = sprintf('Chance (%s)', num2str(alpha/2));
+end
 
-chanceLine = plot([X(1) X(end)], [chanceUnitCount chanceUnitCount], 'Color', 'red', 'LineStyle', '--', 'linewidth', 3);
-chanceLine.DisplayName = sprintf('Chance (%s)', num2str(alpha/2));
 figH.Children.FontSize = 16;
 
 title(figTitle);

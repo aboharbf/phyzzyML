@@ -16,9 +16,27 @@ analysisOutDir = {'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyM
 % Each paradigm iterates across the below values
 categoriesStruct.label = 'socialCat';
 categoriesStruct.label_names_to_use = {'chasing'  'fighting'  'goalDirected'  'grooming'  'idle'  'mounting'  'objects'};
+categoriesStruct.coreTitle = 'Categories';
 socVNonSocStruct.label = 'social';
 socVNonSocStruct.label_names_to_use = {'agents'  'socialInteraction'};
-coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
+socVNonSocStruct.coreTitle = 'Social vs non-Social Agents';
+broadCatSocStruct.label = 'catBroad';
+broadCatSocStruct.label_names_to_use = {'objects', 'idle', 'goalDirected', 'socialInteraction'};
+broadCatSocStruct.coreTitle = 'Broad Categories';
+
+coreAnalysisStructs = [categoriesStruct socVNonSocStruct broadCatSocStruct];
+
+coreAnalysisParams.num_cv_splits = 1;
+coreAnalysisParams.k_repeats_needed = 1;
+coreAnalysisParams.save_extra_preprocessing_info = 0;
+coreAnalysisParams.editFieldEnabled = [1 0 0];
+coreAnalysisParams.num_features_to_use = 0;
+coreAnalysisParams.editFieldEnabled = [1 0 0];
+
+decoders = {'max_correlation_coefficient_CL'};
+decoderTags = {'MCC'};
+preProcArray = [{'zscore_normalize_FP'}; {'zscore_normalize_FP'}];
+unitSets = {'MUA', 'U&US'};
 
 % analysisTags are used to name the file, and put into the title of the
 % figure.
@@ -27,7 +45,7 @@ analyisTag = {'AllUnits', 'noHT', 'onlyHT', 'socIntSelAny', 'noSocIntSelAny', ..
   'socIntSel_noHT', 'socIntSel_onlyHT'...
   'broadCatOnset', 'broadCatstimPres', 'broadCatReward', ...
   'broadCatSliding', ...
-};
+  };
 
 % Matching set of variables to change, names must match what is defined in
 % the raster file.
@@ -44,6 +62,10 @@ analyisTagVars = {'', {{'subSel_headTurn_all_selInd', 0}}, {{'subSel_headTurn_al
 
 % Load the raster data
 for par_i = 1:length(paradigmName)
+  
+  if ~exist(analysisOutDir{par_i}, 'dir')
+    mkdir(analysisOutDir{par_i})
+  end
   
   % Load the available raster data.
   rasterData = load(rasterFile{par_i});
@@ -76,91 +98,92 @@ for par_i = 1:length(paradigmName)
     
   end
   
-  % Load the previously generated analyses to use as templates.
-  tmp = load(analysisTemplate{par_i});
-
-  for core_i = 1:length(coreAnalysisStructs)
+  for unit_set_i = 1:length(unitSets)
+    % Set the base state of the binnedSiteInfoMatrix
     
-    analysisTemplateStruct = tmp.analysisStruct;
+    % Create a template - all switches should be set to true, except for
+    % UnitType - which should be either MUA or U&US
+    sites2KeepTemplate = true(size(binnedSiteInfoMatrix));
+    unitTypeInd = strcmp(varFields, 'UnitType');
     
-    % Copy over the label, label names.
-    analysisTemplateStruct.label = coreAnalysisStructs(core_i).label;
-    analysisTemplateStruct.label_names_to_use = coreAnalysisStructs(core_i).label_names_to_use;
-        
-    % Run the initial k check
-    labelPerSite = binnedLabels.(analysisTemplateStruct.label);
-    [~, min_num_repeats_all_sites, ~, ~] = find_sites_with_k_label_repetitions(labelPerSite, 1, analysisTemplateStruct.label_names_to_use);
-    
-    % Create the sites2keep logical array for the template
-    siteInfoSelected = analysisTemplateStruct.site_info_selected;
-    
-    % Cycle through the variables defined in the analysisStruct
-    sites2KeepTemplate = false(size(binnedSiteInfoMatrix));
-    
-    % Iterate and populate the sites2KeepTemplate, defining sites which meet
-    % the criteria.
-    for site_info_i = 1:length(siteInfoSelected)
-      sites2KeepTemplate(site_info_i,:) = ismember(binnedSiteInfoMatrix(site_info_i,:), find(siteInfoSelected{site_info_i}));
+    if strcmp(unitSets{unit_set_i}, 'MUA')
+      sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 1);
+      unitTag = 'MUA';
+    else
+      sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), [2 3]);
+      unitTag = 'UnUS';
     end
     
-    for analysis_i = 1:length(analyisTag)
-      % Copy the template
-      analysisStruct = analysisTemplateStruct;
-      sites2KeepArray = sites2KeepTemplate;
-
-      % Check to see if anything needs to be changed.
-      variables2Change = analyisTagVars{analysis_i};
-      if ~isempty(variables2Change)
-        
-        % Modify based on variables2Change
-        for var_d = 1:length(variables2Change)
-          varChangeName = variables2Change{var_d}{1};
-          varChangeVal = variables2Change{var_d}{2};
-          
-          % Find which row to change
-          row2Change = find(strcmp(varFields, varChangeName));
-          
-          % Find the index of the values you want to keep
-          val2Keep = find(varFieldsUniqueEntries{row2Change} == varChangeVal);
-          
-          % Go back to the binnedSiteInfoMatrix, compare against the updated
-          % values, and store it.
-          sites2KeepArray(row2Change,:) = ismember(binnedSiteInfoMatrix(row2Change,:), val2Keep);
+    for core_i = 1:length(coreAnalysisStructs)
+      
+      analysisTemplateStruct = struct();
+      
+      % Copy over the label, label names.
+      analysisTemplateStruct.label = coreAnalysisStructs(core_i).label;
+      analysisTemplateStruct.label_names_to_use = coreAnalysisStructs(core_i).label_names_to_use;
+      analysisTemplateStruct.save_extra_preprocessing_info = 0;
+      analysisTemplateStruct.num_features_to_use = 0;
+      
+      analysisTemplateStruct.coreTitle = sprintf('%s %s', paradigmName{par_i}, coreAnalysisStructs(core_i).coreTitle);
+      
+      % Run the initial k check
+      labelPerSite = binnedLabels.(analysisTemplateStruct.label);
+      [~, min_num_repeats_all_sites, ~, ~] = find_sites_with_k_label_repetitions(labelPerSite, 1, analysisTemplateStruct.label_names_to_use);
+      
+      for decoder_i = 1:length(decoders)
+        for preProc_i = 1:length(preProcArray)
+          for analysis_i = 1:length(analyisTag)
+            % Copy the template
+            analysisStruct = analysisTemplateStruct;
+            analysisStruct.classifier = decoders{decoder_i};
+            analysisStruct.preProc = preProcArray(preProc_i);
+            
+            sites2KeepArray = sites2KeepTemplate;
+            
+            % Check to see if anything needs to be changed.
+            variables2Change = analyisTagVars{analysis_i};
+            if ~isempty(variables2Change)
+              % Modify based on variables2Change
+              for var_d = 1:length(variables2Change)
+                varChangeName = variables2Change{var_d}{1};
+                varChangeVal = variables2Change{var_d}{2};
+                
+                % Find which row to change
+                row2Change = find(strcmp(varFields, varChangeName));
+                
+                % Find the index of the values you want to keep
+                val2Keep = find(varFieldsUniqueEntries{row2Change} == varChangeVal);
+                
+                % Go back to the binnedSiteInfoMatrix, compare against the updated
+                % values, and store it.
+                sites2KeepArray(row2Change,:) = ismember(binnedSiteInfoMatrix(row2Change,:), val2Keep);
+              end
+              
+            end
+            
+            % Keep units which check all the boxes, store in the sites field.
+            sites2Keep = all(sites2KeepArray,1);
+            
+            % Update sites to be used, and the repeats used.
+            analysisStruct.sites = find(sites2Keep);
+            new_k = min(min_num_repeats_all_sites(sites2Keep));
+            [analysisStruct.num_cv_splits, analysisStruct.k_repeats_needed] = deal(new_k);
+            
+            % Generate the Title
+            unitSubSecTag = sprintf('(%s)', analyisTag{analysis_i});
+            repsTag = sprintf('(%d Reps %d %s)', new_k, length(find(sites2Keep)), unitTag);
+            analysisStruct.plotTitle = strjoin({analysisStruct.coreTitle unitSubSecTag repsTag}, ' ');
+            analysisStruct.plotTitle = strrep(analysisStruct.plotTitle, '_', ' ');
+            
+            % Create the filename.
+            saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmName{par_i}, analysisStruct.label, analyisTag{analysis_i}, unitTag, decoderTags{decoder_i});
+            
+            % Save structure
+            save(fullfile(analysisOutDir{par_i}, saveFileName), 'analysisStruct');
+            
+          end
         end
-        
       end
-      
-      % Keep units which check all the boxes, store in the sites field.
-      sites2Keep = all(sites2KeepArray,1);
-      
-      % Update sites to be used, and the repeats used.
-      analysisStruct.sites = find(sites2Keep);
-      new_k = min(min_num_repeats_all_sites(sites2Keep));
-      [analysisStruct.num_cv_splits, analysisStruct.k_repeats_needed] = deal(new_k);
-      
-      % Update the Title
-      originalTitle = analysisStruct.plotTitle;
-      
-      unitsSelected = analysisStruct.site_info_selected{strcmp(analysisStruct.site_info_items, 'UnitType')};
-      if sum(unitsSelected) == 2
-        unitTag = 'U&US';
-      elseif sum(unitsSelected) == 1
-        unitTag = 'MUA';
-      end
-      
-      % Process the string
-      removeInd = strfind(originalTitle, '(');
-      titleCore = originalTitle(1:removeInd(1)-1);
-      unitSubSecTag = sprintf('(%s)', analyisTag{analysis_i});
-      repsTag = sprintf('(%d Reps %d %s)', new_k, length(find(sites2Keep)), unitTag);
-      analysisStruct.plotTitle = [titleCore unitSubSecTag repsTag];
-      
-      % Create the save string
-      saveFileName = sprintf('%s_%s_%s', paradigmName{par_i}, analysisStruct.label, analyisTag{analysis_i});
-      
-      % Save structure
-      save(fullfile(analysisOutDir{par_i}, saveFileName), 'analysisStruct');
-      
     end
   end
   

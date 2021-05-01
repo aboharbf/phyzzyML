@@ -7,6 +7,11 @@ includeSaccade = false;
 UnitTypes = params.UnitTypes;
 UnitTypePlot = params.UnitTypePlot;
 alpha = 0.05;                                         % Alpha that the runs were done at.
+outDir = fullfile(params.outputDir, 'selectivityPerEvent');
+
+if ~exist(outDir, 'dir')
+  mkdir(outDir);
+end
 
 % Generate bar plots showing total counts in each category
 for unitType_i = 1:length(UnitTypes)
@@ -18,14 +23,12 @@ for unitType_i = 1:length(UnitTypes)
     % Plot 1 - fixation/saccade
     unitCount = sum(unitInd);
     chanceUnitCount = round(sum(unitCount) * alpha);
-    saccSelCount = sum(selTableParadigmUnit.saccSel ~= 0);
-    fixSelCount = sum(selTableParadigmUnit.BaseVFix_PVal < alpha);
+    saccSelCount = sum(selTableParadigmUnit.saccDir_selInd);
+    fixSelCount = sum(selTableParadigmUnit.baseV_Fix_selInd);
     
     % Reward processing - take the rewardAbsent vec, and use the other reward
     % paradigm to fill in parts where that paradigm wasn't used.
-    rewardVec = selTableParadigmUnit.subSel_rewardAbsent;
-    rewardAbsMissing = isnan(rewardVec);
-    rewardVec(rewardAbsMissing) = selTableParadigmUnit.subSel_reward(rewardAbsMissing);
+    rewardVec = selTableParadigmUnit.subSel_rewardCombo_selInd;
     rewardVec = sum(rewardVec ~= 0);
     
     % Collect Data, labels.
@@ -39,8 +42,8 @@ for unitType_i = 1:length(UnitTypes)
     
     % Plot
     figTitle = sprintf('%s activity selective for non-Stimulus Events during %s', UnitTypePlot{unitType_i}, paradigm);
-    createBarPlotWithChanceLine(events, dataMat, alpha, unitCount, figTitle, [])
-    saveFigure(params.outputDir, figTitle, [], params.figStruct, [])
+    createBarPlotWithChanceLine(events, dataMat, alpha*2, unitCount, figTitle, [])
+    saveFigure(outDir, figTitle, [], params.figStruct, [])
     
   end
 end
