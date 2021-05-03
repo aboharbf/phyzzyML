@@ -44,7 +44,8 @@ if plotSwitch.selectivityCurve
 end
 
 if plotSwitch.selectivityCounts
-  selectivityCurveCount(spikePathBank, batchAnalysisParams)
+%   selectivityCurveCount(spikePathBank, batchAnalysisParams)
+  selectivityCurveCountBinned(spikePathBank, batchAnalysisParams)
 end
 
 %% Analyses

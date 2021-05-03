@@ -37,7 +37,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 1;    % export figure using export_fig.
+figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
@@ -46,10 +46,10 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 1;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.selectivityCurve = 1;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.spikeEyeOverlay = 0;       % Generate an overlay of activity across units according to eye signal.
@@ -64,7 +64,7 @@ preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign',
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
                                   'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'anovaTable', 'psthByCategory', ...
                                   'psthErrByCategory', 'gridHole', 'recDepth'}; %Variables extracted from analyzedData.mat
-AnalysisParamVars = {'psthParams', 'tfParams'}; %Variables extracted from analysisParam.mat
+AnalysisParamVars = {'psthParams', 'epochStatsParams', 'epochCatsParams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
@@ -310,7 +310,7 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
-NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to randomly shuffle the data to generate a null distribution.
+NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
 NDTParams.AnalysesDefault.null_shuffle_count = 10;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.AnalysesDefault.cross_validator_num_resample = 50;  % Number of times to resample runs for cross validator.

@@ -1,4 +1,4 @@
-function createBarPlotWithChanceLine(barLabels, dataMat, alpha, unitCount, figTitle, legendEntries)
+function figH = createBarPlotWithChanceLine(barLabels, dataMat, alpha, unitCount, figTitle, legendEntries)
 
 figH = figure('Name', figTitle, 'NumberTitle','off','units','normalized', 'outerposition', [.3 .3 .5 .6]);
 
@@ -9,8 +9,8 @@ for bar_i = 1:length(barh)
   xtips1 = barh(bar_i).XEndPoints;
   ytips1 = barh(bar_i).YEndPoints;
   labels1 = string(barh(bar_i).YData);
-  labels2 = string(round(barh(bar_i).YData/unitCount,3));
-  labels3 = strcat(labels1, '(', labels2, ')');
+  labels2 = string(round(barh(bar_i).YData/unitCount,3) * 100);
+  labels3 = strcat(labels1, '(', labels2, '%)');
   
   if ~isempty(legendEntries)
     barh(bar_i).DisplayName = legendEntries{bar_i};

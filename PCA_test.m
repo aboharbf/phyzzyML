@@ -253,11 +253,9 @@ for paradigm_i = 1:length(paradigm)
   end
 end
 
+% Combo PCA Stuff - needs to be improved to actually match up units with
+% each other across the paradigms and linked up to batchAnalysisLite.
 save('PCA_data_tmp', 'storeData')
-
-% Combo PCA
-disp('y')
-% Don't bother combining Social selective subsections
 
 for unit_Type_i = [1, 3]
   
