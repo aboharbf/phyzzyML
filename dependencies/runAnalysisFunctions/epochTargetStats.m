@@ -10,7 +10,6 @@ spikeCountsByImageByEpoch = cell(size(timeBins,1),1);
 for epoch_i = 1:size(timeBins,1)
   [spikeCounts, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
   spikeCountsByImageByEpoch{epoch_i} = spikeCounts;
-  %spikeCountsByImageByEpoch{epoch}{channel}{unit}{event}.rates = trials*1
 end
 
 %% Determine Selectivity per Epoch selectivity, comparing target and non-target
@@ -131,11 +130,11 @@ for group_i = 1:length(targLabelList)
           end
           
           % run the ANOVA. 
-          [pVal, ~, C] = anovan(groupRates, {groupLabelIn}, 'display', 'off');
-          
+          [targVnonTarg_pValMat(allUnitInd, ep_i), ~, C] = anovan(groupRates, {groupLabelIn}, 'display', 'off');
+         
           % Do multiple comparisons
           [multTable, est] = multcompare(C, 'display', 'off');
-          multTable = multTable(multTable(:,end) < alpha, :);
+          multTable = multTable(multTable(:,end) <= alpha, :);
           if ~isempty(multTable)
             groupsWithDiffs = multTable(:,1:2);
             groupsWithDiffs = unique(groupsWithDiffs(:));
@@ -146,14 +145,11 @@ for group_i = 1:length(targLabelList)
             % comparison.
             
             [~, frInd] = sort(estSig(:,1), 'descend');
-            selTablePref{allUnitInd, ep_i} = groupLabels{frInd(1)};
+            selTablePref{allUnitInd, ep_i} = groupLabels{groupsWithDiffs(frInd(1))};
           else
             selTablePref{allUnitInd, ep_i} = 'None';
           end
-          
-          % Store values
-          targVnonTarg_pValMat(allUnitInd, ep_i) = pVal;
-          
+                    
         end
         
       end

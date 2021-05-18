@@ -38,29 +38,30 @@ for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   anovaTableParadigmPerRun = anovaTablePerRun(pInd);
-  selTablePerRunParadigm = selTablePerRun(pInd);
-  
   anovaTableParadigm = vertcat(anovaTableParadigmPerRun{:});
-  uniqueObjects = unique(vertcat(anovaTableParadigm.slidingWin_broadCategoryTest_prefStim{:}));
-  uniqueObjects = uniqueObjects(~contains(uniqueObjects, 'None'));
+  anovaTableVars = anovaTableParadigm.Properties.VariableNames';
+
+  selTablePerRunParadigm = selTablePerRun(pInd);
   selTablePerRunParadigm = vertcat(selTablePerRunParadigm{:});
-  tableVars = selTablePerRunParadigm.Properties.VariableNames;
+  selTableVars = selTablePerRunParadigm.Properties.VariableNames';
   
-  % Find rows w/ Var
-  swVars = tableVars(contains(tableVars, 'SW') & contains(tableVars, 'sigObj'))';
-  swVarsParts = cellfun(@(x) strsplit(x, '_'), swVars, 'UniformOutput', false);
-  testsPerformed = unique(cellfun(@(x) x(2), swVarsParts));
-  epochSequence = {'stimOnset (0-500 ms)', 'stimPres (500-2800 ms)', 'reward (2800-3050 ms)'};
+  tableVarsPrefStim = anovaTableVars(contains(anovaTableVars, '_prefStim'));
   
-  for test_i = 1:length(testsPerformed)
-    swVars = tableVars(contains(tableVars, 'SW') & contains(tableVars, testsPerformed{test_i}) & contains(tableVars, 'sigObj'))';
+  for pref_i = 1:length(tableVarsPrefStim)
+    
+    testName = extractBetween(tableVarsPrefStim{pref_i}, '_', '_');
+    uniqueObjects = unique(vertcat(anovaTableParadigm.(tableVarsPrefStim{pref_i}){:}));
+    uniqueObjects = uniqueObjects(~contains(uniqueObjects, 'None'));
+
+    swVars = selTableVars(contains(selTableVars, 'SW') & contains(selTableVars, testName{1}) & contains(selTableVars, 'sigObj'));
     swVarsParts = cellfun(@(x) strsplit(x, '_'), swVars, 'UniformOutput', false);
     epochs = cellfun(@(x) x(3), swVarsParts);
+    epochSequence = {'stimOnset (0-500 ms)', 'stimPres (500-2800 ms)', 'reward (2800-3050 ms)'};
     
     % Turn the pVal vector into counts.
     for unitType_i = 1:length(unitTypePlot)
       
-      objectArrays = nan(length(swVars), length(uniqueObjects));      
+      objectArrays = nan(length(swVars), length(uniqueObjects));
       for epoch_i = 1:length(epochs)
         
         % Grab one of the unit types
@@ -83,18 +84,19 @@ for par_i = 1:length(paradigmList)
         else
           atleastOne = atleastOne | any(epochObjStack,2);
         end
-
+        
       end
       
       % Plot as Bar graph.
-      figTitle = sprintf('Significant %s counts per Category, Sliding Window Test, %s (%d of %d unique)', unitTypePlot{unitType_i}, paradigmList{par_i}, sum(atleastOne), unitCount);
+      figTitle = sprintf('%s Significant %s counts per Category, Sliding Window Test (%d/%d unique)', testName{1}, unitTypePlot{unitType_i}, sum(atleastOne), unitCount);
       figH = createBarPlotWithChanceLine(epochSequence, objectArrays', 0, unitCount, figTitle, uniqueObjects);
-      figH.Position = [0    0.0370    1.0000    0.8917];
-      saveFigure(outputDir, figTitle, [], batchAnalysisParams.figStruct, [])
-
+      figH.Position = [.3    0.185    0.62    0.5];
+      saveFigure(outputDir, sprintf('1.%s - %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
+      
     end
-        
+    
   end
 end
+
 
 end

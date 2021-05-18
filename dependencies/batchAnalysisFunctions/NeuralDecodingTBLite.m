@@ -30,10 +30,6 @@ for paradigm_i = 1:length(paradigmList)
   pFolder = fullfile(params.outputDir, pName);
   pRasterDir = fullfile(pFolder, 'rasterData');
   
-  if ~exist(pFolder, 'dir')
-    mkdir(pFolder);
-  end
-  
   % Check if Raster data is present, if not, generate.
   if ~exist(pRasterDir, 'dir')
     paradigmParams = params.spikeToRasterParams;
@@ -44,7 +40,7 @@ for paradigm_i = 1:length(paradigmList)
   % Check if the raster data is present, if not, make it
   binnedDirName = fullfile(pRasterDir, 'rasterData_binned');
   rasterDataPath = fullfile(pRasterDir, 'S20*');
-  %   [params.binWidth, params.stepSize] = deal(100);
+%     [params.binWidth, params.stepSize] = deal(100);
   binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedDirName, params.binWidth, params.stepSize);
   
   if ~exist(binnedFileNameOut, 'file')
@@ -119,8 +115,8 @@ for paradigm_i = 1:length(paradigmList)
       end
             
       % Step 4 - Generate a cross validator, define some parameters on newly generated object
-      cross_val_resample = analysisStruct.cross_validator_num_resample;
-      runShuff = [false(1, 1); true(7,1)]';
+      cross_val_resample = params.AnalysesDefault.cross_validator_num_resample;
+      runShuff = [false(params.AnalysesDefault.real_shuffle_count, 1); true(params.AnalysesDefault.null_shuffle_count,1)]';
       
       % Cycle through the runs
       parfor shuff_ind = 1:length(runShuff)
@@ -165,11 +161,10 @@ for paradigm_i = 1:length(paradigmList)
     
     % Step 7 - Significance testing
     % Significance testing
-    saved_results_file_name = 'decoding_results_run1';
     saved_results_struct_name = 'decoding_results';
-    true_decoder_name = fullfile(save_file_dir, saved_results_file_name);
-    null_dist_dir = strcat(shuff_file_dir, filesep);
-    pval_obj = pvalue_object(true_decoder_name, null_dist_dir);
+    true_decoder_name = fullfile(save_file_dir, 'decoding_results_run1');
+
+    pval_obj = pvalue_object(true_decoder_name, strcat(shuff_file_dir, filesep));
     pval_obj.collapse_all_times_when_estimating_pvals = 1;
     pval_obj.saved_results_structure_name = saved_results_struct_name;
     

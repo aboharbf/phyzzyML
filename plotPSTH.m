@@ -46,7 +46,7 @@ switch plotType
     imagesc(psthAxes, xrange, yaxis, psthArray);
           
     psthAxes.YLim = [yaxis(1) - 0.5, yaxis(2) + 0.5];
-    psthAxes.XLim = [ -psthParams.psthPre, psthParams.psthPost + psthParams.psthImDur];
+    psthAxes.XLim = [ -psthPre, psthImDur + psthPost];
     
     colorBarh = colorbar(psthAxes);
     ylabel(colorBarh,'Firing Rate [Hz]','FontSize',14);
@@ -80,7 +80,8 @@ switch plotType
     
     xlim(xrange);
     ylim(ylim()); % Shifts auto ylim to manual, preventing lines below from expanding the window.
-    
+    ylabel('Firing Rate (Hz)')
+
     % Assumption - if I've added more labels than there are lines, I want
     % the legend to include these labels for the sake of objects to be
     % generated later.

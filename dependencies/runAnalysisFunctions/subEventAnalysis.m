@@ -174,65 +174,39 @@ end
 % Event Type 2 - Generate/Organize Event times for eye movements here, concatonate onto
 % the 'onsetsByEvent' cue.
 if ~isempty(eyeBehStatsByStim)
-  if isempty(subEventNames)
-    subEventNames = {'blinks'};
-  else
-    subEventNames = [subEventNames; 'blinks'];
-  end
-  [blinkTimes, nullBlinkTimes] = deal([]);
+  
+  % Initialize vectors
+  [blinkTimes, saccadeTimes] = deal([]);
   for stim_i = 1:length(eyeBehStatsByStim)
     % Find all the start times for the stimulus
     stimuliStartTimes = subEventParams.onsetsByEvent{stim_i};
     for trial_i = 1:length(eyeBehStatsByStim{stim_i})
       % for every trial, extract blink times, adding the appropriate event
       % Onset to get absolute eye event start times.
-            
+      
+      % Add blink times
       if ~isempty(eyeBehStatsByStim{stim_i}{trial_i}.blinktimes)
         blinkTimes = [blinkTimes; eyeBehStatsByStim{stim_i}{trial_i}.blinktimes(1,:)'] + stimuliStartTimes(trial_i);
+      end
+      
+      % Add Saccade times
+      if ~isempty(eyeBehStatsByStim{stim_i}{trial_i}.saccadetimes)
+        saccadeTimes = [saccadeTimes; eyeBehStatsByStim{stim_i}{trial_i}.saccadetimes(1,:)'] + stimuliStartTimes(trial_i);
       end
       
     end
   end
   
   % Sort these lists for the next processing steps
-  blinkTimes = sort(blinkTimes);
-  eyeEventTimes = {blinkTimes};
-  eyeEventNullTimes = {nullBlinkTimes};
+  eyeEventTimes = {blinkTimes; saccadeTimes; saccadeTimes}; % Putting saccadeTimes in twice for pre-saccade times.
   
-  % Generate a distribution of null times for blinks
-  firstTime = blinkTimes(1);
-  lastTime = blinkTimes(end);
-
-  % Generate Null times, add a number (100 - 1000), shuffle them and check 
+  % Generate Null times, add a number (100 - 1000), shuffle them and check
   % if its close to a number on the list. If not, its a null value.
-  maxShift = 500;
-  minShift = 100;
-  minEventDist = 100;
+    
+  eyeEventNullTimes = createNullScrambleTimes(eyeEventTimes, 500, 300);
   
-  for eyeEvent_i = 1:length(eyeEventTimes)
-    eyeEventsTiled = eyeEventTimes{eyeEvent_i}; %repmat(eyeEventTimes{eyeEvent_i}, [shuffleMult,1]);
-    shiftCount = length(eyeEventsTiled);
-    shifts = [randi([minShift, maxShift],[ceil(shiftCount/2),1]); randi([-maxShift, -minShift],[floor(shiftCount/2),1])];
-    shifts = shifts(randperm(length(shifts)));
-    nullTimesForEvent = eyeEventsTiled + shifts; %repmat(eyeEventTimes{eyeEvent_i}, [shuffleMult,1]) + shifts;
-    
-    % check if any of these null times are close to event times, if not,
-    % remove.
-    nullTimesForEventCheck = repmat(nullTimesForEvent, [1, length(nullTimesForEvent)]);
-    
-    nullTimesForEventCheck = (nullTimesForEventCheck' - eyeEventsTiled)';
-    nullTimesForEventCheckRemoveInd = abs(nullTimesForEventCheck) > minEventDist;
-    keepInd = ~any(~nullTimesForEventCheckRemoveInd,2);
-    nullTimesForEvent = nullTimesForEvent(keepInd);
-    
-    % Remove ones that are after the last time stamp or before the first
-    keepInd = ~logical((nullTimesForEvent < firstTime) + (nullTimesForEvent > lastTime));
-    nullTimesForEvent = nullTimesForEvent(keepInd);
-    
-    % Store into appropriate cell array
-    eyeEventNullTimes{eyeEvent_i} = nullTimesForEvent;
-  end
-  
+  % Add names to array
+  subEventNames = [subEventNames; ["blinks"; "saccades"; "pre-saccades"]]; % Presaccade will have the same times as saccades, but the comparison window for the t test will stretch back.
   onsetsByEvent = [onsetsByEvent; eyeEventTimes];
   onsetsByEventNull = [onsetsByEventNull; eyeEventNullTimes];
 end
@@ -242,7 +216,6 @@ if subEventParams.RewardEvent
   
   % If this is one of the 'rewardParadigm' runs (where some trials are
   % intentially unrewarded to see if reward effects persist)
-  
   
   % Generate a distribution of null times 
   rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
@@ -280,21 +253,16 @@ if subEventParams.RewardEvent
   onsetsByEventNull = [onsetsByEventNull; rewardTimesNull];
   
   % Stick onto larger structures
-  if isempty(subEventNames)
-    subEventNames = {'reward'};
-  else
-    subEventNames = [subEventNames; 'reward'];
-  end
+  subEventNames = [subEventNames; "reward"];
   
   % Generate a 2nd reward comparison, contraining null samples to
   % unrewarded trials.
   if taskData.rewardParadigm
     unRewardedTrials = isnan(taskData.juiceOnTimes);
     unRewardedStimStart = taskData.taskEventStartTimes(unRewardedTrials);
-    rewardTime = subEventParams.stimPlotParams.psthImDur + 200;
     
     % When rewards would have taken place, normally.
-    unRewardedStimRewardTimes = unRewardedStimStart + rewardTime;
+    unRewardedStimRewardTimes = unRewardedStimStart + round(nanmean(taskData.rewardTimePerTrial));
     unRewardedStimRewardTimes = repmat(unRewardedStimRewardTimes, [10, 1]);
     
     onsetsByEvent = [onsetsByEvent; rewardTimes];
@@ -413,7 +381,7 @@ if ~isempty(onsetsByEvent)
   if subEventParams.genPlots
     
     % Plotting Below
-    tabPerEvent = 1; % Plot line PSTHes for each event.
+    tabPerEvent = 0; % Plot line PSTHes for each event.
     
     % Generate an array for referencing subEvents correctly.
     eventsInEventDataPlot = strrep(subEventNames, '_',' ');
@@ -451,7 +419,8 @@ if ~isempty(onsetsByEvent)
             
             plotData = [psthBySubEvent{chan_i}{unit_i}(event_i, :); psthBySubEventNull{chan_i}{unit_i}(event_i, :)];
             plotErr = [psthErrBySubEvent{chan_i}{unit_i}(event_i, :); psthErrBySubEventNull{chan_i}{unit_i}(event_i, :)];
-            plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, num2str(testResults{chan_i}{unit_i}{event_i}), testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i}), length(spikeCounts{event_i}{chan_i}{unit_i}{1}.rates));
+            pValNum = num2str(testResults{chan_i}{unit_i}{event_i}, 2);
+            plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{event_i}, pValNum, testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{event_i}, 3), length(spikeCounts{event_i}{chan_i}{unit_i}{1}.rates));
             [psthHand, ~, vertLineHands] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , plotLabels);
             hold on
             if event_i ~= length(subEventNames)

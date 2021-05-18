@@ -414,32 +414,32 @@ if plotSwitch.subEventAnalysis
   save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
 end
 
-epochStatsParams.groupLabelsByImage = groupLabelsByImage;
-selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochStatsParams, selTable);
+epochTargParams.groupLabelsByImage = groupLabelsByImage;
+selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochTargParams, selTable);
 
 % Determine which units are selective for saccades (direction).
 selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
 
 % Compares epochs against baseline and each other.
-selTable = epochCompareStats(spikesByEvent, selTable, epochStatsParams);
+selTable = epochCompareStats(spikesByEvent, selTable, epochTargParams);
 
 % Tests between epochs of the conditions between different targets.
-selTable = epochTargetStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochStatsParams);
+selTable = epochTargetStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochTargParams);
 
 if ~strcmp(taskData.paradigm, 'familiarFace')
-  anovaTable = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochCatsParams);
+  [anovaTable, anovaBinParams] = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochSWparams);
 end
 
-save(analysisOutFilename, 'selTable', 'anovaTable', '-append');
+save(analysisOutFilename, 'selTable', 'anovaTable', 'anovaBinParams', '-append');
 
 % Save a few of these for rapid testing.
-if strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '001')
-  save('subEventAnalysisTesting_naturalSocial.mat')
-elseif strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '002')
-  save('subEventAnalysisTesting_headTurnCon.mat')
-elseif strcmp(dateSubject, '20201115Mo') && strcmp(runNum, '002')
-  save('subEventAnalysisTesting_headTurnIso.mat')
-end
+% if strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '001')
+%   save('subEventAnalysisTesting_naturalSocial.mat')
+% elseif strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '002')
+%   save('subEventAnalysisTesting_headTurnCon.mat')
+% elseif strcmp(dateSubject, '20201115Mo') && strcmp(runNum, '002')
+%   save('subEventAnalysisTesting_headTurnIso.mat')
+% end
 
 %% Plotting and further analyses
 

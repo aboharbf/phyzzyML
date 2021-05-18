@@ -1,26 +1,24 @@
 function selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
 % function which determines which sites/kinds of selectivity exists across
-% paradigms. 
+% paradigms.
 
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Site identification - for the sake of saying which MUA are the same site
 % across paradigms
 for run_i = 1:length(selTablePerRun)
-  if ~isempty(selTablePerRun{run_i})
-    % This siteInfoVec will vary depending on question. to find actual runs
-    % at the same site, leave off channel. To do more granular looks at
-    % units which show some selectivity across paradigms, include it.
-    siteInfoChVec = [selTablePerRun{run_i}.dateSubj selTablePerRun{run_i}.gridHole selTablePerRun{run_i}.channel selTablePerRun{run_i}.unitType selTablePerRun{run_i}.recDepth];
-    siteInfoVec = [selTablePerRun{run_i}.dateSubj selTablePerRun{run_i}.gridHole selTablePerRun{run_i}.recDepth];
-    
-    allSitesCh = join(siteInfoChVec, '_');
-    allSites = join(siteInfoVec, '_');
-    
-    selTablePerRun{run_i}.siteChID = allSitesCh;
-    selTablePerRun{run_i}.siteID = allSites;
-    
-  end
+  % This siteInfoVec will vary depending on question. to find actual runs
+  % at the same site, leave off channel. To do more granular looks at
+  % units which show some selectivity across paradigms, include it.
+  siteInfoChVec = [selTablePerRun{run_i}.dateSubj selTablePerRun{run_i}.gridHole selTablePerRun{run_i}.channel selTablePerRun{run_i}.unitType selTablePerRun{run_i}.recDepth];
+  siteInfoVec = [selTablePerRun{run_i}.dateSubj selTablePerRun{run_i}.gridHole selTablePerRun{run_i}.recDepth];
+  
+  allSitesCh = join(siteInfoChVec, '_');
+  allSites = join(siteInfoVec, '_');
+  
+  selTablePerRun{run_i}.siteChID = allSitesCh;
+  selTablePerRun{run_i}.siteID = allSites;
+  
 end
 
 % for each paradigm, make a list of unique sites

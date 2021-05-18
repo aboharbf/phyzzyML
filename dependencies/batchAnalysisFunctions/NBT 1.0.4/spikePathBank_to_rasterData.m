@@ -31,12 +31,6 @@ end
 % selTable = vertcat(selTable{:});
 % runList = spikePathBank.Properties.RowNames;
 
-% Add Combo events
-% selTable = expandSelTableComboEvents(selTable, params);
-
-% Update 20201123Mo channels...
-% selTable = replaceChanNum_1123(selTable);
-
 [spikesByEventBinned, psthParams] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams'}, params.spikePathLoadParams);
 selTable = vertcat(spikePathBank.selTable{:});
 runList = spikePathBank.Properties.RowNames;
@@ -51,32 +45,45 @@ runList = spikePathBank.Properties.RowNames;
 % vars2Add = vars2Add(~contains(vars2Add, 'saccSel_broadCategories_diff'));
 
 % Take sub selection here. give them shorter names for defining.
-% vars2AddOrig = selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'selInd'));
-vars2AddOrig = [{'subSel_headTurn_all_selInd'    }
-    {'subSel_rewardCombo_selInd'                 }
-    {'epochSel_socVNonSoc_stimOnset_selInd'      }
-    {'epochSel_socVNonSoc_stimPres_selInd'       }
-    {'epochSel_socVNonSoc_reward_selInd'         }
-    {'epochSel_socVNonSoc_any_selInd'            }
-    {'epochSel_broadCategories_stimOnset_selInd' }
-    {'epochSel_broadCategories_stimPres_selInd'  }
-    {'epochSel_broadCategories_reward_selInd'    }
-    {'slidingWin_broadCTest_broadCategory_selInd'}];
-  
+vars2AddOrig2 = selTable.Properties.VariableNames(contains(selTable.Properties.VariableNames', 'selInd'));
+vars2AddOrig = [
+  {'baseV_Fix_selInd'                          }
+  {'baseV_stimEarly_selInd'                    }
+  {'baseV_stimLate_selInd'                     }
+  {'baseV_reward_selInd'                       }
+  {'subSel_headTurn_all_selInd'                }
+  {'subSel_rewardCombo_selInd'                 }
+  {'epochSel_socVNonSoc_stimEarly_selInd'      }
+  {'epochSel_socVNonSoc_stimLate_selInd'       }
+  {'epochSel_socVNonSoc_reward_selInd'         }
+  {'epochSel_socVNonSoc_any_selInd'            }
+  {'epochSel_broadCategories_stimEarly_selInd' }
+  {'epochSel_broadCategories_stimLate_selInd'  }
+  {'epochSel_broadCategories_reward_selInd'    }
+  {'epochSel_broadCategories_any_selInd'       }
+  {'slidingWin_broadCatTest_selInd'            }
+  {'slidingWin_categoriesTest_selInd'          }];
+
 vars2Add = strrep(vars2AddOrig, 'epochSel_socVNonSoc', 'sVns');
 vars2Add = strrep(vars2Add, 'epochSel_broadCategories', 'bCat');
-vars2Add = strrep(vars2Add, 'slidingWin_broadCTest_broadCategory', 'slidingWinBroadCat');
+vars2Add = strrep(vars2Add, 'slidingWin', 'SW');
 
-% vars2Added = [{'subSel_headTurn_all_selInd'    }
-%     {'subSel_rewardCombo_selInd'                 }
-%     {'sVns_stimOnset_selInd'      }
-%     {'sVns_stimPres_selInd'       }
-%     {'sVns_reward_selInd'         }
-%     {'sVns_any_selInd'            }
-%     {'bCat_stimOnset_selInd' }
-%     {'bCat_stimPres_selInd'  }
-%     {'bCat_reward_selInd'    }
-%     {'slidingWinBroadCat_selInd'}];
+% vars2Added = [    {'baseV_Fix_selInd'          }
+%     {'baseV_stimEarly_selInd'    }
+%     {'baseV_stimLate_selInd'     }
+%     {'baseV_reward_selInd'       }
+%     {'subSel_headTurn_all_selInd'}
+%     {'subSel_rewardCombo_selInd' }
+%     {'sVns_stimEarly_selInd'     }
+%     {'sVns_stimLate_selInd'      }
+%     {'sVns_reward_selInd'        }
+%     {'sVns_any_selInd'           }
+%     {'bCat_stimEarly_selInd'     }
+%     {'bCat_stimLate_selInd'      }
+%     {'bCat_reward_selInd'        }
+%     {'bCat_any_selInd'           }
+%     {'SW_broadCatTest_selInd'    }
+%     {'SW_categoriesTest_selInd'  }];
   
 countPerVar = zeros(length(vars2Add),1);
 

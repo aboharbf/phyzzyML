@@ -1,33 +1,41 @@
-function [anovaTable] = epochCatsSlidingWindow(spikesByEvent, saccadeByStim, anovaTable, eventIDs, paradigm, psthParams, params)
+function [anovaTable, anovaBinParams] = epochCatsSlidingWindow(spikesByEvent, saccadeByStim, anovaTable, eventIDs, paradigm, psthParams, params)
 % This function performs a sliding window ANOVA, taking into account
 % Social Label, Category Labe, and eye behavior label. It adds columns to
 % selTable corresponding to the p-Val for each factor in each bin, as well
 % as the fraction of explained variability in that bin.
 
 stimParamsFilename = params.stimParamsFilename;
-preStimSpikePad = (psthParams.movingWin(1)/2) + psthParams.psthPre;
-preStimEyePad = psthParams.psthPre;
-totalTime = psthParams.psthImDur + psthParams.psthPost;
+time2IndexPad = (psthParams.movingWin(1)/2) + psthParams.psthPre;
+preStimEyePad =  psthParams.psthPre;
 
 binSize = params.binSize;
 binStep = params.binStep;
+binStart = params.startTime;
 alpha = 0.05;                           % alpha value to set while looking for units.
 
 % Simple variables necessary for later
 chanCount = length(spikesByEvent{1});
 unitCounts = cellfun('length', spikesByEvent{1});
 trialCounts = cellfun(@(x) size(x{1}{1}, 1), spikesByEvent);
+
+% Unload paradigm specific labels.
 groupsAndLabels = params.(paradigm);
-comparisonLabel = groupsAndLabels.comparisonLabel;
-comparisonCategoryLabel = groupsAndLabels.comparisonCategoryLabels;
-largeModel = groupsAndLabels.nestedModel;                            % Do not include nested variables in the comparison.
+testLabel = groupsAndLabels.testLabel;
+testCategoryLabel = groupsAndLabels.testCategoryLabels;
+includeEyes = groupsAndLabels.includeEyes;                            
 
 %% Binning for regression
 
-binStarts = 0:binStep:totalTime-binSize;
-binStarts(1) = 1;
+% Calculate bin times
+totalTime = psthParams.psthImDur + psthParams.psthPost; % Fix, Dur, Post
+
+binStarts = binStart:binStep:(totalTime-binSize);
 binEnds = binStarts + binSize;
-timeBinSpikes = [binStarts', binEnds'] + preStimSpikePad;
+
+anovaBinParams.binStarts = binStarts;
+anovaBinParams.binEnds = binEnds;
+
+timeBinSpikes = [binStarts', binEnds'] + time2IndexPad;
 timeBinEyes = [binStarts', binEnds'] + preStimEyePad;
 binnedSpikes = initNestedCellArray(spikesByEvent);
 binnedEye = cell(length(eventIDs),1);
@@ -72,15 +80,15 @@ eyeLabels = {'Fix', 'preSacc', 'Sacc', 'Blink'};
 
 %% For every group
   
-for group_i = 1:length(comparisonLabel)
+for group_i = 1:length(testLabel)
   
   % Extract labels + group labels
-  stimLabels = comparisonCategoryLabel{group_i};
+  stimLabels = testCategoryLabel{group_i};
   stimLabelCount = length(stimLabels);
   
   % Use plotInd
   plotParams.stimParamsFilename = stimParamsFilename;
-  plotParams.plotLabels = comparisonCategoryLabel{group_i};
+  plotParams.plotLabels = testCategoryLabel{group_i};
   plotParams.outLogic = 1;
   stimCatInd = plotIndex(eventIDs, plotParams);
   
@@ -137,7 +145,7 @@ for group_i = 1:length(comparisonLabel)
   labelNum = vertcat(labelNum{:});
    
   % Run the comparison
-  if largeModel(group_i)
+  if includeEyes(group_i)
     outSize = 2;
   else
     outSize = 1;
@@ -164,7 +172,7 @@ for group_i = 1:length(comparisonLabel)
       labelEye = vertcat(eyePerLabel{:, ep_i});
       
       % Perform Test
-      if largeModel(group_i)
+      if includeEyes(group_i)
 %         [pMat(unit_i, ep_i, :), B, ~, ~] = anovan(spikeCounts, [{stimLabels(labelNum)}; {eyeLabels(labelEye)}], 'model', 'interaction', ...  % 
 %           'display', 'off', 'varnames', {'Category', 'Eye'}, 'alpha', alpha);
         
@@ -175,7 +183,7 @@ for group_i = 1:length(comparisonLabel)
         
       else
         % Just the label
-        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, {stimLabels(labelNum)}, 'display', 'off', 'varnames', comparisonLabel(group_i));
+        [pMat(unit_i, ep_i, :), B, C, ~] = anovan(spikeCounts, {stimLabels(labelNum)}, 'display', 'off', 'varnames', testLabel(group_i));
         
       end
         % Multiple comparisons, save the category for which the unit is
@@ -245,22 +253,21 @@ for group_i = 1:length(comparisonLabel)
   for tab_i = 1:length(labelsForTable)
     
     % All Models have pValues for the comparison and variance explained.
-    fieldName = sprintf('slidingWin_%sTest_%s_pVal', comparisonLabel{group_i}(1:6), labelsForTable{tab_i});
+    fieldName = sprintf('slidingWin_%sTest_%s_pVal', testLabel{group_i}, labelsForTable{tab_i});
     anovaTable.(fieldName) = pValPerBin(:, :, tab_i);
     
-    fieldName = sprintf('slidingWin_%sTest_%s_VarExp', comparisonLabel{group_i}(1:6), labelsForTable{tab_i});
+    fieldName = sprintf('slidingWin_%sTest_%s_VarExp', testLabel{group_i}, labelsForTable{tab_i});
     anovaTable.(fieldName) = ExpVarPerBin(:, :, tab_i);
     
-    if ~largeModel(group_i)
+    if ~includeEyes(group_i)
       
-      % If it isn't a larger model (doesn't have eye signal included) you
-      % have a preferred stimulus.
+      % If it doesn't have eye signal included you have a preferred stimulus.
       prefStimCatArray = cell(size(prefStimArray, 1), 1);
       for jj = 1:length(prefStimCatArray)
         prefStimCatArray{jj} = prefStimArray(jj, :);
       end
       
-      fieldName = sprintf('slidingWin_%sTest_prefStim', comparisonLabel{group_i});
+      fieldName = sprintf('slidingWin_%sTest_prefStim', testLabel{group_i});
       anovaTable.(fieldName) = prefStimCatArray;
       
     end

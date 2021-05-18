@@ -1,4 +1,4 @@
-function [perNameTraces, perNameErrTraces, counts, nameVector] = extractMeanTraces(perRunVector, referenceVector, nameVector, allMeanSwitch)
+function [perNameTraces, perNameErrTraces, counts, nameVector] = extractMeanTraces(perRunVector, referenceVector, nameVector, allMeanSwitch, removeEmpty)
 % Iterates through perRunVector, assuming a 
 % structure, and looks for traces associated w/ each entry in the
 % nameVector. Follows phzzy 'unit' convention (Unsorted, Units, MUA).
@@ -78,7 +78,6 @@ for stim_i = 1:length(nameVector)
 end
 
 % Get rid of excess cells
-
 if allMeanSwitch
   grandMean = cell(1,3);
   for group_i = 1:3
@@ -96,5 +95,17 @@ end
 counts = cellfun(@(traces) size(traces, 1), perNameTraces);
 perNameErrTraces = cellfun(@(traces) nanstd(traces)/sqrt(size(traces,1)), perNameTraces, 'UniformOutput', false);
 perNameTraces = cellfun(@(traces) nanmean(traces, 1), perNameTraces, 'UniformOutput', false);
+
+% check for empty cells, as this messes w/ later plotting
+if any(cellfun('isempty', perNameTraces)) & removeEmpty
+  keepInd = ~cellfun('isempty', perNameTraces(:,1));
+  perNameTraces = perNameTraces(keepInd, :);
+  perNameErrTraces = perNameErrTraces(keepInd, :);
+  counts = counts(keepInd, :);
+  nameVector = nameVector(keepInd, :);
+end
+
+% Remove underscores from titles
+nameVector = strrep(nameVector, '_', '');
 
 end

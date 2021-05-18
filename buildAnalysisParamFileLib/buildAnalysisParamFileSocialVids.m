@@ -3,11 +3,11 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 %behavior of processRun, runAnalysis
 
 % %%%%%%%  USER PARAMETERS, EDIT ROUTINELY %%%%%%%%
-% headTurnCon Test - 20201115Mo001
-% naturalSocial Test - 20201117Mo001
+% headTurnCon Test - 20201115Mo 001
+% naturalSocial Test - 20201117Mo 001
 
 runNum = '001';
-dateSubject = '20201117Mo';
+dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -386,9 +386,9 @@ subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
 subEventAnalysisParams.genPlots = 0;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
-subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'blinks', 'reward', 'rewardAbsent'};
-subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-250 50]; [50 200]; [50 200]];
-subEventAnalysisParams.nonParametric = 0;                               % Use non parametric test.
+subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'pre-saccades', 'blinks', 'reward', 'rewardAbsent'};
+subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-200 0]; [0 100]; [-50 150]; [-50 150]];
+subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
@@ -438,53 +438,53 @@ epochLabels = {'Presentation'};%,'Fixation','Reward'};
 % epochStats Params, more are below analysisGroups
 preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
 Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
-stimOnset = [0 500];
-stimPres = [500 psthParams.psthImDur];
-% stimWhole = [0 psthParams.psthImDur];
-reward = [psthParams.psthImDur psthParams.psthImDur + 250];
+stimEarly = [0 500];
+stimLate = [500 psthParams.psthImDur];
+reward = [psthParams.psthImDur psthParams.psthImDur + 350];
 
-epochStatsParams.stimParamsFilename = stimParamsFilename;
-epochStatsParams.nonParametric = 0;                      % switch to run non Parametric tests.
+epochTargParams.stimParamsFilename = stimParamsFilename;
+epochTargParams.nonParametric = 0;                      % switch to run non Parametric tests.
+ 
+epochTargParams.times = [preFix; Fix; stimEarly; stimLate; reward];
+epochTargParams.labels = {'preFix', 'Fix', 'stimEarly', 'stimLate', 'reward'};    
 
-% epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; stimWhole; reward];
-% epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'stimWhole', 'reward'};    
-epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
-epochStatsParams.labels = {'preFix', 'Fix', 'stimOnset', 'stimPres', 'reward'};    
+epochTargParams.naturalSocial.targNames = {'socVNonSoc', 'categories', 'broadCategories'};
+epochTargParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochTargParams.naturalSocial.targetEpochs = [0 1 1 1 1; 0 1 1 1 1 ; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochTargParams.naturalSocial.oneVsAll = [0 0 0];
 
-epochStatsParams.naturalSocial.targNames = {'socVNonSoc', 'broadCategories'};
-epochStatsParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'objects', 'idle', 'goalDirected', 'socialInteraction'}};
-epochStatsParams.naturalSocial.targetEpochs = [0 0 1 1 1; 0 0 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochStatsParams.naturalSocial.oneVsAll = [1 0];
+epochTargParams.headTurnCon.targNames = {'socVNonSoc', 'categories', 'broadCategories'};
+epochTargParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochTargParams.headTurnCon.targetEpochs = [0 1 1 1 1; 0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochTargParams.headTurnCon.oneVsAll = [0 0 0];
 
-epochStatsParams.headTurnCon.targNames = {'socVNonSoc', 'broadCategories'};
-epochStatsParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'objects', 'idle', 'goalDirected', 'socialInteraction'}};
-epochStatsParams.headTurnCon.targetEpochs = [0 0 1 1 1; 0 0 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochStatsParams.headTurnCon.oneVsAll = [1 0];
-
-epochStatsParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
-epochStatsParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};
-epochStatsParams.headTurnIso.targetEpochs = [[0 0 1 1 1]; [0 0 0 1 1]; [0 0 1 1 1]; [0 0 0 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochStatsParams.headTurnIso.oneVsAll = [1 1 1 1];
+epochTargParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
+epochTargParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};
+epochTargParams.headTurnIso.targetEpochs = [[0 1 1 1 1]; [0 1 1 1 1]; [0 1 1 1 1]; [0 1 1 1 1]];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochTargParams.headTurnIso.oneVsAll = [1 1 1 1];
 
 % model using ANOVAs to detect encoding of variable features.
-epochCatsParams.stimParamsFilename = stimParamsFilename;
-epochCatsParams.binSize = 150;
-epochCatsParams.binStep = 25;
+epochSWparams.stimParamsFilename = stimParamsFilename;
+epochSWparams.binSize = 150;
+epochSWparams.binStep = 25;
+epochSWparams.startTime = -800;
 
-epochCatsParams.naturalSocial.comparisonLabel = {'broadCategory', 'socInt'};
-epochCatsParams.naturalSocial.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}};
-epochCatsParams.naturalSocial.nestedModel = [false true];
+epochSWparams.naturalSocial.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
+epochSWparams.naturalSocial.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...
+                                                  {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochSWparams.naturalSocial.includeEyes = [false false true true];
 
-epochCatsParams.headTurnCon.comparisonLabel = {'broadCategory', 'socInt'};
-epochCatsParams.headTurnCon.comparisonCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects'}};
-epochCatsParams.headTurnCon.nestedModel = [false true];
+epochSWparams.headTurnCon.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
+epochSWparams.headTurnCon.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...
+                                                {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochSWparams.headTurnCon.includeEyes = [false false true true];
 
-epochCatsParams.headTurnIso.comparisonLabel = {'Model', 'headTurn', 'headvArms'};
-epochCatsParams.headTurnIso.comparisonCategoryLabels = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}};
-epochCatsParams.headTurnIso.nestedModel = [false false false];
+epochSWparams.headTurnIso.testLabel = {'Model', 'headTurn', 'headvArms'};
+epochSWparams.headTurnIso.testCategoryLabels = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}};
+epochSWparams.headTurnIso.includeEyes = [false false false false];
 
-epochCatsParams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
-epochCatsParams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.
+epochSWparams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
+epochSWparams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.
 
 neuroGLMParams.neuroGLMPath = neuroGLMPath;
 neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 

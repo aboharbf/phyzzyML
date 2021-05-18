@@ -96,7 +96,6 @@ try
     figHandle.UserData.shadedAreaHandle = im;
   end
 catch
-  
   warning('colorSwitch failed')
 end
 

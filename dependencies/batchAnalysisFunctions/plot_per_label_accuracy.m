@@ -197,6 +197,8 @@ end
 figData.lineTraces = correctLineMean;
 figData.lineSTD = correctLineSTD;
 figData.meanTrace = mean(correctLineMean);
+figData.sig_bins = sig_bins;
 figData.analysisStruct = analysisStruct; % Save the analysisStruct with the figure
+figData.the_bin_start_times = the_bin_start_times;
 
 saveFigure(analysisStruct.plotOutDir, ['1. ' figTitle], figData, figStruct, [])

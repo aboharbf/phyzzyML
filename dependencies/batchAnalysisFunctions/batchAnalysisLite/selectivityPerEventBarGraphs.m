@@ -9,10 +9,6 @@ UnitTypePlot = params.UnitTypePlot;
 alpha = 0.05;                                         % Alpha that the runs were done at.
 outDir = fullfile(params.outputDir, 'selectivityPerEvent');
 
-if ~exist(outDir, 'dir')
-  mkdir(outDir);
-end
-
 % Generate bar plots showing total counts in each category
 for unitType_i = 1:length(UnitTypes)
   % Filter the table per unit
@@ -42,7 +38,7 @@ for unitType_i = 1:length(UnitTypes)
     
     % Plot
     figTitle = sprintf('%s activity selective for non-Stimulus Events during %s', UnitTypePlot{unitType_i}, paradigm);
-    createBarPlotWithChanceLine(events, dataMat, alpha*2, unitCount, figTitle, [])
+    createBarPlotWithChanceLine(events, dataMat, alpha*2, unitCount, figTitle, []);
     saveFigure(outDir, figTitle, [], params.figStruct, [])
     
   end

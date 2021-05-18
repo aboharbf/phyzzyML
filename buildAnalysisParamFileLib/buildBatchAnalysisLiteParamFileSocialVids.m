@@ -37,21 +37,21 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
-verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 %% Switches
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
-plotSwitch.stimPresCount = 1;         % Figures showing presentation counts across all runs, in development.
+plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
 plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.rewardPSTH = 1;            % Analysis of reward psthes specifically.
 plotSwitch.spikeEyeOverlay = 0;       % Generate an overlay of activity across units according to eye signal.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
@@ -62,9 +62,9 @@ spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat
 
 preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData'}; %Variables extracted from preprocessedData.mat
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
-                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'anovaTable', 'psthByCategory', ...
+                                  'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'anovaTable', 'anovaBinParams', 'psthByCategory', ...
                                   'psthErrByCategory', 'gridHole', 'recDepth'}; %Variables extracted from analyzedData.mat
-AnalysisParamVars = {'psthParams', 'epochStatsParams', 'epochCatsParams'}; %Variables extracted from analysisParam.mat
+AnalysisParamVars = {'psthParams', 'epochTargParams', 'epochSWparams'}; %Variables extracted from analysisParam.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
@@ -88,23 +88,26 @@ stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
 
 selParam.outputDir =  fullfile(outputDir,'selCount');
-selParam.comboEvents = {'subSel_headTurn_all_selInd', 'epochSel_socVNonSoc_any_selInd'};
+selParam.comboEvents = {'subSel_headTurn_all_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
 selParam.comboSubEvents = {{'subSel_headTurn_left_selInd', 'subSel_headTurn_right_selInd'}, ...
-  {'epochSel_socVNonSoc_stimOnset_selInd', 'epochSel_socVNonSoc_stimPres_selInd', 'epochSel_socVNonSoc_reward_selInd'}};
+  {'epochSel_socVNonSoc_stimEarly_selInd', 'epochSel_socVNonSoc_stimLate_selInd', 'epochSel_socVNonSoc_reward_selInd'}, ...
+  {'epochSel_categories_stimEarly_selInd', 'epochSel_categories_stimLate_selInd', 'epochSel_categories_reward_selInd'}...
+  {'epochSel_broadCategories_stimEarly_selInd', 'epochSel_broadCategories_stimLate_selInd', 'epochSel_broadCategories_reward_selInd'}...
+};
 selParam.figStruct = figStruct;
 
 selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
 selParam.stretchThreshold = 5;    % For sliding scale tests, how many consecutive bins need to be significant for the unit to count as 'selective'?
 selParam.objectStretches = true;  % Only count stretches as significant in the sliding window test if the preferred object remains the same through out.
 
-selParam.NaturalSocial.selCheck = {'socVNonSoc', 'broadCategories'};
-selParam.headTurnCon.selCheck = {'socVNonSoc', 'broadCategories'};
+selParam.NaturalSocial.selCheck = {'socVNonSoc', 'categories', 'broadCategories'};
+selParam.headTurnCon.selCheck = {'socVNonSoc', 'categories', 'broadCategories'};
 selParam.headTurnIso.selCheck = {'headTurn', 'fullModel', 'turnToward'};
 
 selParam.UnitTypes = {'MUA', digitsPattern};
 selParam.UnitTypePlot = {'MUA', 'Units & US'};
-selParam.colNamePoss = {'stimOnset','stimPres', 'reward'};
-selParam.colNamePlotAll = {'stim Onset','stim Presentation', 'Reward'};
+selParam.colNamePoss = {'Fix', 'stimEarly', 'stimLate', 'reward'};
+selParam.colNamePlotAll = {'Fixation Period', 'stim Onset','stim Presentation', 'Reward'};
 
 meanPSTHParams.spikePathLoadParams = spikePathLoadParams;
 meanPSTHParams.runInclude = 30;                                     % 0 = everything, N = Nth first runs of the stimulus.
@@ -122,7 +125,7 @@ meanPSTHParams.plotHist = 0;
 meanPSTHParams.rateThreshold = 2;               % Include only activity with a mean rate of X Hz. 0 for off, over 0 for threshold.
 meanPSTHParams.normalize = 1;                   % Normalizes PSTH values to the recording's fixation period. 1 = Z score.
 
-meanPSTHParams.plotTopStim = 0;                 % Only plot stimuli which have been present on at least a certain number of runs.
+meanPSTHParams.plotTopStim = 1;                 % Only plot stimuli which have been present on at least a certain number of runs.
 meanPSTHParams.topStimPresThreshold = 5;        % At least this many stim presentations to be plotted when plotTopStim is on.
 
 meanPSTHParams.broadLabel = 0;                  % Transitions individual stimuli to broad catagory (e.g. chasing).
@@ -155,22 +158,6 @@ meanPSTHParams.tmpFileName = 'tmpStructPrcSigChange.mat';
 % Natural video analysisGroups
 meanPSTHParams.analysisGroups.NaturalSocial.socVNonSoc = {'socialInteraction', 'nonSocialInteraction'};
 
-% familiarFace analysisGroups
-monkeyIDList = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes'};
-monkeyActList = {'IdleC', 'Movement', 'goalDirected', 'IdleS', 'FearGrimace', 'headTurn'};
-
-monkey_act_List = [];
-for ii = 1:length(monkeyIDList)
-  for jj = 1:length(monkeyActList)
-    monkey_act_List = [monkey_act_List; {[monkeyIDList{ii} '_' monkeyActList{jj}]}];
-  end
-end
-
-meanPSTHParams.analysisGroups.FamiliarFace.Identity = monkeyIDList;
-meanPSTHParams.analysisGroups.FamiliarFace.Action = monkeyActList;
-meanPSTHParams.analysisGroups.FamiliarFace.stimuli = monkey_act_List;
-meanPSTHParams.analysisGroups.FamiliarFace.Familair = {'familiar', 'unFamiliar'};
-
 % headTurnCon meanPSTHParams.analysisGroups
 meanPSTHParams.analysisGroups.headTurnCon.stimuli = {'chasing1_Turn', 'chasing1_noTurn', 'chasing2_Turn', 'chasing2_noTurn', 'fighting1_noTurn', 'fighting2_Turn', 'fighting2_noTurn', 'grooming1_Turn', 'grooming1_noTurn', 'grooming2_Turn', 'grooming2_noTurn',...
     'idle1_Turn', 'idle1_noTurn', 'idle2_Turn', 'idle2_noTurn', 'mounting1_Turn', 'mounting1_noTurn', 'mounting2_Turn', 'mounting2_noTurn', 'objects1_noTurn', 'goalDirected1_Turn', 'goalDirected1_noTurn', 'goalDirected2_Turn'...                      }
@@ -194,6 +181,22 @@ meanPSTHParams.analysisGroups.headTurnIso.stimuli = {'idle_core_frontCam_Dots_Ea
         'bioMotion_leftFull_leftCam_Normal_Late', 'bioMotion_leftFull_rightCam_Normal_Early', 'bioMotion_leftFull_rightCam_Normal_Late'};
 meanPSTHParams.analysisGroups.headTurnIso.turnSubj = {'turnToward', 'turnAway'};
 meanPSTHParams.analysisGroups.headTurnIso.mesh = {'fullModel_headTurn', 'fullModel_noTurn', 'smoothModel_headTurn', 'smoothModel_noTurn', 'dotModel_headTurn', 'dotModel_noTurn'};
+
+% familiarFace analysisGroups
+monkeyIDList = {'Alan', 'Red', 'Otis', 'Pancho', 'Calvin', 'Diego', 'Barney', 'Hobbes'};
+monkeyActList = {'IdleC', 'Movement', 'goalDirected', 'IdleS', 'FearGrimace', 'headTurn'};
+
+monkey_act_List = [];
+for ii = 1:length(monkeyIDList)
+  for jj = 1:length(monkeyActList)
+    monkey_act_List = [monkey_act_List; {[monkeyIDList{ii} '_' monkeyActList{jj}]}];
+  end
+end
+
+meanPSTHParams.analysisGroups.FamiliarFace.Identity = monkeyIDList;
+meanPSTHParams.analysisGroups.FamiliarFace.Action = monkeyActList;
+meanPSTHParams.analysisGroups.FamiliarFace.stimuli = monkey_act_List;
+meanPSTHParams.analysisGroups.FamiliarFace.Familair = {'familiar', 'unFamiliar'};
 
 meanPSTHParams.removeRewardEpoch = 1;           % Removes the reward period activity when generating plots.
 meanPSTHParams.firstXRuns = 0;                  % Removes any runs above this number. 0 = Don't remove any.
@@ -232,8 +235,8 @@ subEventPSTHParams.psthImDur = 400;
 subEventPSTHParams.psthPost = 200;             
 
 subEventPSTHParams.allRunStimPSTH = 0;                          % Plot 1 - Individual event PSTHes, stacked
-subEventPSTHParams.meanSubEventPSTH = 1;                        % Plot 2 - Mean event PSTHes, line plots
-subEventPSTHParams.stimPlusEvents_extracted = 1;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
+subEventPSTHParams.meanSubEventPSTH = 0;                        % Plot 2 - Mean event PSTHes, line plots
+subEventPSTHParams.stimPlusEvents_extracted = 0;                % Plot 3 - Show traces of the stimulus on the left (entire trace) + Traces of the subEvent means on the right.  
 subEventPSTHParams.eventPsthColorPlots = 0;                     % Plot 3.1 - event PSTH color plots, each individual trace, stacked. Takes length of event into account.
 subEventPSTHParams.eventPsthMeanLinePlots = 0;                  % Plot 3.2 - event PSTH mean line plots, shows the full slice of event related activity to the PSTH. ACTIVATES PLOT 3 CODE!
 subEventPSTHParams.meanSubEventPSTH_extracted = 1;              % Plot 4 - Mean event PSTHes, based on slices extracted from full PSTH data (not collected and avg'd per run).

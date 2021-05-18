@@ -216,7 +216,9 @@ end
 variables2Extract = [variables2Extract, 'selTable'];
 
 % [psthByImage, psthErrByImage, psthByCategory, psthErrByCategory, psthParamsPerRun] = spikePathLoad(spikePathBank, variables2Extract, params.spikePathLoadParams);
-[psthByImage, psthByCategory, psthParamsPerRun, selTable] = spikePathLoad(spikePathBank, variables2Extract, params.spikePathLoadParams);
+[psthByImage, psthByCategory, psthParamsPerRun, ~] = spikePathLoad(spikePathBank, variables2Extract, params.spikePathLoadParams);
+
+selTable = spikePathBank.selTable;
 paradigmList = unique(spikePathBank.paradigmInd);
 runList = extractAfter(spikePathBank.Properties.RowNames, 'S');
 
@@ -424,26 +426,23 @@ if params.meanPSTHParams.selPSTH
     paradigmInd = spikePathBank.paradigmInd == paradigmList(ii);
     spikePathBankParadigm = spikePathBank(paradigmInd, :);
     paradigmName = spikePathBankParadigm.paradigmName{1};
+    
     psthParamTimes = psthParamsPerRun{find(paradigmInd,1)};
     paradigmSelTable = selTable(paradigmInd);
     psthByImageParadigm = psthByImage(paradigmInd);
     runListParadigm = runList(paradigmInd);
     plotIndParams.plotLabels = {{'agents', 'socialInteraction'}};
     
-    
-    % Combine across paradigmSelTable
+    % Combine
     paradigmSelTable = vertcat(paradigmSelTable{:});
+    tableVars = paradigmSelTable.Properties.VariableNames;
     
-    % Replace channel numbers for this annoying run
-    paradigmSelTable = replaceChanNum_1123(paradigmSelTable);
-
-    paradigmSelTable = expandSelTableComboEvents(paradigmSelTable, params.selParam);
-    variableList = paradigmSelTable.Properties.VariableNames(contains(paradigmSelTable.Properties.VariableNames', 'socIntSel'));
+    variableList = tableVars(contains(tableVars, 'socVNonSoc') & contains(tableVars, 'selInd'));
     
     % Create an array of selectivity type, unitType, Sign, and dataType
     dataType = {'agents', 'socialInteraction'};
     normalizedActivity = cell(length(variableList), length(UnitTypes), 2, length(dataType));
-    [normalizedActivity{:}] = deal(nan(1e3 ,size(psthByImageParadigm{1}{1}{1},2)));
+    [normalizedActivity{:}] = deal(nan(1e5 ,size(psthByImageParadigm{1}{1}{1},2)));
     
     % For every event, find the unit traces selective for it.
     totCount = 1;
@@ -501,7 +500,6 @@ if params.meanPSTHParams.selPSTH
         for kk = 1:size(normalizedActivity, 3)
           for ll = 1:size(normalizedActivity, 4)
             NaNInd = find(isnan(normalizedActivity{pp, jj, kk, ll}(:,1)));
-            
             normalizedActivity{pp, jj, kk, ll} = normalizedActivity{pp, jj, kk, ll}(1:NaNInd-1, :);
           end
         end

@@ -1,16 +1,28 @@
 function figH = createBarPlotWithChanceLine(barLabels, dataMat, alpha, unitCount, figTitle, legendEntries)
 
-figH = figure('Name', figTitle, 'NumberTitle','off','units','normalized', 'outerposition', [.3 .3 .5 .6]);
+figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [.3 .3 .5 .6]);
 
 X = categorical(barLabels);
 X = reordercats(X,barLabels);
-barh = bar(X, dataMat);
+barh = bar(X, dataMat, 1);
+ylimSize = ylim();
+
 for bar_i = 1:length(barh)
   xtips1 = barh(bar_i).XEndPoints;
   ytips1 = barh(bar_i).YEndPoints;
-  labels1 = string(barh(bar_i).YData);
+  
+  if bar_i ~= 1
+    
+    diffY = abs(ytipsLast - ytips1);
+    if any(diffY < 1) && size(dataMat,1) >= 3
+      changeInd = diffY < 1;
+      ytips1(changeInd) = ytips1(changeInd) + ((ylimSize(2) * 0.05) );
+    end
+  end
+  
+  unitTag = string(barh(bar_i).YData);
   labels2 = string(round(barh(bar_i).YData/unitCount,3) * 100);
-  labels3 = strcat(labels1, '(', labels2, '%)');
+  percentTag = strcat('(', labels2, ')');
   
   if ~isempty(legendEntries)
     barh(bar_i).DisplayName = legendEntries{bar_i};
@@ -18,7 +30,9 @@ for bar_i = 1:length(barh)
     barh(bar_i).DisplayName = 'Count';
   end
   
-  text(xtips1, ytips1, labels3, 'HorizontalAlignment', 'center', 'VerticalAlignment','bottom')
+  textH = text(xtips1, ytips1, unitTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 14);
+  textH = text(xtips1, ytips1, percentTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'FontSize', 10);
+  ytipsLast = ytips1;
 end
 
 % Resize and shape the figure

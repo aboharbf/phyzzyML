@@ -3,9 +3,10 @@
 
 % dataFiles = {'PCA_data_allMUA_3smooth', 'PCA_data_SocMUA_3smooth', 'PCA_data_allUUS_3smooth', 'PCA_data_SocUUS_3smooth'};
 % dataFiles = {'pcaData_HTC_MUA', 'pcaData_HTC_SocMUA', 'pcaData_HTC_US&U', 'pcaData_HTC_SocUS&U', 'pcaData_NS_MUA', 'pcaData_NS_SocMUA', 'pcaData_NS_US&U', 'pcaData_NS_SocUS&U'};
-% titles = {'MUA', 'Soc MUA', 'US&U', 'Soc US&U', 'MUA', 'Soc MUA', 'US&U', 'Soc US&U'};
-dataFiles = {'pcaData_Combo_MUA', 'pcaData_Combo_US&U'};
-titles = {'MUA', 'US&U'};
+dataFiles = {'pcaData_NS_MUA'};
+titles = {'MUA', 'Soc MUA', 'US&U', 'Soc US&U', 'MUA', 'Soc MUA', 'US&U', 'Soc US&U'};
+% dataFiles = {'pcaData_Combo_MUA', 'pcaData_Combo_US&U'};
+% titles = {'MUA', 'US&U'};
 
 colors = 'rbgkcmyk';
 
@@ -45,6 +46,9 @@ for data_i = 1:length(dataFiles)
 
   axHands(1) = subplot(3,1, 1:2, 'CameraPosition', [-33.2969 -140.4141   92.1205]);
   hold on
+  
+  bhvLabels = bhvLabels(1:size(score,1)/binCount);
+
   for i = 1:length(bhvLabels)
     scatter3(score(start(i):stops(i), 1), score(start(i):stops(i), 2), score(start(i):stops(i), 3), markerSize, colors(i));
   end

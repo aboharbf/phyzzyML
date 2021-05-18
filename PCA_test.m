@@ -1,8 +1,8 @@
 % PCA Notepad
 
 % define these
-dataFiles = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB_HandDefined\headTurnCon\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat',...
-  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB_HandDefined\NaturalSocial\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat'};
+dataFiles = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\headTurnCon\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat',...
+  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat'};
 plotIndParams.stimParamsFilename = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';
 outputDir = 'D:\DataAnalysis\batchAnalysis\PCA\preProc';
 
@@ -15,9 +15,12 @@ end
 % array, where each entry is trials*1.
 % binned_site_info -  a struct with some labels, each of which is a N * 1
 % structure with different values each can take on (many are logical).
-paradigm = {'HTC', 'NS'};
-unitIndName = {'MUA', 'SocMUA', 'US&U', 'SocUS&U'};
-labels2Include = {{'socialInteraction', 'goalDirected', 'idle', 'objects'}}; % Label sorting
+% paradigm = {'HTC', 'NS'};
+paradigm = {'NS'};
+% unitIndName = {'MUA', 'SocMUA', 'US&U', 'SocUS&U'};
+unitIndName = {'US&U'};
+labels2Include = {{'chasing', 'fighting', 'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scenes'}}; % Label sorting
+% labels2Include = {{'socialInteraction', 'goalDirected', 'idle', 'objects', 'scene'}}; % Label sorting
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
@@ -28,7 +31,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 storeData = cell(length(paradigm), length(unitIndName)); 
 
-for paradigm_i = 1:length(paradigm)
+for paradigm_i = 2%:length(paradigm)
   
   % load the binned data
   binnedData = load(dataFiles{paradigm_i});
@@ -46,9 +49,9 @@ for paradigm_i = 1:length(paradigm)
   unitType = binnedData.binned_site_info.UnitType';
   
   unitInd1 = contains(unitType, 'M');
-  unitInd2 = contains(unitType, 'M') & binnedData.binned_site_info.socVNonSocSel_any;
+  unitInd2 = contains(unitType, 'M') & binnedData.binned_site_info.sVns_any_selInd;
   unitInd3 = ~contains(unitType, 'M');
-  unitInd4 = ~contains(unitType, 'M') & binnedData.binned_site_info.socVNonSocSel_any;
+  unitInd4 = ~contains(unitType, 'M') & binnedData.binned_site_info.sVns_any_selInd;
   
   unitIndStack = {unitInd1; unitInd2; unitInd3; unitInd4};
   
@@ -245,13 +248,15 @@ for paradigm_i = 1:length(paradigm)
       end
       saveFigure(outputDir, ['4. ' figTitle], [], figStruct, [])
       
-%       bhvLabels = labels2Include{1};
-%       paradigmLabel = paradigm{paradigm_i};
-%       save(sprintf('pcaData_%s_%s', paradigm{paradigm_i}, unitIndName{unit_Type_i}), 'coeff', 'score', 'latent', 'binCount', 'paradigmLabel', 'bhvLabels', 'binLabelInfo')
-%       
+      bhvLabels = labels2Include{1};
+      paradigmLabel = paradigm{paradigm_i};
+      save(sprintf('pcaData_%s_%s', paradigm{paradigm_i}, unitIndName{unit_Type_i}), 'coeff', 'score', 'latent', 'binCount', 'paradigmLabel', 'bhvLabels', 'binLabelInfo')
+      
     end
   end
 end
+
+error('Done');
 
 % Combo PCA Stuff - needs to be improved to actually match up units with
 % each other across the paradigms and linked up to batchAnalysisLite.

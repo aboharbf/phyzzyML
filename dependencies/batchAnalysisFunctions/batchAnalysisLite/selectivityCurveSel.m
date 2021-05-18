@@ -6,17 +6,13 @@ stretchAllSame = false;
 
 % Collect unit selectivity
 [anovaTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
-% anovaTablePerRun = spikePathBank.selTable;
-
+selTablePerRun = spikePathBank.selTable;
 outputDir = fullfile(batchAnalysisParams.selParam.outputDir, 'selectivityCurveSel');
-if ~exist(outputDir, 'dir')
-  mkdir(outputDir);
-end
 
 paradigmList = unique(spikePathBank.paradigmName);
 unitLabel = {'MUA', 'Units'};
 unitTypePlot = {'MUA', 'U+US'};
-testsPerformed = {'broadC', 'socInt'};
+testsPerformed = {'catego', 'socInt'};
 
 % Bins for the x-axis
 binStep = 25;
@@ -25,6 +21,7 @@ stimSize = 2800 + 500;
 the_bin_start_times = 0:binStep:stimSize-binSize;
 points_to_label = [0  1000 2000 2800];
 points_for_lines = [0 2800];
+stretchThres = batchAnalysisParams.selParam.stretchThreshold;
 
 bins_to_label = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_to_label);
 x_for_lines = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_for_lines);
@@ -33,19 +30,29 @@ for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   anovaTableParadigmPerRun = anovaTablePerRun(pInd);
-  
   anovaTableParadigm = vertcat(anovaTableParadigmPerRun{:});
   tableVars = anovaTableParadigm.Properties.VariableNames';
+  
+  selTableParadigmPerRun = selTablePerRun(pInd);
+  selTableParadigmPerRun = vertcat(selTableParadigmPerRun{:});
+  tableVarsSel = selTableParadigmPerRun.Properties.VariableNames';
   
   % Cycle through tests
   for test_i = 1:length(testsPerformed)
     
     testInd = contains(tableVars, testsPerformed{test_i});
     
-    % Find rows w/ Var
+    % Find rows w/ Var - ANOVA Table
     pValLabels = tableVars(contains(tableVars, 'pVal') & testInd);
     varLabels = tableVars(contains(tableVars, 'VarExp') & testInd);
     prefSelLabels = tableVars(contains(tableVars, '_prefStim') & testInd);
+    
+    testInd = contains(tableVarsSel, testsPerformed{test_i});
+
+    % Find rows w/ Var - sel Table
+    selTableVars = tableVarsSel(contains(tableVarsSel, 'SW') & testInd);
+    sigStretchInd = selTableVars(contains(selTableVars, 'sigStretch'));
+    prefOjbInd = selTableVars(contains(selTableVars, 'sigObj'));
     
     dataArray = {pValLabels; varLabels; prefSelLabels};
     dataLabels = {'-log10(p) Encoding Strength', 'Variance Explained', 'Preferred Stimuli'};
@@ -59,8 +66,8 @@ for par_i = 1:length(paradigmList)
       % For each factor of the analysis
       factorCount = length(dataArray{label_i});
       if factorCount > 0
-        figTitle = sprintf('%s ANOVA on Label %s - Paradigm %s', testsPerformed{test_i}, dataLabels{label_i}, paradigmList{par_i});
-        figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.2521    0.0630    0.4922    0.8296]);
+        figTitle = sprintf('%s ANOVA on Label %s', testsPerformed{test_i}, dataLabels{label_i});
+        figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.25 0.1 0.5 0.8]);
         sgtitle(figTitle);
         
         for factor_i = 1:factorCount
@@ -78,11 +85,11 @@ for par_i = 1:length(paradigmList)
             
             if contains(dataLabels{label_i}, 'Encoding')
               
-              pValInd2Keep = dataStack < 0.05;
+              pValInd2Keep = dataStack <= 0.05;
               stretchLength = findStretchRuns(pValInd2Keep);
               
               % For units with the right length of stretches, visualize them
-              [stretchIndMat{unit_i, factor_i}, ind2Keep] = deal(stretchLength >= 5);
+              [stretchIndMat{unit_i, factor_i}, ind2Keep] = deal(stretchLength >= stretchThres);
               dataStackKeep = dataStack(ind2Keep,:);
               stretchLengthKeep = stretchLength(ind2Keep,:);
               [~, ai] = sort(stretchLengthKeep);
@@ -106,7 +113,7 @@ for par_i = 1:length(paradigmList)
                 
                 if stretchAllSame
                   stretchLengths = findStretchRuns(dataStackFinalTmp);
-                  [ind2Keep, stretchIndMat{unit_i, factor_i}] = deal(logical(sum(squeeze(stretchLengths) >= 5, 2)));
+                  [ind2Keep, stretchIndMat{unit_i, factor_i}] = deal(logical(sum(squeeze(stretchLengths) >= stretchThres, 2)));
                 else
                   ind2Keep = stretchIndMat{unit_i, factor_i};
                 end
@@ -137,20 +144,20 @@ for par_i = 1:length(paradigmList)
             ax.XTick = bins_to_label;
             ax.XTickLabel = points_to_label;
             ylabel('Unit #');
-            xlabel('Bin (ms)');
+            xlabel('Bin Start time (ms)');
             
           end
         end
         
         % Save the Figure
-        saveFigure(outputDir, ['1. ' figTitle], [], batchAnalysisParams.selParam.figStruct, [])
+        saveFigure(outputDir, sprintf('1. %s - %s', paradigmList{par_i}, figTitle), [], batchAnalysisParams.selParam.figStruct, [])
         
       end
 
       % Additional plot - Are factors significant on different units?
       if ~contains(dataLabels{label_i}, 'Preferred') && factorCount > 1
         figTitleSum = sprintf('%s test Counts of Traces with Significant Stretches %s', testsPerformed{test_i}, paradigmList{par_i});
-        figure('Name', figTitleSum, 'units', 'normalized', 'position', [0.0635    0.0380    0.6339    0.8833])
+        figure('Name', figTitleSum, 'units', 'normalized', 'position', [0.0635 0.0380 0.6339 0.8833])
         for ii = 1:length(unitLabel)
           ax = subplot(1,length(unitLabel),ii);
           anyUnit = [stretchIndMat{ii, :}];
@@ -174,7 +181,7 @@ for par_i = 1:length(paradigmList)
         xlabel('ANOVA Factor');
         
         % Save the paneled image.
-        saveFigure(outputDir, ['2. ' figTitleSum ], [], batchAnalysisParams.selParam.figStruct, [])
+        saveFigure(outputDir, sprintf('2. %s - %s', paradigmList{par_i}, figTitleSum), [], batchAnalysisParams.selParam.figStruct, [])
       end
     end
   end

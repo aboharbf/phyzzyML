@@ -3,10 +3,9 @@ function spikePathBank = processAppendSelTable(spikePathBank, params)
 % appends it back to the spikePathBank.
 
 % Collect unit selectivity
-[selTablePerRun, anovaTablePerRun, epochCatsParamsPerRun, epochStatsParamsPerRun, psthParamsPerRun] = spikePathLoad(spikePathBank, {'selTable', 'anovaTable', 'epochCatsParams', 'epochStatsParams', 'psthParams'}, params.spikePathLoadParams);
+[selTablePerRun, anovaTablePerRun, anovaBinParams, epochCatsParamsPerRun, epochStatsParamsPerRun, psthParamsPerRun] = spikePathLoad(spikePathBank, {'selTable', 'anovaTable', 'anovaBinParams', 'epochSWparams', 'epochTargParams', 'psthParams'}, params.spikePathLoadParams);
 alpha = params.selParam.alpha;
 strThres = params.selParam.stretchThreshold;
-
 
 % Keep the tables seperate, since they have to be returned to
 % spikePathBank.
@@ -14,7 +13,7 @@ processedSelTableArray = cell(size(selTablePerRun));
 
 % Variables to exclude
 varExcludeanova = {'slidingWin_socIntTest_Eye'};
-varExcludesel = {'_cohensD'};
+% varExcludesel = {'_cohensD'};
 
 for run_i = 1:length(selTablePerRun)
   
@@ -24,12 +23,13 @@ for run_i = 1:length(selTablePerRun)
   epochCParamsRun = epochCatsParamsPerRun{run_i};
   epochSParamsRun = epochStatsParamsPerRun{run_i};
   psthParamsRun = psthParamsPerRun{run_i};
+  anovaParamsRun = anovaBinParams{run_i};
   
   unitCountRun = size(selTableRun,1);
   
   % Remove undesired variables
-  var2Remove = contains(selTableRun.Properties.VariableNames, varExcludesel);
-  selTableRun(:, var2Remove) = [];
+%   var2Remove = contains(selTableRun.Properties.VariableNames, varExcludesel);
+%   selTableRun(:, var2Remove) = [];
   
   % Check for pVal rows.
   pValIndex = contains(selTableRun.Properties.VariableNames, '_pVal');
@@ -45,12 +45,13 @@ for run_i = 1:length(selTablePerRun)
   selTableRun{:, selIndexVars} = selIndexValues;
    
   % Process the ANOVA table
-  var2Remove = contains(anovaTableRun.Properties.VariableNames, varExcludeanova);
+  anovaVars = anovaTableRun.Properties.VariableNames';
+  var2Remove = contains(anovaVars, varExcludeanova);
   anovaTableRun(:, var2Remove) = []; 
   
   % Check for pVal rows in the ANOVA table
-  pValIndex = contains(anovaTableRun.Properties.VariableNames, '_pVal');
-  pValVars = anovaTableRun.Properties.VariableNames(pValIndex)';
+  pValIndex = contains(anovaVars, '_pVal');
+  pValVars = anovaVars(pValIndex)';
   selIndexVars = strcat(extractBefore(pValVars, '_pVal'), '_selInd');
   selIndexValues = zeros(unitCountRun, length(pValVars));
   
@@ -72,7 +73,7 @@ for run_i = 1:length(selTablePerRun)
   selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params);
   
   % Sliding Window to Epoch conversion.
-  selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, psthParamsRun, epochCParamsRun, epochSParamsRun, params);
+  selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, anovaParamsRun, psthParamsRun, epochCParamsRun, epochSParamsRun, params);
   
   % Replace the channel names for 20201123Mo
   if strcmp(selTableRun{1,1}, '20201123Mo')
@@ -99,7 +100,7 @@ spikePathBank.selTable = processedSelTableArray;
 
 end
 
-function selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, psthParamsRun, epochCParamsRun, epochSParamsRun, params)
+function selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, anovaParamsRun, psthParamsRun, epochCParamsRun, epochSParamsRun, params)
 % Function which takes in the grid of neurons*bins and turns it into
 % epochs*bin.
 % Input
@@ -107,26 +108,25 @@ function selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, psthPar
 % - bin start times.
 % - epoch windows (epoch * 2, start and end).
 
-BaseArray = {'chasing', 'fighting', 'goalDirected', 'grooming', 'idle', 'mounting', 'objects'};
+BaseArrayTests = {{'chasing', 'fighting', 'goalDirected', 'grooming', 'idle', 'mounting', 'objects', 'scene'}, {'goalDirected', 'idle', 'objects', 'scene', 'socialInteraction'}};
+BaseArrayTestNames = {'categoriesTest', 'broadCatTest'};
 
 strThres = params.selParam.stretchThreshold;
 objectStretches = params.selParam.objectStretches;   
 
 % Generate the start times and end times for the bins. 
 binSize = epochCParamsRun.binSize;
-binStep = epochCParamsRun.binStep;
-totalTime = psthParamsRun.psthImDur + psthParamsRun.psthPost;
-
-binStarts = 0:binStep:totalTime-binSize;
-binStarts(1) = 1;
+binStarts = anovaParamsRun.binStarts;
+binStarts(1) = binStarts(1) + 1;
+binEnds = anovaParamsRun.binEnds;
 
 % Covert to epochWindows
 epochNames = epochSParamsRun.labels;
 epochTimes = epochSParamsRun.times;
 
 % Remove pre stimulus epoch data.
-epochNames = epochNames(epochTimes(:,1) >= 0);
-epochTimes = epochTimes(epochTimes(:,1) >= 0, :);
+epochNames = epochNames(epochTimes(:,1) >= -800);
+epochTimes = epochTimes(epochTimes(:,1) >= -800, :);
 
 % Shift the end times for epochs so bins which extend more than 75 ms into
 % the next epoch are classified as such
@@ -149,10 +149,11 @@ testNames = extractBetween(prefStimName, '_', '_');
 
 for test_i = 1:length(testNames)
   
+  BaseArray = BaseArrayTests{strcmp(testNames{test_i}, BaseArrayTestNames)};
   testData = anovaTableRun{:, prefStimInd(test_i)};  
   testData = vertcat(testData{:});
   [testDataIndicies, A] = cellArray2Indicies(testData);
-  testEpochNames = strcat('SW_', testNames, '_', epochNames);
+  testEpochNames = strcat('SW_', testNames{test_i}, '_', epochNames);
     
   for epoch_i = 1:length(epochNames)
     

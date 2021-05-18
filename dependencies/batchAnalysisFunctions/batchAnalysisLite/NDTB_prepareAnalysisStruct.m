@@ -46,7 +46,7 @@ function analysisStructAll = NDTB_prepareAnalysisStruct(analysisDir, pFolder, pa
       analysisSubType = analysisStruct.classifier(1:3);
     end
     
-    analysisStruct.plotOutDir = fullfile(pFolder, analysisSubType);
+    analysisStruct.plotOutDir = fullfile(pFolder, analysisSubType, strrep(analysisStruct.coreTitle, ' ', '_'));
     
     analysisStructAll.(analysisFileNames{ii}) = analysisStruct;
   end

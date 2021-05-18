@@ -19,9 +19,7 @@ alpha = 0.05;                             % This is the alpha from the previous 
 tableVars = selTable.Properties.VariableNames';
 outDir = fullfile(params.outputDir, 'selectivityPerEpoch');
 
-if ~exist(outDir, 'dir')
-  mkdir(outDir);
-end
+uniqueLabelsSorted = {{'socialInteraction', 'agents'}, {'chasing','fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}, {'socialInteraction', 'goalDirected', 'idle', 'objects', 'scene'}};
 
 % Generate bar plots showing total counts in each category
 for unitType_i = 1:length(UnitTypes)
@@ -53,7 +51,7 @@ for unitType_i = 1:length(UnitTypes)
     
     [~, A] = intersect(colNames, colNamePoss);
     A = sort(A);
-    colNamesPlot = colNamePlotAll(A);
+    colNamesPlot = colNames(A);
     selColumns = selColumns(A);
     sigInd = selTableParadigmUnit{:, selColumns};
     
@@ -67,21 +65,17 @@ for unitType_i = 1:length(UnitTypes)
       stimPrefColumnData = selTableParadigmUnit{:, stimPrefColumns};
       
       % Find unique labels and create a 3rd dimension for each.
-      uniqueLabels = unique(stimPrefColumnData(:));
+%       uniqueLabels = unique(stimPrefColumnData(:));
+      uniqueLabels = uniqueLabelsSorted{sel_i};
       sigIndTmp = zeros([size(stimPrefColumnData), length(uniqueLabels)]);
       for lab_i = 1:length(uniqueLabels)
         sigIndTmp(:, :, lab_i) = strcmp(stimPrefColumnData, uniqueLabels(lab_i));
       end
-      
-      % Get rid of 'None'.
-      stimPrefColumnData = sigIndTmp(:, :, ~strcmp(uniqueLabels, 'None'));
-      uniqueLabels = uniqueLabels(~strcmp(uniqueLabels, 'None'));
-      
+            
       % Make the dataMat
-      objPreMat = squeeze(sum(stimPrefColumnData,1));
+      objPreMat = squeeze(sum(sigIndTmp,1));
       objPreflegendLabels = uniqueLabels;
 %       atleastOneVec(:,sel_i) = logical(sum(stimPrefColumnData, 2:3));
-%       atleastOne = sum(atleastOneVec(:,sel_i));
       
     else
       if ~isempty(diffColumns)
@@ -92,29 +86,33 @@ for unitType_i = 1:length(UnitTypes)
         dataMat = sum(sigInd)';
         legendLabels = [];
         alphaPlot = alpha * 2;
-      end
-      atleastOneVec(:,sel_i) = any(sigInd, 2);
-      atleastOne = sum(atleastOneVec(:,sel_i));
-      
+      end      
     end
     
+    atleastOneVec(:,sel_i) = any(sigInd, 2);
+    atleastOne = sum(atleastOneVec(:,sel_i));
+    
     % Plot the Bar graphs
-    figTitle = sprintf('Bar Graph - %s activity selective for %s during %s (%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, paradigm, atleastOne);
-    createBarPlotWithChanceLine(colNamesPlot, dataMat, alphaPlot, unitCount, figTitle, legendLabels)
-    saveFigure(outDir, figTitle, [], params.figStruct, [])
+    if isempty(stimPrefColumns)
+      figTitle = sprintf('%s selectivity during %s test (%d/%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, atleastOne, size(atleastOneVec,1));
+      createBarPlotWithChanceLine(colNamesPlot, dataMat, alphaPlot, unitCount, figTitle, legendLabels);
+      saveFigure(fullfile(outDir, 'BarGraph'), sprintf('BG %s %s', paradigm, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
+    end
     
     % If there is object preference data, plot here
     if ~isempty(stimPrefColumns)
-      figTitle = sprintf('Bar Graph - %s activity selective for Objects in %s during %s (%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, paradigm, atleastOne);
-      createBarPlotWithChanceLine(colNamesPlot, objPreMat, 0, unitCount, figTitle, objPreflegendLabels)
-      saveFigure(outDir, figTitle, [], params.figStruct, [])
+      figTitle = sprintf('%s selectivity for Objects during %s test (%d/%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, atleastOne, size(atleastOneVec,1));
+      createBarPlotWithChanceLine(colNamesPlot, objPreMat, 0, unitCount, figTitle, objPreflegendLabels);
+      saveFigure(fullfile(outDir, 'objPref'), sprintf('1b.BG %s %s', paradigm, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
     end
     
     % Plot the Venn diagram    
-    atleastOne = sum(any(sigInd, 2));
-    figTitle = sprintf('Venn Diagram - %s activity selective for %s during %s (%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, paradigm, atleastOne);
+    figTitle = sprintf('%s selectivity for %s (%d/%d Unique)', UnitTypePlot{unitType_i}, selCheck{sel_i}, atleastOne, size(atleastOneVec,1));
+    if size(sigInd, 2) == 4
+      sigInd = sigInd(:,2:end);
+    end
     vennXExpanded(sigInd, figTitle, colNames)
-    saveFigure(outDir, figTitle, [], params.figStruct, [])
+    saveFigure(fullfile(outDir, 'VennDiagram'), sprintf('%s %s', paradigm, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
     
   end
   

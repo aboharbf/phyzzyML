@@ -20,6 +20,8 @@ if ~strcmp('stimPresCount',spikePathBank.Properties.VariableNames)
   save(spikePathFile, 'spikePathBank', '-append')
 end
 
+% stimulusEventCounts = stimulusPresence(spikePathBank);
+
 if ~contains('selTable', spikePathBank.Properties.VariableNames)
   spikePathBank = processAppendSelTable(spikePathBank, batchAnalysisParams);
   spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;
@@ -32,7 +34,6 @@ if calcSwitch.dataHigh
 end
 
 %% Counting
-
 % crossParadigmCheck(spikePathBank, batchAnalysisParams)
 
 if plotSwitch.selCount
@@ -40,7 +41,7 @@ if plotSwitch.selCount
 end
 
 if plotSwitch.selectivityCurve
-  selectivityCurveSel(spikePathBank, batchAnalysisParams)
+  selectivityCurveSelNew(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.selectivityCounts
@@ -64,12 +65,15 @@ end
 
 % Combine PSTH across all runs for a particular stimulus.
 if plotSwitch.meanPSTH
-  meanPSTH(spikePathBank, batchAnalysisParams, figStruct);
+  meanPSTHLite(spikePathBank, batchAnalysisParams, figStruct);
 end
 
 if plotSwitch.subEventPSTH %&& ~exist('meanPSTHStruct','var')
-  spikePathBank = spikePathBank(~strcmp(spikePathBank.paradigmName, 'FamiliarFace'), :);
   subEventPSTHStruct = subEventPSTH(spikePathBank, batchAnalysisParams, figStruct);
+end
+
+if plotSwitch.rewardPSTH
+  rewardPSTHallStack(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.spikeEyeOverlay

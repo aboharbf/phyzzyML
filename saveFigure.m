@@ -10,6 +10,11 @@ function saveFigure(outDir, filename, figData, figStruct, footer)
 %   exporting, and data saving w/ figure.
 %   footer - text to add to the bottom figure.
 
+% Make the outDir if it doesn't exist
+if ~exist(outDir,'dir')
+  mkdir(outDir)
+end
+
 if ~isempty(footer)
   ax = axes('Position',[0 0 1 .05], 'Visible','off');
   text(ax, .025, .5, footer, 'fontsize',12);
