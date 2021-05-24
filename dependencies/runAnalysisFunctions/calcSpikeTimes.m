@@ -21,10 +21,6 @@ for image_i = 1:length(spikesByStim)
       % this tmp variable fixes a Chronux bug that leads the last entry in the binned spike array to be zero when it shouldn't be
       spikesTmp = binspikes(spikesByStim{image_i}{channel_i}{unit_i},1,[-1*(psthPre+movingWin(1)/2), psthImDur+1+psthPost+movingWin(1)/2])';
       spikesByStimBinned{image_i}{channel_i}{unit_i} = spikesTmp(:,1:end-1);
-      %         for trial_i = 1:size(spikesByEventBinned{image_i}{channel_i}{unit_i},1)
-      %           fieldName = sprintf('spikesBinned.%s_%s',channelNames{channel_i}(~isspace(channelNames{channel_i})),channelUnitNames{channel_i}{unit_i}(~isspace(channelUnitNames{channel_i}{unit_i})));
-      %           trialDB = trialDatabaseSetField(fieldName,spikesByEventBinned{image_i}{channel_i}{unit_i}(trial_i,:),trialDB,trialIDsByEvent{image_i}(trial_i),'dateSubj',dateSubject,'runNum',runNum);
-      %         end
     end
   end
 end

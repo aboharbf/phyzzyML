@@ -7,7 +7,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 % naturalSocial Test - 20201117Mo 001
 
 runNum = '001';
-dateSubject = '20201115Mo';
+dateSubject = '20201117Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -111,7 +111,7 @@ plotSwitch.couplingPhasesUnwrapped = 0;
 plotSwitch.couplingPhasesAsOffsets = 0;
 plotSwitch.couplingPhasesPolar = 0;
 plotSwitch.tfSpectraByCategory = 1; %Do I want this?
-plotSwitch.tfErrs = 0;           %#ok
+plotSwitch.tfErrs = 0;           
 
 %% Calc switches
 calcSwitch.categoryPSTH = 1;
@@ -371,6 +371,7 @@ subEventAnalysisParams.preAlign = 300;
 subEventAnalysisParams.postAlign = 800;
 subEventAnalysisParams.nullAllStim = 1;
 subEventAnalysisParams.RewardEvent = 1;
+subEventAnalysisParams.FixEvent = 1;
 subEventAnalysisParams.nullSampleMult = 10;       % For every n stimuli with the event, sample all other stimuli this number of times for the null distribution.
 subEventAnalysisParams.psthParams = psthParams;
 subEventAnalysisParams.psthParams.psthPre = 100;
@@ -384,10 +385,14 @@ subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
+subEventAnalysisParams.spikeTimes = calcSwitch.spikeTimes;
 subEventAnalysisParams.genPlots = 0;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
-subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway', 'saccades', 'pre-saccades', 'blinks', 'reward', 'rewardAbsent'};
-subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [-250 50]; [-200 0]; [0 100]; [-50 150]; [-50 150]];
+subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
+                                         'pre-saccades', 'saccades', 'blinks', 'fixation', 'reward', 'rewardAbsent'};
+subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
+                                             [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]];
+subEventAnalysisParams.preSaccOffset = 200;                               % Use non parametric test.
 subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
 
 correlParams.maxShift = []; % a number, or empty

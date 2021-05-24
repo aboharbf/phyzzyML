@@ -13,15 +13,19 @@ for event_i = 1:length(eventTimes)
   lastTime = max(eventsTiled);
 
   % Generate a random vector of shifts.
-  shiftCount = length(eventsTiled);
-  shifts = [randi([minEventDist, minEventDist],[ceil(shiftCount/2),1]); randi([-maxShift, -minEventDist],[floor(shiftCount/2),1])];
+  shiftCount = length(eventsTiled)*10;
+  negShifts = randi([-maxShift, -minEventDist], [shiftCount/2, 1]);
+  posShifts = randi([minEventDist, maxShift], [shiftCount/2, 1]);
+  shifts = [negShifts; posShifts];
   shifts = shifts(randperm(length(shifts)));
-  nullTimesForEvent = eventsTiled + shifts;
+  
+  % Add it to an equally sized mix of the events themselves.
+  nullTimesForEvent = eventsTiled(randi(length(eventsTiled), [shiftCount,1])) + shifts;
   
   % check if any of these null times are too close to event times.
-  nullTimesForEventCheck = repmat(nullTimesForEvent, [1, length(nullTimesForEvent)]);
+  nullTimesForEventCheck = repmat(nullTimesForEvent, [1, length(eventsTiled)]);
   nullTimesForEventCheck = (nullTimesForEventCheck' - eventsTiled)';
-  nullTimeTooCloseInd = abs(nullTimesForEventCheck) < minEventDist;
+  nullTimeTooCloseInd = abs(nullTimesForEventCheck) <= minEventDist;
   keepInd = ~any(nullTimeTooCloseInd,2);
   nullTimesForEvent = nullTimesForEvent(keepInd);
   

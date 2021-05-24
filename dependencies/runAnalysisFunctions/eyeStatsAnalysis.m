@@ -275,22 +275,27 @@ for stim_i = 1:length(eyeBehStatsByStim)
       % Find the starting and stopping spots for the saccade
       startSpot = mean(saccadeEyePadded(:,1:3), 2);
       stopSpot = mean(saccadeEyePadded(:,end-3:end), 2);
-      dots = [startSpot, stopSpot];
-
+      
+      cardinalRanges = [0, 45, 90, 135, 180, 225, 270, 315, 360];
+      delta_x = stopSpot(1) - startSpot(1);
+      delta_y = stopSpot(2) - startSpot(2);
+      angle = 180/pi * atan2(delta_y, delta_x); % Degrees initially.
+      
+      if angle < 0
+        angle = 360 + angle;
+      end
+      
       % Find the angle for the saccade
-      angle = 180/pi*atan2(diff(dots(2,:)),diff(dots(1,:)));
       
       % Transform angles into Cardinal directions, and identify which each
       % belongs to.
-      cardinalRanges = [0, 45, 90, 135, 180];
-      negAngle = angle < 0;
-      absAngle = abs(angle);
-      angleMat = repmat(absAngle, [1, length(cardinalRanges)]);
-      angleDiff = abs(angleMat - cardinalRanges);
+      
+      angleDiff = abs(angle - cardinalRanges);
       [~, dirInd] = min(angleDiff, [], 2);
-      dirInd(negAngle & dirInd == 4) = 6;
-      dirInd(negAngle & dirInd == 3) = 7;
-      dirInd(negAngle & dirInd == 2) = 8;
+      
+      if 1 % Convert to Radians.
+        angle = angle /(180/pi);
+      end
       
       % Store
       saccadeDir(sac_i) = dirInd;

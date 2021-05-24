@@ -371,7 +371,7 @@ end
 if ~calcSwitch.spikeTimes %use 1 ms bins for spikes
   spikesByEventBinned = calcSpikeTimes(spikesByEvent, psthParams);
   spikesByCategoryBinned = calcSpikeTimes(spikesByCategory, psthParams);
-  save(analysisOutFilename,'spikesByEventBinned', '-append');
+  save(analysisOutFilename, 'spikesByEventBinned', '-append');
   analysisOutFilenameBig = fullfile(fileparts(analysisOutFilename), 'analyzedDataBig.mat');
   save(analysisOutFilenameBig,'spikesByCategoryBinned', '-v7.3');
 end
@@ -405,13 +405,12 @@ end
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
 if plotSwitch.subEventAnalysis
-  ephysParams.spikeTimes = calcSwitch.spikeTimes;
-  ephysParams.channelUnitNames = channelUnitNames;
+  subEventAnalysisParams.channelUnitNames = channelUnitNames;
   subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
   subEventAnalysisParams.eventIDs = eventIDs;
     
   [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, selTable, figStruct);
-  save(analysisOutFilename,'subEventSigStruct', 'specSubEventStruct','-append');
+  save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
 end
 
 epochTargParams.groupLabelsByImage = groupLabelsByImage;

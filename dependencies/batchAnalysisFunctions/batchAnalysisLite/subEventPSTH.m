@@ -9,14 +9,9 @@ runList = spikePathBank.Properties.RowNames;
 removeExcessNaNs = @(cellWNans) cellWNans(~isnan(cellWNans(:,1)), :);
 outputDir = params.subEventPSTHParams.outputDir;
 
-if ~exist(outputDir, 'dir')
-  mkdir(outputDir);
-end
-
 % Load and extract key things from subEvents. Plots 1 and 2 only need the
 % eventList, 3 and after use more features.
 load(params.subEventPSTHParams.eventData);
-groupIterInd = 3;
 
 % Extract data from meanPSTHStruct
 paradigmList = unique(spikePathBank.paradigmName);
@@ -26,17 +21,9 @@ for par_i = 1:length(paradigmList)
   paradigmIndex = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   spikePathBankParadigm = spikePathBank(paradigmIndex,:);
   
-  % Get unique event vector
-  eventIDsPerRun = spikePathBankParadigm.stimuli;
-  uniqueEvents = unique(vertcat(eventIDsPerRun{:}));
-  
   [psthByImagePerRun, eventDataArray, dataTypeArray, groupTypeArray, eventList, subEventSig, psthParams2Use] = generateEventDataArray(spikePathBankParadigm, params);
     
-  % Plot Reward stuff
-%   generateRewardPlots(spikePathBankParadigm, eventDataArray)
-  
   % groupType = {'Unsorted', 'Unit', 'MUA'};
-  eventListPlot = strrep(eventList, '_', ' ');
   
   % Temp to account for lack of parameters in data
   psthParam.psthPre = abs(subEventSig.psthWindow(1));
@@ -57,6 +44,9 @@ for par_i = 1:length(paradigmList)
   
   sortType = {'Run Index'};
   [sortMat, sortLabel] = deal(cell(size(eventDataArray,1), size(eventDataArray,2), length(sortType)));
+  
+  % Groups to creating sorting indicies for.
+  groupIterInd = 3; 
   
   % Generate the PSTH sorting indicies
   for event_i = 1:size(sortMat,1)
@@ -92,13 +82,15 @@ for par_i = 1:length(paradigmList)
   % Plots 3 and 4 Do not.
   
   % Plot 1 - Individual PSTHes for every instance of a subEvent across Runs, Sorted
+    eventListPlot = strrep(eventList, '_', ' ');
   if params.subEventPSTHParams.allRunStimPSTH
     
     % Iterate through PSTH, generating plots
     for event_i = 1:size(eventDataArray,1)
       for sort_i = 1
         for group_i = groupIterInd
-          figTitle = sprintf('%s - %s PSTHs, Sorted by %s, %s', eventListPlot{event_i}, groupTypeArray{group_i} , normTag);
+          eventNamePlot = strrep(eventList{event_i}, '_', ' ');
+          figTitle = sprintf('%s - %s PSTHs, Sorted by %s, %s', eventNamePlot, groupTypeArray{group_i} , normTag);
           h = figure('NumberTitle', 'off', 'Name', figTitle, 'units', 'normalized', 'outerposition', [0 0 params.subEventPSTHParams.plotSizeAllRunStimPSTH]);
           sgtitle(figTitle)
           
@@ -186,56 +178,25 @@ for par_i = 1:length(paradigmList)
   end
   
   % Variables for Plot 3 and 4 - These plots rely on activity coming from the
-  % meanPSTHStruct, instead of individual run data loaded from sigStruct
+  % the entire stimulus PSTH, instead of individual run data loaded from sigStruct
   % pre-cut. The code below is used to generate all the needed variables to
   % extract and plot that data.
   
   % Extract Event related data
-  
-  % Generate table for this paradigm
-  parInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
-  spikePathBankParadigm = spikePathBank(parInd, :);
-  runListPar = spikePathBankParadigm.Properties.RowNames;
-  
   allStimuliVec = unique(vertcat(spikePathBankParadigm.stimuli{:}));
   allStimuliNames = strrep(allStimuliVec, '_', ' ');
   allStimuliNames = extractBefore(allStimuliNames, '.avi');
-  eventList = eventData.Properties.VariableNames; % Create structure w/o Blinks/Saccades;
+  eventList = eventData.Properties.VariableNames;                     % Create structure w/o Blinks/Saccades;
   eventListPlot = strrep(eventList, '_', ' ');
-  eventDataPar = eventData(allStimuliVec, :);
-  
-  % for storing subEvent data, find out the longest version of each to use
-  % for initializing.
-  eventMaxLengths = zeros(size(eventList));
-  for ii = 1:length(eventList)
-    allEventMax = cellfun(@(x) max(x.endTime - x.startTime), table2cell(eventDataPar(:,ii)), 'UniformOutput', false);
-    maxLen = max([allEventMax{:}]);
-    if ~isempty(maxLen)
-      eventMaxLengths(ii) = max([allEventMax{:}]);
-    end
-  end
-  eventMaxLengths = ceil(eventMaxLengths);
-  
-  %   dataTypeArray = meanPSTHStruct.IndStructs{3};
-  
-  eventListTitle = strrep(eventList, '_', ' ');
+    
   % Remove non-represented variables
-  newEventData = eventDataPar(allStimuliVec, :);
-  eventLists = newEventData.Properties.VariableNames;
-  stimEventCountarray = cellfun(@(x) size(x, 1), table2cell(newEventData));
+  eventDataPar = eventData(allStimuliVec, :);
+  eventLists = eventDataPar.Properties.VariableNames;
+  stimEventCountarray = cellfun(@(x) size(x, 1), table2cell(eventDataPar));
   stimEventLogicArray = stimEventCountarray ~= 0;
   stimEvent2Plot = any(stimEventLogicArray,2);        % Only worry about plotting stimuli below which have events.
   stimEvent2PlotCount = sum(stimEventCountarray,2);   % Only worry about plotting stimuli below which have events.
-  
-  eventMaxDur = zeros(size(eventLists));
-  for ii = 1:length(eventLists)
-    tmp = cellfun(@(x) max(x.endTime - x.startTime), newEventData{:, ii}, 'UniformOutput', false);
-    maxLen = max([tmp{:}]);
-    if ~isempty(maxLen)
-      eventMaxDur(ii) = ceil(max([tmp{:}]));
-    end
-  end
-  
+
   % Decide which variables to extract from the runs (Any amount of
   % Proc/Normalizing should be considered).
   %   variables2Extract = {'psthByImage', 'psthByCategory', 'psthParams'};
@@ -251,106 +212,11 @@ for par_i = 1:length(paradigmList)
   meanPSTHStruct.psthImDur = psthParams2Use.psthImDur;
   meanPSTHStruct.psthPost = psthParams2Use.psthPost;
   
-  % If you want the entire trace to fit, with the initial activity (but not
-  % the post activity), you need to extend the initialized arrays by psthPre.
-  eventMaxDur = eventMaxDur + psthPre + 1;
-  
-  % Prepare a array which can store all the event slices extracted
-  eventInstIndex = ones(size(eventMaxDur));
-  
-  % Prepare by cycling through the stimuli, events, and creating the desired
-  % storage. subEventData{event_i, dataType}{inst_i}.
-  
-  dataType = {'PSTH', 'Run Ind'};
-  dataType2 = {'subEventPSTH', 'Label', 'RunInd'};
-  
   % Compile a stimPSTH Structure.
-  % stimPSTH{stim_i, group_i, strcmp(dataType, 'PSTH')}
-  stimPSTH = cell(length(allStimuliVec), 3, length(dataType));
-  [stimPSTH{:, :, 1}] = deal(nan(1000, traceLength));
-  [stimPSTH{:, :, 2}] = deal(nan(1000, 1));
-  
-  for stim_i = 1:length(allStimuliVec)
-    % ID which runs have this stimulus
-    runs2Check = find(cellfun(@(x) ~isempty(find(contains(x, allStimuliVec{stim_i}))), spikePathBankParadigm.stimuli));
-    
-    for run_i = runs2Check'
-      stimActInd = strcmp(spikePathBankParadigm.stimuli{run_i}, allStimuliVec(stim_i));
-      
-      for chan_i = 1:length(psthByImagePerRun{run_i})
-        unitCount = length(psthByImagePerRun{run_i}{chan_i});
-        for unit_i = 1:unitCount
-          % ID The group
-          if unit_i == 1
-            group_i = 1;
-          elseif unit_i == unitCount
-            group_i = 3;
-          else
-            group_i = 2;
-          end
-          
-          % Go through and stack it correctly.
-          firstInd = find(isnan(stimPSTH{stim_i, group_i, strcmp(dataType, 'PSTH')}(:,1)), 1);
-          act2Add = psthByImagePerRun{run_i}{chan_i}{unit_i}(stimActInd, :);
-          
-          stimPSTH{stim_i, group_i, strcmp(dataType, 'PSTH')}(firstInd:firstInd+size(act2Add,1)-1, :) = act2Add;
-          stimPSTH{stim_i, group_i, strcmp(dataType, 'Run Ind')}(firstInd:firstInd+size(act2Add,1)-1, :) = run_i;
-        end
-      end
-    end
-    
-  end
-  
-  % Post processing - remove rows which are just NaN
-  stimPSTH = cellfun(removeExcessNaNs, stimPSTH, 'UniformOutput', false);
-  
-  % Generate subEvent Data structure
-  subEventData = cell(length(eventLists), 3, length(dataType2)); % I took out Dim 2, which is usually group. Everything will be set to MUA for now.
-  
-  for stim_i = 1:length(allStimuliVec)
-    if stimEvent2Plot(stim_i)
-      for group_i = groupIterInd
-        for event_i = 1:length(eventList)
-          
-          % Gather info for all the instances of a specific event in a
-          % stimulus, and loop across them.
-          evTable = newEventData{stim_i, eventList{event_i}}{1};
-          evStarts = round(evTable.startTime);
-          evEnds = round(evTable.endTime);
-          eventLengths = evEnds - evStarts;
-          
-          for inst_i = 1:length(eventLengths)
-            % Expand the desired stop and start by the amount outside of
-            % the event you'd like to see.
-            startT = evStarts(inst_i) + psthPreData - psthPre;
-            endT = min(evEnds(inst_i) + psthPreData + psthPost, traceLength);            % If endT exceeds the length of the trace, then adjust it.
-            endDist = min(traceLength - evEnds(inst_i), psthPost);
-            
-            % Gather Relevant data
-            subEventPSTH = stimPSTH{stim_i, group_i, strcmp(dataType, 'PSTH')}(:, startT:endT);
-            subEventRunInds = stimPSTH{stim_i, group_i, strcmp(dataType, 'Run Ind')};
-            subEventLabel = sprintf('%s, %d - %d', allStimuliNames{stim_i}, evStarts(inst_i), evEnds(inst_i));
-            
-            % Retrieve and increment the storage index.
-            storInd = eventInstIndex(event_i);
-            eventInstIndex(event_i) = eventInstIndex(event_i) + 1;
-            
-            % subEventPSTH has to be padded to allow for stacking with
-            % different events later. This Padding involves removing
-            % post event activity.
-            subEventPSTHPadded = nan(size(subEventPSTH,1), eventMaxDur(event_i));
-            endIndForData = size(subEventPSTH, 2) - endDist;
-            subEventPSTHPadded(:, 1:endIndForData) = subEventPSTH(:, 1:end - endDist); % Using endDist here to avoid possibly cutting out activity during event, when postEvent time can't be 200 ms.
-            
-            % Store relevant data
-            subEventData{event_i, strcmp(dataType2, 'subEventPSTH')}{storInd} = subEventPSTHPadded;
-            subEventData{event_i, strcmp(dataType2, 'Label')}{storInd} = subEventLabel;
-            subEventData{event_i, strcmp(dataType2, 'RunInd')}{storInd} = subEventRunInds;
-          end
-        end
-      end
-    end
-  end
+  [stimPSTH, dataType] = compilePsthPerStimArray(spikePathBankParadigm.stimuli, psthByImagePerRun, allStimuliVec);
+   
+  % Process that further into an array of subEvent data.
+  [subEventData, dataType2] = compileSubEventPSTHArray(stimPSTH, dataType, eventDataPar, eventLists, groupIterInd, psthPreData, params);
   
   % Plot 3 - all subEvent PSTH from stimuli
   if params.subEventPSTHParams.stimPlusEvents_extracted && strcmp(paradigmList{par_i}, 'NaturalSocial')
@@ -566,27 +432,27 @@ for par_i = 1:length(paradigmList)
     % This code generate an event aligned mean activity
     
     % Generate a list of events to plot - both simple and comboEvents
-    simpleEvents = eventListTitle;
+    simpleEvents = eventListPlot;
     comboEvents = {'headTurn All', 'all Turns'};
     
     % For the sake of data gathering, denote which are combo events.
-    comboInd = [false(1, length(eventListTitle)), true(1, length(comboEvents))];
-    eventListTitle = [eventListTitle,  comboEvents];
+    comboInd = [false(1, length(eventListPlot)), true(1, length(comboEvents))];
+    eventListPlotCombo = [eventListPlot,  comboEvents];
     
     % Generate indicies for later data gathering. Simple events are 1
     % number, Combo events are more.
     comboGroups = mat2cell(1:length(simpleEvents), 1, ones(length(simpleEvents),1)');
-    comboGroups{strcmp(eventListTitle, 'headTurn All')} = [find(strcmp(eventListTitle, 'headTurn right')),  find(strcmp(eventListTitle, 'headTurn left'))];
-    comboGroups{strcmp(eventListTitle, 'all Turns')} = [comboGroups{strcmp(eventListTitle, 'headTurn All')}, find(strcmp(eventListTitle, 'bodyTurn'))];
+    comboGroups{strcmp(eventListPlotCombo, 'headTurn All')} = [find(strcmp(eventListPlotCombo, 'headTurn right')),  find(strcmp(eventListPlotCombo, 'headTurn left'))];
+    comboGroups{strcmp(eventListPlotCombo, 'all Turns')} = [comboGroups{strcmp(eventListPlotCombo, 'headTurn All')}, find(strcmp(eventListPlotCombo, 'bodyTurn'))];
     
     % For combination type events, like 'all Turns', I need to compile things before.
     % 3rd D - 1 = real data, 2 = NullData.
     dataType3 = {'PSTH', 'PSTHnull'};
-    eventPSTHData = cell(length(eventListTitle), 3, length(dataType3));
+    eventPSTHData = cell(length(eventListPlotCombo), 3, length(dataType3));
     
     % Initialize structures for holding both traces and their null
     % equivalents.
-    for event_i = 1:length(eventListTitle)
+    for event_i = 1:length(eventListPlotCombo)
       % If the event exists in this paradigm and is not a combo event...
       if ~comboInd(event_i)
         
@@ -602,7 +468,7 @@ for par_i = 1:length(paradigmList)
           
           for stim_i = stim2Check'
             % Go through stimuli with events
-            eventSpecTable = newEventData{stim_i, event_i}{1};
+            eventSpecTable = eventDataPar{stim_i, event_i}{1};
             eventStarts = round(eventSpecTable.startTime);
             eventEnds = round(eventSpecTable.endTime);
             
@@ -640,8 +506,8 @@ for par_i = 1:length(paradigmList)
     eventPSTHData(cellfun('isempty', eventPSTHData)) = deal({zeros(0,0)});
     
     % Identify which events have data to plot
-    comboInd1 = strcmp(eventListTitle, 'headTurn right') | strcmp(eventListTitle, 'headTurn left');
-    comboInd2 = comboInd1 | strcmp(eventListTitle, 'bodyTurn');
+    comboInd1 = strcmp(eventListPlotCombo, 'headTurn right') | strcmp(eventListPlotCombo, 'headTurn left');
+    comboInd2 = comboInd1 | strcmp(eventListPlotCombo, 'bodyTurn');
     eventPlotInd = all(cellfun('isempty', eventPSTHData), 2:3);
     events2Plot = ~[eventPlotInd; any(eventPlotInd(comboInd1)); any(eventPlotInd(comboInd2))]';
     
@@ -654,7 +520,7 @@ for par_i = 1:length(paradigmList)
           unitTag = groupTypeArray{groupIterInd{group_i}};
         end
         
-        figTitle = sprintf('Event aligned PSTH - %s %s', unitTag, eventListTitle{event_i});
+        figTitle = sprintf('Event aligned PSTH - %s %s', unitTag, eventListPlotCombo{event_i});
         h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition', [0.15 0.22 0.44 0.54]);
         
         %comboInd means the set is a combination of previous entries.
@@ -679,7 +545,7 @@ for par_i = 1:length(paradigmList)
         msebData = [plotData; plotNull];
         msebError = [plotErr; plotErrNull];
 %         plotLabels = [eventListTitle(event_i); sprintf('non-%s', eventListTitle{event_i})];
-        plotLabels = [eventListTitle(event_i); 'Scrambled Event Times'];
+        plotLabels = [eventListPlotCombo(event_i); 'Scrambled Event Times'];
         
 %         subplot(length(groupIterInd), 1, group_i)
         [psthAxes, ~, ~, legendH] = plotPSTH(msebData, msebError, [], params.subEventPSTHParams, 'line', [], plotLabels);
@@ -697,8 +563,8 @@ for par_i = 1:length(paradigmList)
       
     end
     
-    
   end
+  
 end
 
 % Put desired outputs in the struct.

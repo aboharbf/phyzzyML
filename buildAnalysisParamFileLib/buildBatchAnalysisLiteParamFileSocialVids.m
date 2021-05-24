@@ -337,10 +337,10 @@ NDTParams.headTurnIso.plotParams.points_for_lines = [0, 1000];
 NDTParams.headTurnIso.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.p_val_threshold = 0.05;
-NDTParams.plot_per_label_acc.plotEachLabel = 0;                               % Determines whether each label is plotted, or a mean, as defined below.
+NDTParams.plot_per_label_acc.binLabel = 'End';                             % Determines the labeling of the x label.
 NDTParams.plot_per_label_acc.plotError = 1;                                   % uses mseb to plot error lines around things. Only works when many decodings were run.
 NDTParams.plot_per_label_acc.plotMean = 1;                                    % Plot or don't plot the mean trace.
-NDTParams.plot_per_label_acc.justMean = 1;                                    % Plot just the mean, don't include the other traces (this value is set to 1 when there are only 2 other traces.
+NDTParams.plot_per_label_acc.justMean = 0;                                    % Plot just the mean, don't include the other traces (this value is set to 1 when there are only 2 other traces.
 NDTParams.plot_per_label_acc.chanceAtBottom = 1;                              % Shifts the plot so that chance decoding is near the bottom, Y axis doesn't go all the way down.
 NDTParams.plot_per_label_acc.plotEachLabel = 1;                               % Plot a mean of different groups represented in each trace.
 NDTParams.plot_per_label_acc.groupNames = {'Social Categories', 'Non-Social Categories'};

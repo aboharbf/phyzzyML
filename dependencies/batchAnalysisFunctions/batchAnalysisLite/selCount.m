@@ -13,10 +13,10 @@ for par_i = 1:length(paradigmList)
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   selTableParadigmPerRun = spikePathBank.selTable(pInd);
-  spikePathBankParadigm = spikePathBank(pInd,:);
   
   % Commented code below is for checking specific stimulus sets within
   % naturalSocial paradigm.
+%     spikePathBankParadigm = spikePathBank(pInd,:);
 %   SS1Ind = cellfun(@(x) any(contains(x, '4003')), spikePathBankParadigm.stimuli);
 %   SS2Ind = ~SS1Ind;
 %   selTableParadigmPerRun = selTableParadigmPerRun(SS2Ind); for checking
@@ -51,6 +51,9 @@ for par_i = 1:length(paradigmList)
   
   % Make bar plots for fixed events (Reward delivery, Fixation)
   selectivityPerEventBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  
+  % Make bar plots counting eye related activity selectivity
+  selectivityPerEyeEvent(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   
   % Make bar plots for subevents (Head turn, body turn)
   selectivityPerSubEventBarGraphs(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)

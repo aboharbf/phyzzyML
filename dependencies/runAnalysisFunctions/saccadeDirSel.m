@@ -97,32 +97,29 @@ for chan_i = 1:chanCount
     
     % Each Saccade has a direction and a count associated. for all the
     % directions, cycle through
-%     [trueMu, ul, ll] = circ_mean(saccadeDir, saccadeSpikes);
+    [trueMu, ul, ll] = circ_mean(saccadeDir, saccadeSpikes);
     trueR = circ_r(saccadeDir, saccadeSpikes);
     
     % Scramble the labels 2000 times,
-    [~, scrambR] = deal(nan(scrambleCount,1));
-%     [scrambMu, scrambR] = deal(nan(scrambleCount,1));
+    [scrambMu, scrambR] = deal(nan(scrambleCount,1));
     for scramb_i = 1:scrambleCount
       scrambDir = saccadeDir(randperm(saccadeCount, saccadeCount));
-%       [scrambMu(scramb_i), ~, ~] = circ_mean(scrambDir, saccadeSpikes);
+      [scrambMu(scramb_i), ~, ~] = circ_mean(scrambDir, saccadeSpikes);
       scrambR(scramb_i) = circ_r(scrambDir, saccadeSpikes);
     end
     
     % plots
-%     figure()
-    % Plot the Mu for the mean of the direction.
-%     subplot(1,2,1)
-%     h = histogram(scrambMu);
-%     hold on
-%     title(sprintf('true Mu = %d', trueMu));
-%     ylim(h.Parent.YLim);
-%     plot([trueMu trueMu], ylim(), 'linewidth', 3, 'color', 'r');
-    
-%     subplot(1,2,2)
-
     if 0
       figure()
+      % Plot the Mu for the mean of the direction.
+      subplot(1,2,1)
+      h = histogram(scrambMu);
+      hold on
+      title(sprintf('true Mu = %s', num2str(trueMu, 2)));
+      ylim(h.Parent.YLim);
+      plot([trueMu trueMu], ylim(), 'linewidth', 3, 'color', 'r');
+      
+      subplot(1,2,2)
       h = histogram(scrambR);
       hold on
       title(sprintf('true R = %s', num2str(trueR, 2)));

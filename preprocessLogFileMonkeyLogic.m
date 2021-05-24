@@ -30,6 +30,9 @@ function [ taskData, stimTiming ] = preprocessLogFileMonkeyLogic(logfile, taskTr
 %   - xml2struct (from Matlab fileExchange)
 
 %% Process MonkeyLogic File
+% FOR TESTING:
+% load('monkeyLogicPreProcessVars');
+
 %Parse the Log file
 disp('Loading MonkeyLogic log file');
 assert(logical(exist(logfile,'file')),'The logfile you requested does not exist.');
@@ -101,26 +104,31 @@ stimFailMarker = 3;
 errorArray = TrialRecord.TrialErrors';
 correctTrialArray = (errorArray == 0);
 mklTrialStarts = [data.AbsoluteTrialStartTime];
-tmpStruct = [data.BehavioralCodes];
+codesAndTimes = [data.BehavioralCodes];
 rwdTimes = [data.RewardRecord];
 
 %initialize everything
-[taskEventStartTimesLog, taskEventEndTimesLog, juiceOnTimesLog, juiceOffTimesLog, stimFramesLost] = deal(zeros(length(correctTrialArray), 1));
+[fixOnset, taskEventStartTimesLog, taskEventEndTimesLog, juiceOnTimesLog, juiceOffTimesLog, stimFramesLost] = deal(zeros(length(correctTrialArray), 1));
 
 %Collect trialEventIDs.
 taskEventIDsLog = TrialRecord.ConditionsPlayed';
   
-%Note - the below setup pulls trials which fail during the stimuli, but not
-%during the fixation period. for those trials, both start and end are NaN,
-%for stim failures, the numbers are meaningful.
 for ii = 1:length(mklTrialStarts)
-  if ~isempty(tmpStruct(ii).CodeTimes(tmpStruct(ii).CodeNumbers == stimStartMarker))
-    taskEventStartTimesLog(ii) = mklTrialStarts(ii) + tmpStruct(ii).CodeTimes(tmpStruct(ii).CodeNumbers == stimStartMarker);
-    taskEventEndTimesLog(ii) = mklTrialStarts(ii) + tmpStruct(ii).CodeTimes(tmpStruct(ii).CodeNumbers == stimEndMarker);
+  trialData = codesAndTimes(ii);
+  
+  % Fixation cue onset.
+  fixOnset(ii) = trialData.CodeTimes(trialData.CodeNumbers == fixCueMarker);
+  
+  % Identify stimulus start and stop times (if they take place).
+  if ~isempty(trialData.CodeTimes(trialData.CodeNumbers == stimStartMarker))
+    taskEventStartTimesLog(ii) = mklTrialStarts(ii) + trialData.CodeTimes(trialData.CodeNumbers == stimStartMarker);
+    taskEventEndTimesLog(ii) = mklTrialStarts(ii) + trialData.CodeTimes(trialData.CodeNumbers == stimEndMarker);
   else
     taskEventStartTimesLog(ii) = nan;
     taskEventEndTimesLog(ii) = nan;
   end
+  
+  % Reward delivery times (if it happens).  
   if ~isempty(rwdTimes(ii).StartTimes)
     juiceOnTimesLog(ii) = mklTrialStarts(ii) + rwdTimes(ii).StartTimes(end);
     juiceOffTimesLog(ii) = mklTrialStarts(ii) + rwdTimes(ii).EndTimes(end);
@@ -146,7 +154,7 @@ translationTable = updateTranslationTable(translationTable);
 
 %Create Frame lost array
 for ii = 1:length(data)
-    stimFramesLost(ii) = sum(data(ii).BehavioralCodes.CodeNumbers == frameSkipMarker);
+  stimFramesLost(ii) = sum(data(ii).BehavioralCodes.CodeNumbers == frameSkipMarker);
 end
 
 % Behavioral summary of performance during recording
@@ -160,90 +168,94 @@ disp('parsing serisal IO packets');
 packetTimes = double(taskTriggers.TimeStampSec)*1000; %convert seconds to milliseconds
 packetData = double(taskTriggers.UnparsedData);
 
-if isempty(packetData) % Means Blackrock/MKL Communication was not correctly connected.
-  error('The Blackrock Digital inputs are empty. Digital inputs may have not been plugged in.');
-else % Means Blackrock/MKL Communication was intact, correct
-  %Code to get rid of any markers prior to the first trial beginning, or after the final trial end.
-  %a defense against double 9's
-  trueStart = find(packetData == trialStartMarker);
-  if length(trueStart) > 1
-    trueStartTrials = (diff(trueStart) > 1);
-    trueStart = trueStart(trueStartTrials);
-  end
-  trueStart = trueStart(1);
-  trueEnd = find(packetData == trialEndMarker, 1, 'last');
-  
-  packetData = packetData(trueStart:trueEnd);
-  packetTimes = packetTimes(trueStart:trueEnd);
-  
-  %to later figure out how to shape data, we need to know what we saw and
-  %got rid of.
-  
-  %Below are things which should happen every trial  
-  trialStartInds = find(packetData == trialStartMarker); 
-  trialEndInds = find(packetData == trialEndMarker);
-  stimStartInds = packetData == stimStartMarker;
-  condNumbers = packetData(packetData > 100)-100;
-  fixStartInds = find(packetData == fixCueMarker);
-  stimFixEndInds = find(packetData == stimEndMarker);
-  
-  assert(length(trialStartInds) == length(condNumbers), 'Every trial doesnt have a condition number - this may be due to changes in when the marker is sent.')
-  
-  %Now, use the correct trial array from MKL to pick out only the correct
-  %trials from the whole array. Assign them them to the correct vectors. 
-  [taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, rewardTrialInds, trialStartTimesBlk] = deal(nan(size(trialStartInds)));
-  
-  % Identify which trials were rewarded by looking for the correct series
-  % of eventMarkers.
-  trialIntervals = [find(packetData == 9), find(packetData == 18)]';
-  for trial_i = 1:length(juiceOnTimesBlk)
-    trial_int = trialIntervals(:, trial_i);
-    rewardTrialInds(trial_i) = any(packetData(trial_int(1):trial_int(2)) == rewardMarker);
-  end
-  
-  %Construct Error array from Blackrock files only, useful in the case that
-  %incomplete trials lead to unpaired start and stop triggers.
-  errorArray = zeros(sum(packetData == trialStartMarker), 1);
-  
-  for ii = 1:length(trialStartInds) %for every trial
-    %Go through packet data, starting at that stim, and see if you hit a
-    %40, 3, or 4 first.
-    found = 0;
-    stepsAhead = 1;
-    while ~found
-      switch packetData(trialStartInds(ii)+stepsAhead)
-        case fixFailMarker
-          errorArray(ii) = fixFailMarker;
-          found = 1;
-        case stimFailMarker
-          errorArray(ii) = stimFailMarker;
-          found = 1;
-        case {rewardMarker, trialEndMarker}
-          errorArray(ii) = 0;
-          found = 1;
-        otherwise
-          stepsAhead = stepsAhead + 1;
-      end
+assert(~isempty(packetData), 'The Blackrock Digital inputs are empty. Digital inputs may have not been plugged in.')
+
+%Code to get rid of any markers prior to the first trial beginning, or after the final trial end.
+%a defense against double 9's
+trueStart = find(packetData == trialStartMarker);
+if length(trueStart) > 1
+  trueStartTrials = (diff(trueStart) > 1);
+  trueStart = trueStart(trueStartTrials);
+end
+trueStart = trueStart(1);
+trueEnd = find(packetData == trialEndMarker, 1, 'last');
+
+packetData = packetData(trueStart:trueEnd);
+packetTimes = packetTimes(trueStart:trueEnd);
+
+%to later figure out how to shape data, we need to know what we saw and
+%got rid of.
+
+%Below are things which should happen every trial
+trialStartInds = find(packetData == trialStartMarker);
+trialEndInds = find(packetData == trialEndMarker);
+stimStartInds = packetData == stimStartMarker;
+condNumbers = packetData(packetData > 100)-100;
+fixStartInds = find(packetData == fixCueMarker);
+stimFixEndInds = find(packetData == stimEndMarker);
+
+assert(length(trialStartInds) == length(condNumbers), 'Every trial doesnt have a condition number - this may be due to changes in when the marker is sent.')
+
+%Now, use the correct trial array from MKL to pick out only the correct
+%trials from the whole array. Assign them them to the correct vectors.
+[trialStartTimesBlk, fixOnsetTimesBlk, taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, rewardTrialInds] = deal(nan(size(trialStartInds)));
+
+% Identify which trials were rewarded by looking for the correct series
+% of eventMarkers.
+trialIntervals = [find(packetData == 9), find(packetData == 18)]';
+for trial_i = 1:length(juiceOnTimesBlk)
+  trial_int = trialIntervals(:, trial_i);
+  rewardTrialInds(trial_i) = any(packetData(trial_int(1):trial_int(2)) == rewardMarker);
+end
+
+%Construct Error array from Blackrock files only, useful in the case that
+%incomplete trials lead to unpaired start and stop triggers.
+errorArray = zeros(sum(packetData == trialStartMarker), 1);
+
+for ii = 1:length(trialStartInds) %for every trial
+  %Go through packet data, starting at that stim, and see if you hit a
+  %40, 3, or 4 first.
+  found = 0;
+  stepsAhead = 1;
+  while ~found
+    switch packetData(trialStartInds(ii)+stepsAhead)
+      case fixFailMarker
+        errorArray(ii) = fixFailMarker;
+        found = 1;
+      case stimFailMarker
+        errorArray(ii) = stimFailMarker;
+        found = 1;
+      case {rewardMarker, trialEndMarker}
+        errorArray(ii) = 0;
+        found = 1;
+      otherwise
+        stepsAhead = stepsAhead + 1;
     end
   end
-  
-  %packetData is directly referenced for events which only happen
-  %sometimes.
-  taskEventIDsBlk = condNumbers;
-  trialStartTimesAll = packetTimes(packetData == trialStartMarker);
-  trialStartTimesBlk(errorArray ~= 4) = trialStartTimesAll(errorArray ~= 4);
-  taskEventStartTimesBlk(errorArray ~= 4) = packetTimes(packetData == stimStartMarker); %Stores every trial where stim started (no fail during fix);
-  taskEventEndTimesBlk(errorArray ~= 4) = packetTimes(stimFixEndInds(errorArray ~= 4));
-  
-  % Juice processing needs to account for paradigms where reward doesn't
-  % come w/ every trial.
-  juiceOnTimesBlk(rewardTrialInds == 1) = packetTimes(packetData == rewardMarker);
-  juiceOffTimesBlk(rewardTrialInds == 1) = packetTimes(trialEndInds(rewardTrialInds == 1));
-  
-  %use the condition number to fill out the taskEventsIDs using the
-  %translation table.
-  taskEventIDs = translationTable(condNumbers);
 end
+
+%packetData is directly referenced Below
+stimOnTrials = errorArray ~= 4;
+
+taskEventIDsBlk = condNumbers;
+trialStartTimesAll = packetTimes(packetData == trialStartMarker);
+trialStartTimesBlk(stimOnTrials) = trialStartTimesAll(stimOnTrials);
+
+fixOnTimesAll = packetTimes(packetData == fixCueMarker);
+fixOnsetTimesBlk(stimOnTrials) = fixOnTimesAll(stimOnTrials);
+
+taskEventStartTimesBlk(stimOnTrials) = packetTimes(packetData == stimStartMarker); %Stores every trial where stim started (no fail during fix);
+taskEventEndTimesBlk(stimOnTrials) = packetTimes(stimFixEndInds(stimOnTrials));
+
+% Juice processing needs to account for paradigms where reward doesn't
+% come w/ every trial.
+juiceOnTimesBlk(rewardTrialInds == 1) = packetTimes(packetData == rewardMarker);
+juiceOffTimesBlk(rewardTrialInds == 1) = packetTimes(trialEndInds(rewardTrialInds == 1));
+
+%use the condition number to fill out the taskEventsIDs using the
+%translation table.
+taskEventIDs = translationTable(condNumbers);
+
 
 %% Run some checks comparing data collected from Blackrock, MonkeyLogic.
 if (length(taskEventIDsLog) ~= length(taskEventIDsBlk))
@@ -456,21 +468,18 @@ if ~isempty(eventDataFile)
 end
 
 %% Addtion in Aug 2020 - Realization of diversity of fixation times due to 'punishment' dynamic (failed trial = +50 msec on subsuquent fix time to initiate next trial)
-  % Cycle through trials and collect pre-stimulus fixation duration
-  tmp = [data.ObjectStatusRecord];
-  taskEventFixDur = zeros(length(tmp),1);
-  for ii = 1:length(tmp)
-    taskEventFixDur(ii) = tmp(ii).SceneParam(1).AdapterArgs{3}{2,2};
-  end
-  
-  % Establish a metric for the duration of the trial pre stimulus. Will be
-  % useful for shifting things to a trial aligned, instead of stimulus
-  % aligned, analysis.
-  taskEventFixDur = taskEventStartTimesBlk - trialStartTimesBlk;
-  assert(length(taskEventFixDur) == length(taskEventIDs), 'Problem w/ fixation times')
-  
-  % Generate a vector of reward times relative to stimulus onset.
-  rewardTimePerTrial = juiceOnTimesBlk - taskEventStartTimesBlk;
+% Revised May 2020 - Needs to account for the fact the fix duration is the
+% shortest possible time, not the actual time the dot is displayed.
+% Cycle through trials and collect pre-stimulus fixation duration
+
+% Establish a metric for the duration of the trial pre stimulus. Will be
+% useful for shifting things to a trial aligned, instead of stimulus
+% aligned, analysis.
+taskEventFixDurBlk = taskEventStartTimesBlk - fixOnsetTimesBlk;
+assert(length(taskEventFixDurBlk) == length(taskEventIDs), 'Problem w/ fixation times')
+
+% Generate a vector of reward times relative to stimulus onset.
+rewardTimePerTrial = juiceOnTimesBlk - taskEventStartTimesBlk;
 
 %% Nov 2020 - merge stimuli across certains domains.
 % This segment identifies whether a head turning paradigm is being used,
@@ -572,7 +581,7 @@ taskData.rewardParadigm = rewardParadigm;
 taskData.runTime = runTimeMins;
 taskData.taskEventStartTimes = taskEventStartTimesBlk;
 taskData.taskEventEndTimes = taskEventEndTimesBlk;
-taskData.taskEventFixDur = taskEventFixDur;
+taskData.taskEventFixDur = taskEventFixDurBlk;
 taskData.rewardTimePerTrial = rewardTimePerTrial;
 taskData.trialStartTimesMkl = mklTrialStarts';
 taskData.logVsBlkModel = logVsBlkModel;
@@ -725,82 +734,3 @@ for ii = 1:length(translationTable)
 end
 
 end
-
-% function [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable)
-% % Takes in the taskEventID string, relabels variants of a stimuli to the
-% % same name.
-% 
-% translationTableIndex = nan(size(translationTable));
-% for ii = 1:length(translationTable)
-%   translationTableIndex(ii) = find(strcmp(translationTable{ii}, taskEventIDs), 1);
-% end
-% 
-% % Identify the paradigm
-% paradigm = extractBefore(taskEventIDs{1}, '_');
-% 
-% % Knowing that headTurnCon and headTurnIso follow a specific code,
-% % identify ones which are the same.
-% isolatedCodes = extractBetween(taskEventIDs, '_1', '.');
-% 
-% % Identify the elements of the stimulus name which point out 'unique
-% % stimuli' as opposed to variants of the same stimulus.
-% switch paradigm
-%   case 'headTurnIso'
-%     % code from the jsonGenerator used to make these stim and name them.- sprintf('headTurnIso_14%d%d%d_C%dM%dS%d', prefab_i, iter_i, turn_i, cam_i, mesh_i, skin_i);
-%     % prefab_i, turn_i, cam_i, mesh_i matter for unique stim, iter_i and
-%     % skin_i make variants of these stim.
-%     uniqueStimID = [2 4 7 9];
-%     
-%     prefabToSet = {'idle','bioMotion'};
-%     prefabTypes = {'_leftFull', '_leftHalf', '_core', '_rightHalf', '_rightFull'};
-%     cameras = {'_leftCam', '_frontCam', '_rightCam'};
-%     meshes = {'_Normal', '_LowRes', '_Dots'};
-%     
-%     nameElements = {prefabToSet; prefabTypes; cameras; meshes};
-%   case 'headTurnCon'
-%     % Head turn con code for naming stim sprintf('headTurnCon_15%d%dT%d_E%dC%d', intCode, intNum, turnCode, env_i, cam_i);
-%     % intCode, intNum, turnCode mmake unique stim, env_i, cam_i make
-%     % variants.
-%     uniqueStimID = [2, 3, 5];
-%     
-%     intArray = {'Chasing', 'Grooming', 'Mating', 'Fighting', 'Idle', 'goalDirected', 'Objects', 'Scene'};
-%     intNum = {'1', '2', '3', '4', '5', '6'};
-%     turnArray = {'_noTurn', '_Turn'};
-%     
-%     nameElements = {intArray; intNum; turnArray};
-%   otherwise
-%     error('cant identify paradigm for mergingStimuli - %s', paradigm)
-% end
-% 
-% % Extract unique stimuli based on code
-% stimCode = cellfun(@(x) x(1, uniqueStimID), isolatedCodes, 'UniformOutput', false);
-% [A, ~, uniqueStimGroup] = unique(stimCode);
-% mergeTaskEvent = cell(length(A),1);
-% 
-% % Need to add 1 to the headTurn number to make it usable as an index.
-% if strcmp(paradigm, 'headTurnCon')
-%   tmp = str2double(A) + 1;
-%   A = num2str(tmp);
-%   A = mat2cell(A, ones(size(A,1),1), size(A,2));
-% end
-% 
-% % Iterate across the codes, using the previously indicated vectors to turn
-% % them into names.
-% for ii = 1:length(A)
-%   wholeCode = A{ii};
-%   eventName = cell(size(wholeCode));
-%   
-%   for jj = 1:length(uniqueStimID)
-%     vect = nameElements{jj};
-%     vectInd = str2num(wholeCode(jj));
-%     eventName(jj) = vect(vectInd);
-%   end
-%   
-%   % Join the elements
-%   mergeTaskEvent{ii} = strjoin(eventName, '');
-% end
-% 
-% taskEventIDs = mergeTaskEvent(uniqueStimGroup);
-% translationTable = taskEventIDs(translationTableIndex);
-% 
-% end
