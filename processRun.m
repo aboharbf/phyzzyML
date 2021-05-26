@@ -121,20 +121,7 @@ end
 if ~usePreprocessed
   checkAnalysisParamFile(analysisParamFilename);
   load(analysisParamFilename);
-  % extract parameters needed in this function from structures
-  channelNames = ephysParams.channelNames;
-  spikeChannels = ephysParams.spikeChannels;
-  lfpChannels = ephysParams.lfpChannels;
-  analogInChannels = analogInParams.analogInChannels;
-  psthPre = psthParams.psthPre;
-  psthImDur = psthParams.psthImDur;
-  psthPost = psthParams.psthPost;
-  smoothingWidth = psthParams.smoothingWidth;
-  preAlign = spikeAlignParams.preAlign;
-  postAlign = spikeAlignParams.postAlign;
-  movingWin = tfParams.movingWin;
-  specgramRowAve = tfParams.specgramRowAve;
-  samPerMS = ephysParams.samPerMS;
+  
   % set verbose level
   if strcmp(verbosity,'VERBOSE')
     Output.level(Output.DISP_VERBOSE);
@@ -151,7 +138,7 @@ if ~usePreprocessed
   lfpData =                                               preprocessLFP(lfpFilename, ephysParams, lineNoiseTriggers);
   diodeTriggers =                                         preprocessStrobe(photodiodeFilename, photodiodeParams);
   [taskData, stimTiming] =                                preprocessLogFile(taskFilename, taskTriggers, diodeTriggers, stimSyncParams); % load visual stimulus data and transform its timestamps to ephys clock reference
-% [pre, post] =                                           spikeBackground(spikesByChannel, taskData, spikeChannels, params )
+% [pre, post] =                                           spikeBackground(spikesByChannel, taskData, ephysParams.spikeChannels, params ) 
   [analogInData, taskData] =                              preprocessEyeSignals(analogInData,taskData,eyeCalParams);
   analogInData =                                          preprocessAccelSignals(analogInData, accelParams); 
   
@@ -178,29 +165,27 @@ if ~usePreprocessed
   taskDataAll = taskData;
   taskData = excludeTrials(taskData, excludeStimParams); %exclude trials for lost fixation etc. 
   
-
-%% find Stimulus length
-
+  
+  %% find Stimulus length
+  
   if stimTiming.shortest == stimTiming.longest
-    psthParams.psthImDur = stimTiming.shortest;
-    psthImDur = psthParams.psthImDur;
-    spikeAlignParams.postAlign = psthImDur+psthPost+3*smoothingWidth;
-    lfpAlignParams.msPostAlign = psthImDur+psthPost+tfParams.movingWin(1)/2;
+    
+    spikeAlignParams.postAlign = psthParams.psthImDur + psthParams.psthPost + 3*psthParams.smoothingWidth;
+    lfpAlignParams.msPostAlign = psthParams.psthImDur + psthParams.psthPost + tfParams.movingWin(1)/2;
     if length(lfpAlignParams.DCSUB_SAM) > 1 && any(lfpAlignParams.DCSUB_SAM(2,:))  % todo: handle case where lfp analysis window doesn't cover full ISI
-      lfpAlignParams.DCSUB_SAM(2,:) = (psthImDur+stimTiming.ISI)+lfpAlignParams.DCSUB_SAM(2,:);
+      lfpAlignParams.DCSUB_SAM(2,:) = (psthParams.psthImDur+stimTiming.ISI)+lfpAlignParams.DCSUB_SAM(2,:);
     end
-    preAlign = spikeAlignParams.preAlign;
-    postAlign = spikeAlignParams.postAlign;
+    
   else
-    assert(psthImDur < stimTiming.longest, 'psthImDur is longer than longest trial; nothing to analyze');
-    assert(psthImDur > 0, 'psthImDur = 0; nothing to analyze. Likely cause: unexpected variable stimulus length');
-    fprintf('Variable stimulus length run. Excluding trials shorter than %d\n',psthImDur);
+    
+    assert(psthParams.psthImDur < stimTiming.longest, 'psthImDur is longer than longest trial; nothing to analyze');
+    assert(psthParams.psthImDur > 0, 'psthImDur = 0; nothing to analyze. Likely cause: unexpected variable stimulus length');
+    fprintf('Variable stimulus length run. Excluding trials shorter than %d\n', psthParams.psthImDur);
+    
   end
 
 %% Sort trials by image and image category, align data appropriately.
-
-  %loads variables paramArray, categoryLabels,eventLabels, and extract
-  %eventIDs
+  %loads variables paramArray, categoryLabels,eventLabels, and extract eventIDs
   tmp = load(stimParamsFilename); 
   eventCategories = tmp.paramArray;
   categoryList = tmp.categoryLabels;
@@ -294,21 +279,21 @@ if ~usePreprocessed
   spikeAlignParamsToCoverMovingWin.preAlign = lfpAlignParams.msPreAlign; % need to include spikes throughout the window chronux will use to calculate spectra
   spikeAlignParamsToCoverMovingWin.postAlign = lfpAlignParams.msPostAlign;
   spikeAlignParamsToCoverMovingWin.refOffset = 0;
-  [spikesByEvent, psthEmptyByEvent] = alignSpikes(spikesByChannel, onsetsByEvent, spikeChannels, spikeAlignParamsToCoverMovingWin);
-  [spikesByCategory, psthEmptyByCategory] = alignSpikes(spikesByChannel, onsetsByCategory, spikeChannels, spikeAlignParamsToCoverMovingWin);
+  [spikesByEvent, psthEmptyByEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ephysParams.spikeChannels, spikeAlignParamsToCoverMovingWin);
+  [spikesByCategory, psthEmptyByCategory] = alignSpikes(spikesByChannel, onsetsByCategory, ephysParams.spikeChannels, spikeAlignParamsToCoverMovingWin);
   
   % align spikes again, but this time reference time to lfp sample number (required for chronux TF, even spike-spike)
   spikeAlignParamsTF.preAlign = lfpAlignParams.msPreAlign;
   spikeAlignParamsTF.postAlign = lfpAlignParams.msPostAlign;
   spikeAlignParamsTF.refOffset = -lfpAlignParams.msPreAlign;
-  spikesByEventForTF = alignSpikes( spikesByChannel, onsetsByEvent, spikeChannels, spikeAlignParamsTF );
-  spikesByCategoryForTF = alignSpikes( spikesByChannel, onsetsByCategory, spikeChannels, spikeAlignParamsTF );
+  spikesByEventForTF = alignSpikes( spikesByChannel, onsetsByEvent, ephysParams.spikeChannels, spikeAlignParamsTF );
+  spikesByCategoryForTF = alignSpikes( spikesByChannel, onsetsByCategory, ephysParams.spikeChannels, spikeAlignParamsTF );
   
   % align LFP data  by trial, sort by image and category, and possibly remove DC and linear components
-  lfpByEvent = alignLFP(lfpData, onsetsByEvent, lfpChannels, lfpAlignParams);
-  lfpByCategory = alignLFP(lfpData, onsetsByCategory, lfpChannels, lfpAlignParams);
-  analogInByEvent = alignAnalogIn(analogInData, onsetsByEvent, analogInChannels, lfpAlignParams);
-  analogInByCategory = alignAnalogIn(analogInData, onsetsByCategory, analogInChannels, lfpAlignParams);
+  lfpByEvent = alignLFP(lfpData, onsetsByEvent, ephysParams.lfpChannels, lfpAlignParams);
+  lfpByCategory = alignLFP(lfpData, onsetsByCategory, ephysParams.lfpChannels, lfpAlignParams);
+  analogInByEvent = alignAnalogIn(analogInData, onsetsByEvent, analogInParams.analogInChannels, lfpAlignParams);
+  analogInByCategory = alignAnalogIn(analogInData, onsetsByCategory, analogInParams.analogInChannels, lfpAlignParams);
   
   %   for cat_i = 1:length(categoryList)
   %     Output.VERBOSE(categoryList{cat_i});
@@ -316,10 +301,10 @@ if ~usePreprocessed
   %   end
   
   if savePreprocessed
-    save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'psthImDur', 'preAlign', 'postAlign', 'refStruct', ...
-      'categoryList', 'eventLabels', 'eventIDs', 'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByCategory', 'psthEmptyByCategory',...
-      'spikesByEventForTF', 'spikesByCategoryForTF', 'lfpByEvent', 'lfpByCategory', 'analogInByEvent','analogInByCategory','channelUnitNames', ...
-      'stimTiming', 'eventCategories', 'onsetsByEvent', 'offsetsByEvent', 'onsetsByCategory', 'offsetsByCategory', 'trialIDsByEvent','trialIDsByCategory', 'excludeStimParams');
+    save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'refStruct', 'categoryList', 'eventLabels', 'eventIDs', ...
+      'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByCategory', 'psthEmptyByCategory', 'spikesByEventForTF', 'spikesByCategoryForTF', 'lfpByEvent', 'lfpByCategory', ...
+      'analogInByEvent', 'analogInByCategory', 'channelUnitNames', 'stimTiming', 'eventCategories', 'onsetsByEvent', 'offsetsByEvent', 'onsetsByCategory', 'offsetsByCategory', ...
+      'trialIDsByEvent', 'trialIDsByCategory', 'excludeStimParams');
   end
 end
 
@@ -330,9 +315,6 @@ runAnalysisInputs.lfpData = lfpData;
 runAnalysisInputs.analogInData = analogInData;
 runAnalysisInputs.taskData = taskData;
 runAnalysisInputs.taskDataAll = taskDataAll;
-runAnalysisInputs.psthImDur = psthImDur;
-runAnalysisInputs.preAlign = preAlign;
-runAnalysisInputs.postAlign = postAlign;
 runAnalysisInputs.refStruct = refStruct;
 runAnalysisInputs.categoryList = categoryList;
 runAnalysisInputs.eventLabels = eventLabels;

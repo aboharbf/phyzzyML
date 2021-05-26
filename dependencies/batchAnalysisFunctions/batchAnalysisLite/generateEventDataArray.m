@@ -99,9 +99,7 @@ if ~exist(tmpFile, 'file')
   fprintf('Done compiling subEvent data: %d s \n', num2str(toc))
   
 else
-  
-  load(tmpFile, 'eventDataArray', 'subEventSig')
-  
+  load(tmpFile, 'eventDataArray', 'subEventSig')  
 end
 
 end

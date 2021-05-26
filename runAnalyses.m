@@ -39,10 +39,10 @@ if ~plotSwitch.neuroGLM
 end
 
 figStruct.channelUnitNames = channelUnitNames;
+figStruct.channelNames = ephysParams.channelNames;
 figStruct.figDir = outDir;
 figStruct.figTag = sprintf('%s,Run%s', dateSubject, runNum);
 
-channelNames = ephysParams.channelNames;
 spikeChannels = ephysParams.spikeChannels;
 lfpChannels = ephysParams.lfpChannels;
 
@@ -72,7 +72,7 @@ for epoch_i = 1:length(frEpochsCell)
   for range_i = 1:2
     tmp = frEpochsCell{epoch_i}{range_i};
     if isa(tmp,'function_handle')
-      frEpochs(epoch_i,range_i) = tmp(psthImDur);
+      frEpochs(epoch_i,range_i) = tmp(psthParams.psthImDur);
     else
       frEpochs(epoch_i,range_i) = tmp;
     end
@@ -401,23 +401,23 @@ if plotSwitch.eyeStimOverlay
 end
 
 % Initalize a table which the 3 sensitivity functions will use.
-[selTable, anovaTable] = deal(initializeSelTable(channelUnitNames, channelNames, dateSubject, runNum, gridHole, recDepth));
+[selTable, anovaTable] = deal(initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth));
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
 if plotSwitch.subEventAnalysis
-  subEventAnalysisParams.channelUnitNames = channelUnitNames;
   subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
   subEventAnalysisParams.eventIDs = eventIDs;
     
-  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventAnalysisParams, selTable, figStruct);
+  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventAnalysisParams, selTable, figStruct);
   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
 end
 
 epochTargParams.groupLabelsByImage = groupLabelsByImage;
 selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochTargParams, selTable);
 
-% Determine which units are selective for saccades (direction).
-selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams.psthPre, selTable);
+% Determine which units are selective for saccades (direction), either
+% during the stimulus, at the fixation period, or at the stimulus onset.
+selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, selTable);
 
 % Compares epochs against baseline and each other.
 selTable = epochCompareStats(spikesByEvent, selTable, epochTargParams);
@@ -630,7 +630,7 @@ save(analysisOutFilename, 'firingRatesByImageByEpoch', 'firingRateErrsByImageByE
 [sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD] = nullModelStats(psthByImage, spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch, ...
   trialCountsByImage, analysisGroups, epochLabels, eventIDs, ephysParams);
 
-save(analysisOutFilename,'sigStruct', 'selTable', '-append');
+save(analysisOutFilename,'sigStruct', '-append');
 
 for epoch_i = 1:length(firingRatesByImageByEpoch)
   epochTag = sprintf('%d-%d ms',frEpochs(epoch_i,1), frEpochs(epoch_i,2));

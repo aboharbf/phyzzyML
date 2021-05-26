@@ -1,4 +1,7 @@
-function selTable = initializeSelTable(channelUnitNames, channelNames, dateSubject, runNum, gridHole, recDepth)
+function selTable = initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth)
+
+channelUnitNames = figStruct.channelUnitNames;
+channelNames = figStruct.channelNames;
 
 chanCount = length(channelUnitNames);
 gridHoleVec = cell(chanCount,1);

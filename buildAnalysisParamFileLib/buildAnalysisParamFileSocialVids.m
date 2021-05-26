@@ -166,7 +166,7 @@ ephysParams.samPerMS = 1; %THIS IS AFTER DECIMATION, and applies to LFP (should 
 ephysParams.unitsToUnsort = cell(length(channels2Read),1); %these units will be re-grouped with u0
 ephysParams.unitsToDiscard = cell(length(channels2Read),1); %these units will be considered noise and discarded
 ephysParams.spikeWaveformPca = 0;
-ephysParams.plotSpikeWaveforms = 2; %0, 1 to build then close, 2 to build and leave open
+ephysParams.plotSpikeWaveforms = 0; %0, 1 to build then close, 2 to build and leave open
 ephysParams.spikeWaveformsColors = [[0.0 0.0 1.0];[1.0 0.0 0.0];[0.0 0.5 0.0];[0.620690 0.0 0.0];[0.413793 0.0 0.758621];[0.965517 0.517241 0.034483]];
 ephysParams.shiftSpikeWaveforms = 0;
 % see http://www.mathworks.com/help/signal/examples/filter-design-gallery.html
@@ -322,7 +322,7 @@ tfParams.movingWin = [300 5];
 tfParams.specgramRowAve = 0;
 
 psthParams.type = 'normal'; %options are 'normal', 'baselineSub', 'meanWhite'
-psthParams.ITI = 500; % if e.g. +200, then start psth 200ms before trial onset; 
+psthParams.ITI = 500; 
 psthParams.psthPre = 800 + psthParams.ITI; % if e.g. +200, then start psth 200ms before trial onset; 
 psthParams.psthImDur = 2800;  % only need to set this for variable length stim runs; else, comes from log file
 psthParams.psthPost = 500;
@@ -415,11 +415,11 @@ smoothingFilter = exp(-1*filterPoints.^2/(2*spikeCorrelSmoothingWidth^2));
 correlParams.smoothingFilter = smoothingFilter/sum(smoothingFilter); %#ok
 %
 lfpAlignParams.samPerMS = 1; % because this is after decimation
-lfpAlignParams.msPreAlign = psthParams.psthPre+tfParams.movingWin(1)/2; 
-lfpAlignParams.msPostAlign = psthParams.psthImDur+psthParams.psthPost+tfParams.movingWin(1)/2;
+lfpAlignParams.msPreAlign = psthParams.psthPre + tfParams.movingWin(1)/2; 
+lfpAlignParams.msPostAlign = psthParams.psthImDur + psthParams.psthPost + tfParams.movingWin(1)/2;
 %
-spikeAlignParams.preAlign = psthParams.psthPre+3*psthParams.smoothingWidth;
-spikeAlignParams.postAlign = psthParams.psthImDur+psthParams.psthPost+3*psthParams.smoothingWidth;   %#ok
+spikeAlignParams.preAlign = psthParams.psthPre + 3*psthParams.smoothingWidth;
+spikeAlignParams.postAlign = psthParams.psthImDur + psthParams.psthPost+3*psthParams.smoothingWidth;   %#ok
 % for lfps, constrain first and (optional) last [n m] samples to 0 mean
 useDCSUB = 0;
 if useDCSUB
@@ -441,11 +441,15 @@ frEpochsCell = {{60, @(stimDur) stimDur+60}};...
 epochLabels = {'Presentation'};%,'Fixation','Reward'};
 
 % epochStats Params, more are below analysisGroups
-preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
-Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
+preFix = [-psthParams.psthPre -psthParams.psthPre+psthParams.ITI];
+Fix = [-800 0];
 stimEarly = [0 500];
 stimLate = [500 psthParams.psthImDur];
 reward = [psthParams.psthImDur psthParams.psthImDur + 350];
+
+if psthParams.psthPre == 500
+  error('The Fixation period above should be defined for this paradigm, and it isnt');
+end
 
 epochTargParams.stimParamsFilename = stimParamsFilename;
 epochTargParams.nonParametric = 0;                      % switch to run non Parametric tests.
@@ -472,7 +476,7 @@ epochTargParams.headTurnIso.oneVsAll = [1 1 1 1];
 epochSWparams.stimParamsFilename = stimParamsFilename;
 epochSWparams.binSize = 150;
 epochSWparams.binStep = 25;
-epochSWparams.startTime = -800;
+epochSWparams.startTime = -psthParams.psthPre + psthParams.ITI;
 
 epochSWparams.naturalSocial.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
 epochSWparams.naturalSocial.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...

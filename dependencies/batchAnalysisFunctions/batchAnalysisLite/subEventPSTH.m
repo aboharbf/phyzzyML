@@ -16,7 +16,7 @@ load(params.subEventPSTHParams.eventData);
 % Extract data from meanPSTHStruct
 paradigmList = unique(spikePathBank.paradigmName);
 
-for par_i = 1:length(paradigmList)
+for par_i = 1%:length(paradigmList)
   
   paradigmIndex = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   spikePathBankParadigm = spikePathBank(paradigmIndex,:);
@@ -82,7 +82,7 @@ for par_i = 1:length(paradigmList)
   % Plots 3 and 4 Do not.
   
   % Plot 1 - Individual PSTHes for every instance of a subEvent across Runs, Sorted
-    eventListPlot = strrep(eventList, '_', ' ');
+  eventListPlot = strrep(eventList, '_', ' ');
   if params.subEventPSTHParams.allRunStimPSTH
     
     % Iterate through PSTH, generating plots

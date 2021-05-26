@@ -299,6 +299,7 @@ end
 
 if params.plotSpikeWaveforms
   endTime = 0;
+  
   for channel_i = 1:length(params.spikeChannels)
     try %defense against unit with no spikes
       endTime = max(endTime, spikesByChannel(channel_i).times(end));
@@ -306,6 +307,7 @@ if params.plotSpikeWaveforms
       continue
     end
   end
+  
   halfTime = endTime/2;
   for channel_i = 1:length(params.spikeChannels)
     tmp = spikesByChannel(channel_i);
@@ -356,6 +358,7 @@ if params.plotSpikeWaveforms
       for unit_i = 1:length(toSkipByUnit)
         toSkipByUnit(unit_i) = floor(sum(tmp.units == unit_i-1)/spikesToPlot);
       end
+      
       for unit_i = 1:numPlotColumns-1
         unitWaveforms = tmp.waveforms(tmp.units == unit_i-1,:);
         unitTimes = tmp.times(tmp.units == unit_i-1);
@@ -386,12 +389,15 @@ if params.plotSpikeWaveforms
         for spike_i = midPoint:length(unitWaveformsToPlot)
           plot(tAxis,unitWaveformsToPlot(spike_i,:),'color',colors{mod(unit_i-1,length(colors))+1});
         end
+        
       end
       drawnow;
+      
       if isfield(params, 'saveFig') && params.saveFig
         figHandles = findobj('Type', 'figure');
         savefig(figHandles(1), [params.outDir spikeFile '_Ch' num2str(params.spikeChannels(channel_i)) '_SpikeWaveforms'], 'compact')
       end
+      
       if params.plotSpikeWaveforms == 1
         close(fh);
       end
@@ -520,6 +526,7 @@ if params.spikeWaveformPca
     if params.spikeWaveformPca == 1
       close(fh);
     end
+    
   end
 end
 
@@ -528,5 +535,4 @@ if params.shiftSpikeWaveforms
 end
 
 clear NEV
-close all
 end

@@ -63,6 +63,11 @@ disp('decimating, scaling, and filtering LFP');
 for i = 1:size(lfpData,1)
   lfpData(i,:) = lfpData(i,:) - mean(lfpData(i,:));
 end
+
+if isa(lfpFilter,'digitalFilter')
+  disp('using digital filter object');
+end
+
 for i = 1:size(lfpData,1)
   lfpDataDecPadded(i,filterPad+1:end-filterPad) = lfpChannelScaleBy(i)*decimate(decimate(lfpData(i,:),decimateFactorPass1),decimateFactorPass2);
   lfpDataDecPadded(i,1:filterPad) = lfpDataDecPadded(i,filterPad+1)*lfpDataDecPadded(i,1:filterPad);
@@ -73,7 +78,6 @@ for i = 1:size(lfpData,1)
     hold on
   end
   if isa(lfpFilter,'digitalFilter')
-    disp('using digital filter object');
     lfpDataDecPadded(i,:) = filtfilt(lfpFilter, lfpDataDecPadded(i,:));
   else
     if length(lfpFilter) == 2

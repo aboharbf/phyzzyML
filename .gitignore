@@ -1,9 +1,10 @@
 *~
+*.asv
 .DS_Store
 .DS_Store
 dependencies/.DS_Store
 dependencies/chronux_2_12/.DS_Store
-*.asv
+buildAnalysisParamFileLib/NDT_analyses/
 Pseudocode_Notepad.m
 filesOfInterestUpdatedTmp.mat
 analysisDonePreExcel.mat
@@ -20,3 +21,5 @@ allBinData.mat
 slidingWindowData.mat
 subEventAnalysisTesting_headTurnCon.mat
 monkeyLogicPreProcessVars.mat
+
+

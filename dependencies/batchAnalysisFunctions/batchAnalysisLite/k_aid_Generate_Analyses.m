@@ -20,16 +20,32 @@ else
 end
 
 % Each paradigm iterates across the below values
+categoriesStruct.labelFile = 'cat';
 categoriesStruct.label = 'socialCat';
-categoriesStruct.label_names_to_use = {'chasing'  'fighting'  'goalDirected'  'grooming'  'idle'  'mounting'  'objects'};
+categoriesStruct.label_names_to_use = {'chasing'  'fighting'  'goalDirected'  'grooming'  'idle'  'mounting'  'objects' 'scene'};
 categoriesStruct.coreTitle = 'Categories';
+
+socCategoriesStruct.labelFile = 'socialCat';
+socCategoriesStruct.label = 'socialCat';
+socCategoriesStruct.label_names_to_use = {'chasing'  'fighting' 'grooming' 'mounting'};
+socCategoriesStruct.coreTitle = 'Social Categories';
+
+nonSocCategoriesStruct.labelFile = 'nonSocialCat';
+nonSocCategoriesStruct.label = 'socialCat';
+nonSocCategoriesStruct.label_names_to_use = {'goalDirected'  'idle'  'objects', 'scene'};
+nonSocCategoriesStruct.coreTitle = 'Non-Social Categories';
+
+socVNonSocStruct.labelFile = 'social';
 socVNonSocStruct.label = 'social';
 socVNonSocStruct.label_names_to_use = {'agents'  'socialInteraction'};
 socVNonSocStruct.coreTitle = 'Social vs non-Social Agents';
+
+broadCatSocStruct.labelFile = 'catBroad';
 broadCatSocStruct.label = 'catBroad';
 broadCatSocStruct.label_names_to_use = {'objects', 'idle', 'goalDirected', 'socialInteraction'};
 broadCatSocStruct.coreTitle = 'Broad Categories';
-coreAnalysisStructs = [categoriesStruct socVNonSocStruct broadCatSocStruct];
+
+coreAnalysisStructs = [categoriesStruct socCategoriesStruct nonSocCategoriesStruct socVNonSocStruct broadCatSocStruct];
 
 % All Generated analyses have these parameters
 coreAnalysisParams.num_cv_splits = 1;
@@ -119,6 +135,7 @@ for unit_set_i = 1:length(unitSets)
     analysisTemplateStruct = struct();
     
     % Copy over the label, label names.
+    analysisTemplateStruct.labelFile = coreAnalysisStructs(core_i).labelFile;
     analysisTemplateStruct.label = coreAnalysisStructs(core_i).label;
     analysisTemplateStruct.label_names_to_use = coreAnalysisStructs(core_i).label_names_to_use;
     analysisTemplateStruct.save_extra_preprocessing_info = 0;
@@ -176,7 +193,7 @@ for unit_set_i = 1:length(unitSets)
           analysisStruct.plotTitle = strrep(analysisStruct.plotTitle, '_', ' ');
           
           % Create the filename.
-          saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmNameTag, analysisStruct.label, analyisTag{analysis_i}, unitTag, decoderTags{decoder_i});
+          saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmNameTag, analysisStruct.labelFile, analyisTag{analysis_i}, unitTag, decoderTags{decoder_i});
           
           % Save structure
           save(fullfile(analysisDir, saveFileName), 'analysisStruct');

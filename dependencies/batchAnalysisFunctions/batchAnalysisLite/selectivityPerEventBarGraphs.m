@@ -20,7 +20,7 @@ for unitType_i = 1:length(UnitTypes)
     unitCount = sum(unitInd);
     chanceUnitCount = round(sum(unitCount) * alpha);
     saccSelCount = sum(selTableParadigmUnit.saccDir_selInd);
-    fixSelCount = sum(selTableParadigmUnit.baseV_Fix_selInd);
+    fixSelCount = sum(selTableParadigmUnit.subSel_fixation_selInd);
     
     % Reward processing - take the rewardAbsent vec, and use the other reward
     % paradigm to fill in parts where that paradigm wasn't used.

@@ -37,29 +37,6 @@ assert(ischar(stimParamsFilename),'Invalid analysis parameter file: stimParamsFi
 %todo: add check for preprocessed data filename? only relevant if saving...
 
 %%% SAVE SWITCHES %%%
-% saveFig
-if ~logical(exist('saveFig','var')) || ~ismember(saveFig,[0 1])
-  saveFig = 1; %#ok
-  logString = strcat(logString,'saveFig\n');
-end
-
-% closeFig
-if ~logical(exist('closeFig','var')) || ~ismember(closeFig,[0 1])
-  closeFig = 0; %#ok
-  logString = strcat(logString,'closeFig\n');
-end
-
-% exportFig
-if ~logical(exist('exportFig','var')) || ~ismember(exportFig,[0 1])
-  exportFig = 0; %#ok
-  logString = strcat(logString,'exportFig\n');
-end
-
-% saveFigData
-if ~logical(exist('saveFigData','var')) || ~ismember(saveFigData,[0 1])
-  saveFigData = 0; %#ok
-  logString = strcat(logString,'saveFigData\n');
-end
 
 % savePreprocessed
 if ~logical(exist('savePreprocessed','var')) || ~ismember(savePreprocessed,[0 1])

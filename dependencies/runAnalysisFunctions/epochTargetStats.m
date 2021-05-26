@@ -1,11 +1,10 @@
-function [selTable] = epochTargetStats(spikesByEvent, selTable, eventIDs, paradigm, epochStatsParams)
+function [selTable] = epochTargetStats(spikesByEvent, selTable, eventIDs, paradigm, epochTargParams)
 % This function performs a few statistical tests to determine whether there
 % are meaningful difference between different conditions of the task during
 % different predefined time periods.
 
 % Bin spikes
-timeBins = epochStatsParams.times;
-timeLabels = epochStatsParams.labels;
+timeBins = epochTargParams.times;
 spikeCountsByImageByEpoch = cell(size(timeBins,1),1);
 for epoch_i = 1:size(timeBins,1)
   [spikeCounts, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
@@ -14,13 +13,13 @@ end
 
 %% Determine Selectivity per Epoch selectivity, comparing target and non-target
 
-pStruct = epochStatsParams.(paradigm);
+pStruct = epochTargParams.(paradigm);
 targNames = pStruct.targNames;
 targLabelList = pStruct.targ;
 targetEpochsParadigm = pStruct.targetEpochs;
 oneVsAllSwitch = pStruct.oneVsAll;
 
-labels = epochStatsParams.labels;
+labels = epochTargParams.labels;
 alpha = 0.05;
 
 pullRates = @(x) x.rates;
@@ -28,7 +27,7 @@ chanCount = length(spikesByEvent{1});
 unitCounts = cellfun('length', spikesByEvent{1});
 
 % For plotIndex
-plotParams.stimParamsFilename = epochStatsParams.stimParamsFilename;
+plotParams.stimParamsFilename = epochTargParams.stimParamsFilename;
 plotParams.plotLabels = targLabelList;
 plotMat = plotIndex(eventIDs, plotParams);
 
@@ -73,7 +72,7 @@ for group_i = 1:length(targLabelList)
           targRates = vertcat(targRates{:});
           
           % Compare target epoch vs Baseline.
-          if epochStatsParams.nonParametric
+          if epochTargParams.nonParametric
             [pVal1, ~, ~] = signrank(targRates, targBaseline);
           else
             [~, pVal1, ~] = ttest(targRates, targBaseline);
@@ -91,7 +90,7 @@ for group_i = 1:length(targLabelList)
             nonTargRates = vertcat(nonTargRates{:});
             
             % Run the statistical test to compare target vs non-target.
-            if epochStatsParams.nonParametric
+            if epochTargParams.nonParametric
               [pVal, ~, ~] = ranksum(targRates, nonTargRates);
             else
               [~, pVal, ~] = ttest2(targRates, nonTargRates);

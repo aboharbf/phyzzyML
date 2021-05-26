@@ -32,7 +32,7 @@ switch machine
 end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
+usePreprocessed = 1;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
 
@@ -63,24 +63,28 @@ if ~replaceAnalysisOut
   end
   
   %% Create all of the appropriate AnalysisParamFiles as a cell array.
-  [analysisParamFileList, analysisParamFileName, outDirList] = deal(cell(0));
+  analysisCount = sum(cellfun(@(x) length(x{2}), runList));
+  [analysisParamFileList, analysisParamFileName, outDirList] = deal(cell(analysisCount,1));
   meta_ind = 1;
   
   % Load in a page from an excel sheet in the data directory.
   if exist(dataLog, 'file')
     paramTable = readtable(dataLog,'ReadRowNames', true, 'PreserveVariableNames', true,'Format','auto');
+  else
+    paramTable = [];
   end
   
   for dateSubj_i = 1:length(runList)
     dateSubject = runList{dateSubj_i}{1};
     for run_i = 1:length(runList{dateSubj_i}{2})
       runNum = runList{dateSubj_i}{2}{run_i};
+      dateSubjRun = [dateSubject runNum];
       
       % Look through paramTable (if available) and replace variables
       % Load variables from paramTable, if the row is present.
-      if exist('paramTable', 'var') && any(strcmp(paramTable.Properties.RowNames, {[dateSubject runNum]}))
-        paramTableRow = paramTable([dateSubject runNum], :);
-        paramTableVars = paramTable.Properties.VariableNames;
+      if ~isempty(paramTable) && any(strcmp(paramTable.Properties.RowNames, {dateSubjRun}))
+        paramTableRow = paramTable(dateSubjRun, :);
+        paramTableVars = paramTable.Properties.VariableNames';
         for param_i = 1:width(paramTableRow)
           if isa(paramTableRow.(paramTableVars{param_i}), 'double') && ~isnan(paramTableRow.(paramTableVars{param_i}))
             eval(sprintf('%s = %d;', paramTableVars{param_i}, paramTableRow.(paramTableVars{param_i})))
@@ -102,13 +106,20 @@ if ~replaceAnalysisOut
         % Update psthPre
         psthParams.psthPre = psthParams.psthPre + psthParams.ITI;
         
+        % Update eyeStats stuff
+        eyeStatsParams.ITI = psthParams.ITI;
+        eyeStatsParams.psthPre = psthParams.psthPre;
+        eyeStatsParams.psthImDur = psthParams.psthImDur;
+                
         % Update timing related variables for ANOVA analysis
         preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
         Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
         stimOnset = [0 500];
         stimPres = [500 psthParams.psthImDur];
-        reward = [psthParams.psthImDur psthParams.psthImDur + 250];
-        epochStatsParams.times = [preFix; Fix; stimOnset; stimPres; reward];
+        reward = [psthParams.psthImDur psthParams.psthImDur + 300];
+        epochTargParams.times = [preFix; Fix; stimOnset; stimPres; reward];
+        
+        epochSWparams.startTime = -psthParams.psthPre+psthParams.ITI;
         
         % Update subevent Analysis stuff
         subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
@@ -120,14 +131,10 @@ if ~replaceAnalysisOut
         % Update lfpalign stuff
         lfpAlignParams.msPreAlign = psthParams.psthPre+tfParams.movingWin(1)/2;
         lfpAlignParams.msPostAlign = psthParams.psthImDur+psthParams.psthPost+tfParams.movingWin(1)/2;
+        
         spikeAlignParams.preAlign = psthParams.psthPre+3*psthParams.smoothingWidth;
         spikeAlignParams.postAlign = psthParams.psthImDur+psthParams.psthPost+3*psthParams.smoothingWidth;   %#ok
-        
-        % Update eyeStats stuff
-        eyeStatsParams.ITI = psthParams.ITI;
-        eyeStatsParams.psthPre = psthParams.psthPre;
-        eyeStatsParams.psthImDur = psthParams.psthImDur;
-        
+                
         % Note to self - this stuff should be turned into a function handle
         % and evaluated in runAnalysis.
       end
@@ -136,12 +143,14 @@ if ~replaceAnalysisOut
       % names, if not, check for what was parsed before.
       parsedFolderName = sprintf('%s/%s/%s%s_parsed',ephysVolume,dateSubject,dateSubject,runNum);
       if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'channels2Read'))
+        
         ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
         ephysParams.lfpChannels = channels2Read;
         ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
         ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read),1]); %converts raw values to microvolts
         ephysParams.unitsToUnsort = cell(length(channels2Read),1); %these units will be re-grouped with u0
         ephysParams.unitsToDiscard = cell(length(channels2Read),1); %these units will be considered noise and discarded
+        
       elseif exist(parsedFolderName,'dir') == 7 && ~isempty(dir(parsedFolderName))
         % Autodetecting spike channels - If the file is parsed, retrieve channels present
         [ephysParams.spikeChannels, ephysParams.lfpChannels, ephysParams.channelNames] = autoDetectChannels(parsedFolderName);
@@ -185,9 +194,6 @@ if ~replaceAnalysisOut
       meta_ind = meta_ind + 1;
     end
   end
-  outDirList = outDirList';
-  analysisParamFileList = analysisParamFileList';
-  analysisParamFileName = analysisParamFileName';
   
   %% Process the runs
   [errorMsg, startTimes, endTimes, analysisOutFilename] = deal(cell(size(analysisParamFileList)));

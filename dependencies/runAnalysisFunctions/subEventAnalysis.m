@@ -1,4 +1,4 @@
-function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, ephysParams, subEventParams, selTable, figStruct)
+function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventParams, selTable, figStruct)
 % subEventAnalysis
 % Description - looks through spikesByEvent, calculates PSTH for activity
 % aligned to a specific event as well as a null distribution from the
@@ -363,8 +363,8 @@ if ~isempty(onsetsByEvent)
         end
         
         % Create per unit figure
-        if ~isempty(subEventParams.channelUnitNames{chan_i})
-          psthTitle = sprintf('SubEvent comparison - %s %s', ephysParams.channelNames{chan_i}, subEventParams.channelUnitNames{chan_i}{unit_i});
+        if ~isempty(figStruct.channelUnitNames{chan_i})
+          psthTitle = sprintf('SubEvent comparison - %s %s', figStruct.channelNames{chan_i}, figStruct.channelUnitNames{chan_i}{unit_i});
           figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
           if ~tabPerEvent
             sgtitle(psthTitle)
