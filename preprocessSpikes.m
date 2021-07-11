@@ -38,8 +38,7 @@ end
 
 %%%%% remove spike data from non-spike channels (e.g. reference electrodes), unsort low quality units, and remove noise units
 spikesByChannel = repmat(struct('times',[],'units',[],'waveforms',[]),length(params.spikeChannels),1);
-unitNames = {'US', 'U1','U2','U3','U4','U5'};
-% unitNames = {'unsorted', 'unit 1','unit 2','unit 3','unit 4','unit 5', 'unit 6','unit 7','unit 8','unit 9','unit 10'};
+unitNames = cellstr(['US', strcat('U', string(1:20))]);
 channelUnitNames = cell(length(params.spikeChannels),1);
 
 [spikeFilePath, spikeFile, ~] = fileparts(spikeFilename);
@@ -67,10 +66,10 @@ if isfield(params, 'waveClus') && params.waveClus
 
   %parse the ns5, or see if they are already parsed.
   if ~exist(parsedDir, 'dir')
-    error('For some reason this didnt see the parsedDir');
+%     error('For some reason this didnt see the parsedDir');
     mkdir(parsedDir)
     cd(parsedDir);
-    parse_data_NSx(lfpFilename, [], [], 1:128); %(filename,max_memo_GB,output_name,channels)
+    parse_data_NSx(lfpFilename, [], [], 1:96); %(filename,max_memo_GB,output_name,channels)
   else
 %     cd(parsedDir);
   end
@@ -81,19 +80,19 @@ if isfield(params, 'waveClus') && params.waveClus
   timesFiles = dir(fullfile(parsedDir, 'times_*.mat'));
   parsedFiles = {parsedFiles.name}';
   
-%   % If one file is missing, assume they are all missing.
-%   if length(parsedFiles) ~= length(spikesFiles)
-%     % Generate spike files
-%     Get_spikes(parsedFiles, 'par', params.paramHandle(), 'parallel', true);
-%     spikesFiles = dir('*_spikes.mat');
-%   end
+  % If one file is missing, assume they are all missing.
+  if length(parsedFiles) ~= length(spikesFiles)
+    % Generate spike files
+    Get_spikes(parsedFiles, 'par', params.paramHandle(), 'parallel', true);
+    spikesFiles = dir('*_spikes.mat');
+  end
   spikesFiles = fullfile({spikesFiles.folder}, {spikesFiles.name})';
-%   
-%   if length(spikesFiles) ~= length(timesFiles)
-%     % Cluster them.
-%     Do_clustering(spikesFiles, 'par', params.paramHandle(), 'parallel', true, 'make_plots', true);
-%     timesFiles = dir('times_*.mat');
-%   end
+  
+  if length(spikesFiles) ~= length(timesFiles)
+    % Cluster them.
+    Do_clustering(spikesFiles, 'par', params.paramHandle(), 'parallel', true, 'make_plots', true);
+    timesFiles = dir('times_*.mat');
+  end
   timesFiles = fullfile({timesFiles.folder}, {timesFiles.name})';
 
   % extract the number of each channel processed
@@ -104,11 +103,11 @@ if isfield(params, 'waveClus') && params.waveClus
   
   clusterResults = timesFiles(times2keep);
   spikeFiles = spikesFiles(spikes2keep);
-  
   electrodes = str2double(extractBetween(clusterResults, '_NSX_', '.mat'));
   
   % Change directory back
   cd(originalDir);
+%   error('Done Parsing waveClus')
 
   %Cycle through cluster results (done per electrode) and load them into
   %a temporary NEV structure.

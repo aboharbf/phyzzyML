@@ -51,6 +51,10 @@ end
 
 %% Analyses
 
+if plotSwitch.saccadeAnalysis
+  saccadePSTH(spikePathBank, batchAnalysisParams)
+end
+
 if plotSwitch.neuralDecodingTB
   batchAnalysisParams.NDTParams.spikePathLoadParams = batchAnalysisParams.spikePathLoadParams;
   NeuralDecodingTBLite(spikePathBank, batchAnalysisParams.NDTParams);
@@ -74,7 +78,5 @@ end
 if plotSwitch.rewardPSTH
   rewardPSTHallStack(spikePathBank, batchAnalysisParams)
 end
-
-
 
 end

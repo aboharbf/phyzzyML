@@ -7,8 +7,11 @@ X = reordercats(X,barLabels);
 barh = bar(X, dataMat, 1);
 ylimSize = ylim();
 
-if size(dataMat,2) == 1
+if any(size(dataMat) == 1)
   barh.BarWidth = 0.5;
+  legLoc = 'northeastoutside';
+else
+  legLoc = 'northeast';
 end
 
 for bar_i = 1:length(barh)
@@ -55,6 +58,14 @@ figH.Children.FontSize = 16;
 title(figTitle);
 xlabel('Preferred Epoch')
 ylabel('Unit Count')
-legend()
+legend('Location', legLoc)
+
+% Make sure the rightmost bar is not obscured with the legend. Prevent this
+% by reserving the top 33% for the legend
+barHeights = [barh.YData];
+yLimits = ylim();
+if any(barHeights >= yLimits(2) * 0.75)
+  ylim([0 yLimits(2)*1.1])
+end
 
 end

@@ -33,7 +33,7 @@ function analysisStructAll = NDTB_prepareAnalysisStruct(analysisDir, pFolder, pa
     end
     
     if params.expandLabelPerSplit
-      analysisStruct.num_cv_splits = floor(analysisStruct.num_cv_splits/3);
+      analysisStruct.num_cv_splits = floor(analysisStruct.num_cv_splits/4);
     end
     
     % Define the plot name    

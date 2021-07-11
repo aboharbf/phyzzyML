@@ -1,4 +1,4 @@
-function [eyeDataStruct, eyeBehStatsByStim, eyeInByEventSmooth] = eyeStatsAnalysis(analogInByEvent, eyeStatsParams, taskData, eyeDataStruct, figStruct)
+function [eyeDataStruct, eyeBehStatsByStim, eyeInByEventSmooth] = eyeStatsAnalysis(analogInByEvent, psthParams, eyeStatsParams, taskData, eyeDataStruct, figStruct)
 % Function uses ClusterFix to generate a saccade map.
 
 % Outputs
@@ -23,17 +23,14 @@ preSaccPeriod = 200;
 % A few switches.
 filterSaccades = 1;         % Performs a filter on saccades to exclude microsaccades, defined with respect to duration
 saccadeDurThres = 35;       % Additional saccade filtering outside of clusterFix, removes saccades which don't last this long or more.
-saccadeDistThrs = 1.5;        % As above, removes saccades with mean distances of less than this. 
+saccadeDistThrs = 1.5;      % As above, removes saccades with mean distances of less than this. 
 plotPaths = 0;              % Code below which visualizes things trial by trial.
 
 % visualized trial by trial trace parameters
 saccadeColors = 'rbgcm';
-
-% ITI = eyeStatsParams.ITI; % ITI already in psthPre.
-stimDir = eyeStatsParams.stimDir;
-psthPre = eyeStatsParams.psthPre;
-psthImDur = eyeStatsParams.psthImDur;
-lfpPaddedBy = eyeStatsParams.lfpPaddedBy+1;
+psthPre = psthParams.psthPre;
+psthImDur = psthParams.psthImDur;
+lfpPaddedBy = (psthParams.movingWin(1)/2)+1;
 
 % Remove Padding, as this messes with indexing and the code signal pads itself.
 stimStartInd = lfpPaddedBy;
@@ -170,6 +167,7 @@ if plotPaths
   eventIDs = eyeStatsParams.eventIDs;
   taskEventIDs = taskData.taskEventList;
   frameMotionInd = cellfun(@(x) find(strcmp(taskEventIDs, x)), eventIDs, 'UniformOutput', false);
+  frameMotionInd = [frameMotionInd{:}];
   
   % Generate Images that illustrate Saccade Path
   for stim_i = 1:length(fixStats)

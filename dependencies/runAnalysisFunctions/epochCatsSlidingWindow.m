@@ -37,6 +37,11 @@ anovaBinParams.binEnds = binEnds;
 
 timeBinSpikes = [binStarts', binEnds'] + time2IndexPad;
 timeBinEyes = [binStarts', binEnds'] + preStimEyePad;
+
+if timeBinEyes(1,1) == 0
+  timeBinEyes(1,1) = 1;
+end
+
 binnedSpikes = initNestedCellArray(spikesByEvent);
 binnedEye = cell(length(eventIDs),1);
 

@@ -34,9 +34,9 @@ for ii = 1:length(cohensDVars)
     
     % Print
     if isempty(sigDiffs)
-    fprintf('%s Selective for %s - is empty \n', tag, varName{ii})
+    fprintf('==== %s Selective for %s - is empty ==== \n', tag, varName{ii})
     else
-    fprintf('%s Selective for %s \n', tag, varName{ii})
+    fprintf('==== %s Selective for %s ==== \n', tag, varName{ii})
     for jj = 1:min(length(sigDiffSitesSorted), 10)
       fprintf('%s - Site %s \n', num2str(sigDiffsSorted(jj), 3), sigDiffSitesSorted{jj})
     end

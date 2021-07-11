@@ -16,7 +16,7 @@ for par_i = 1:length(paradigmList)
   
   % Commented code below is for checking specific stimulus sets within
   % naturalSocial paradigm.
-%     spikePathBankParadigm = spikePathBank(pInd,:);
+    spikePathBankParadigm = spikePathBank(pInd,:);
 %   SS1Ind = cellfun(@(x) any(contains(x, '4003')), spikePathBankParadigm.stimuli);
 %   SS2Ind = ~SS1Ind;
 %   selTableParadigmPerRun = selTableParadigmPerRun(SS2Ind); for checking
@@ -37,6 +37,7 @@ for par_i = 1:length(paradigmList)
   % Find cells with predefined selectivities for the sake of illustrating
   % effects.
   exampleCellFinder(selTableParadigm);
+  exampleCellFinderObject(selTableParadigm)
   
   % Make the directory specific to paradigm.
   batchAnalysisParams.selParam.outputDir = fullfile(outputDir, paradigmList{par_i});
@@ -62,10 +63,10 @@ for par_i = 1:length(paradigmList)
   selectivityPerAnyAndHeadTurn(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
 
   % Now, for each unitType and selectivity, map out gridHole contents.
-  batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
+%   batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
 %   selectivityPerGridHole(spikePathBankParadigm, selTableParadigm, batchAnalysisParams)
-  
-  plotCountsOnBrain(selTableParadigm, batchAnalysisParams);
+%   
+%   plotCountsOnBrain(selTableParadigm, batchAnalysisParams);
 
 end
 

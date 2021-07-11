@@ -1,15 +1,19 @@
-function [selTable] = epochTargetStats(spikesByEvent, selTable, eventIDs, paradigm, epochTargParams)
+function [selTable] = epochTargetStats(spikesByEvent, spikesByEventFixAlign, selTable, eventIDs, paradigm, epochTargParams)
 % This function performs a few statistical tests to determine whether there
 % are meaningful difference between different conditions of the task during
 % different predefined time periods.
 
 % Bin spikes
 timeBins = epochTargParams.times;
+
 spikeCountsByImageByEpoch = cell(size(timeBins,1),1);
-for epoch_i = 1:size(timeBins,1)
-  [spikeCounts, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
-  spikeCountsByImageByEpoch{epoch_i} = spikeCounts;
+% First bin is found using fixAligned data
+[spikeCountsByImageByEpoch{1}, ~, ~] = spikeCounter(spikesByEventFixAlign, timeBins(1, 1), timeBins(1, 2));
+
+for epoch_i = 2:size(timeBins,1)
+  [spikeCountsByImageByEpoch{epoch_i}, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
 end
+
 
 %% Determine Selectivity per Epoch selectivity, comparing target and non-target
 

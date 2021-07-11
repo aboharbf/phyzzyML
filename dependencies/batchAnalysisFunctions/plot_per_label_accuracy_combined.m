@@ -21,14 +21,16 @@ figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 fontPlotSize = 21;
 
 % Consistent variables across analyses
-endTimeFile = load('D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc\results_NS_catBroad_AllUnits_MUA_MCC\decoding_results_run1.mat');
+endTimeFile = load('D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc\NS_Broad_Categories\results_NS_catBroad_AllUnits_MUA_MCC\decoding_results_run1.mat');
 end_time = endTimeFile.decoding_results.DS_PARAMETERS.binned_site_info.binning_parameters.end_time;
-
-shift = 1300;
+shift = endTimeFile.decoding_results.DS_PARAMETERS.binned_site_info.binning_parameters.alignment_event_time;
+binWidth = 150;
+stepSize = 50;
 points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
 points_for_lines = [0, 2800];
 
-
+% Info which aids in plotting - Legend is created as text hovering over
+% traces - The info below is the coordinate, the alignment, and color.
 positionInfo = {{50, 0.9, 'left', [1 0 0]};
                 {1600, 0.8, 'center', [0 0 1]}; 
                 {2750, 0.9, 'right', [0 0 0]}; 
@@ -36,98 +38,112 @@ positionInfo = {{50, 0.9, 'left', [1 0 0]};
                 {50, 0.8, 'left', [0 0 1]};
                 {2750, 0.8, 'right', [0.5 0.5 0.5]}};
               
-points_for_text_x = [50, 1600, 2750];
-
-positionPerLabel = {{1 2 3 4}, {1 2 3 4}, {1 3 5 6}, {1 2 3}};
-% subSlicePossibleTitles = {{'Early', 'Late', 'Reward', 'Any'}, {'Early', 'Late', 'Reward', 'Any'}, {'Any', 'Any onlyHT', 'Any noHT', 'onlyHT'}};
-subSlicePlotTitle = {{'Stimulus Early', 'Stimulus Presentation', 'Reward', 'Combined'}, {'Stimulus Early', 'Stimulus Presentation', 'Reward', 'Combined'},...
-  {'broadCat' 'broadCat + HT', 'broadCat - HT', 'HT - broadCat'}, {'Stimulus Early Active' 'Stimulus Late Active', 'Reward Active'}};
-
-binWidth = 150;
-stepSize = 50;
+points_for_text_x = unique(cellfun(@(x) x{1}, positionInfo)); % Unique entries in the list above, for the sake of converting into the proper numbers for plotting.
 
 % Label axes correctly - Prepare data for it
-the_bin_start_times = 1:stepSize:(end_time - binWidth  + 1);
+offSet = binWidth;
+the_bin_start_times = (1:stepSize:(end_time - binWidth  + 1)) + offSet;
+binCount = length(the_bin_start_times);
 the_bin_start_times_shift = the_bin_start_times - shift;
-bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
-bins_for_text = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_text_x);
-x_for_lines = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
-xMin = round(interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label(1) - 100));
+bins_to_label = interp1(the_bin_start_times_shift, 1:binCount, points_to_label);
+bins_for_text = interp1(the_bin_start_times_shift, 1:binCount, points_for_text_x);
+x_for_lines = interp1(the_bin_start_times_shift, 1:binCount, points_for_lines);
+xMin = round(interp1(the_bin_start_times_shift, 1:binCount, points_to_label(1) - 100));
+
+
+% Combined Plot Types - Below are the types of plots to make for each
+% group. There are 4 of each. 
+positionPerLabel = {{1 2 3 4}, {1 2 3 4}, {1 3 5 6}, {1 2 3}}; % Position info for each Label
+
+% Labels that show up on plot
+simpleLabels = {'Stimulus Early', 'Stimulus Presentation', 'Reward', 'Combined'};
+subSlicePlotTitle = {simpleLabels, simpleLabels, {'broadCat' 'broadCat + HT', 'broadCat - HT', 'HT - broadCat'}, {'Stimulus Early Active' 'Stimulus Late Active', 'Reward Active'}};
+
+% The Identifier tag to be used to grab the correct file.
+plotSubTypes2Combine = {{'broadCatEarly', 'broadCatLate', 'broadCatReward', '(broadCatAny)'},...
+  {'socIntEarly', 'socIntLate', 'socIntReward', 'socIntSelAny'}, ...
+  {'(broadCatAny)', '(broadCatAny onlyHT)', '(broadCatAny noHT)', '(nobroadCatAny onlyHT)'}...
+  {'(stimEarlySel)', '(stimLateSel)', '(stimRewardSel)'}};
 
 % Per Plot -
 coreDirectory = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc', 'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\headTurnCon\max_zsc'};
 coreDirectoryParadigm = {'NS', 'HTC'};
 
-unitType = {'UnUS', 'MUA'};
-
 % Iterate across
-plotCoreNames = {'Broad Categories', 'Categories', 'Social vs non-Social Agents'};
-plotSubTypes2Combine = {{'broadCatEarly', 'broadCatLate', 'broadCatReward', '(broadCatAny)'},...
-  {'socIntEarly', 'socIntLate', 'socIntReward', 'socIntSelAny'}, ...
-  {'(broadCatAny)', '(broadCatAny onlyHT)', '(broadCatAny noHT)', '(nobroadCatAny onlyHT)'}...
-  {'(stimEarlySel)', '(stimLateSel)', '(stimRewardSel)'}};
 plotCoreNameTag = {'broadCat', 'socInt', 'broadCat HT', 'Epoch Selective'};
+
 fileCoreName = {'broadCat', 'socInt', 'broadCat', 'stim'};
-templateDecodingResult = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc\results_NS_catBroad_AllUnits_MUA_MCC\decoding_results_run1.mat'...
-  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc\results_NS_socialCat_AllUnits_UnUS_MCC\decoding_results_run1.mat'...
-  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc\results_NS_social_AllUnits_MUA_MCC\decoding_results_run1.mat'};
+templateDecodingString = 'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\max_zsc\%s\results_NS_%s_AllUnits_MUA_MCC\decoding_results_run1.mat';
 
 subSlicePossibleTitles = {{'Early', 'Late', 'Reward', 'Any'}, {'Early', 'Late', 'Reward', 'Any'}, {'Any' 'Any onlyHT', 'Any noHT', 'only HT'}, {'Early', 'Late', 'Reward'}};
 
 for par_i = 1%:length(coreDirectory)
   
-  % Make sure the dir exists, and if not, make it.
   plotOutDir = fullfile(coreDirectory{par_i}, 'combo_plot_directory');
+  unitType = {'UnUS', 'MUA'};
+  plotCoreNames = {'Non-Social Categories', 'Social Categories', 'Broad Categories', 'Categories', 'Social vs non-Social Agents'};
+  plotCoreFileTag = {'nonSocialCat', 'socialCat', 'catBroad', 'cat', 'social'};
   
-  if ~exist(plotOutDir, 'dir')
-    mkdir(plotOutDir);
-  end
+  % Identify all data files for this paradigm.
+  plotDataFiles = dir(fullfile(coreDirectory{par_i}, '**', '*_data.mat'));
+  plotDataFiles = fullfile({plotDataFiles.folder}, {plotDataFiles.name})';
   
   for unit_i = 1:length(unitType)
     for plot_i = 1:length(plotCoreNames)
-      for subType_i = 4%1:length(plotSubTypes2Combine)
-        parPlotName = strjoin([coreDirectoryParadigm(par_i), plotCoreNames(plot_i)], ' ');
+      
+      % Identify the combined paradigm plot name, and identify the correct
+      % files.
+      parPlotName = strjoin([coreDirectoryParadigm(par_i), plotCoreNames(plot_i)], ' ');
+      paradigmComparisonUnitInd = contains(plotDataFiles, parPlotName) & contains(plotDataFiles, unitType{unit_i});
+      
+      analysisDirName = strrep(parPlotName, ' ', '_');
+      
+      for subType_i = 1:length(plotSubTypes2Combine)
         
-        templateStruct = load(templateDecodingResult{plot_i});
+        % Find the subsection of the paraidgm specific files which pretain
+        % to this comparison.
+        tracesFileTags = plotSubTypes2Combine{subType_i};
         
-        objectCount = templateStruct.decoding_results.CV_PARAMETERS.num_unique_labels;
-        
-        plotDataFiles = dir(fullfile(coreDirectory{par_i}, '*_data.mat'));
-        plotDataFiles = fullfile({plotDataFiles.folder}, {plotDataFiles.name})';
-        
-        paradigmComparisonUnitInd = contains(plotDataFiles, parPlotName) & contains(plotDataFiles, unitType{unit_i});
-
-        for sub_plot_i = 1:length(plotSubTypes2Combine{subType_i})
-          sub_plot_ind = paradigmComparisonUnitInd & contains(plotDataFiles, plotSubTypes2Combine{subType_i}{sub_plot_i});
-          figDataStructs(sub_plot_i) = load(plotDataFiles{sub_plot_ind});
+        figDataStructs = cell(size(tracesFileTags));
+        for sub_plot_i = 1:length(tracesFileTags)
+          sub_plot_ind = paradigmComparisonUnitInd & contains(plotDataFiles, tracesFileTags{sub_plot_i});
+          figDataStructs{sub_plot_i} = load(plotDataFiles{find(sub_plot_ind,1)});
         end
         
-        figData = [figDataStructs.figData];
-        clear figDataStructs
+        % Collect Result from files
+        figDataStruct = [figDataStructs{:}];
+        figData = [figDataStruct.figData];
         analysisStructs = [figData.analysisStruct];
+        
+        % Collect variables from the data files
         unitCountPerTrace = cellfun('length', {analysisStructs.sites});
         meanTraceStack = vertcat(figData.meanTrace);
         sigTraceStack = vertcat(figData.sig_bins);
-       
+        
         % Initiate the plot
         figTitle = sprintf('Combined Accuracy traces for %s - %s %s', parPlotName, plotCoreNameTag{subType_i}, unitType{unit_i});
-        figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[0.1042 0.1370 0.6130 0.6843]);
+        figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition', [0.1042 0.1370 0.6130 0.6843]);
         axesh = axes(figh);
         
+        % Plotting
         % Plot the significant slices
         sigData = deal(meanTraceStack);
         sigData(~sigTraceStack) = deal(nan);
         
+        % Processing the trace file tags into labels
         hold on
-        legendLabels = extractAfter(plotSubTypes2Combine{subType_i}, fileCoreName{subType_i});
+        legendLabels = extractAfter(tracesFileTags, fileCoreName{subType_i});
         if contains(plotSubTypes2Combine{subType_i}{end}, 'no')
           legendLabels{end} = 'only HT';
         end
         legendLabels = strrep(legendLabels, 'Sel', '');
         legendLabels = strrep(legendLabels, ')', '');
         subSlicePossibleTitlesGroup = subSlicePossibleTitles{subType_i};
+        
+        % Gather position info for the labels to be put on the plot
         traceInfo = positionInfo([positionPerLabel{subType_i}{ismember(subSlicePossibleTitlesGroup, legendLabels)}]);
-        % Plot significant trace slices first
+        
+        % Plot significant traces wider then non-significant
         for trace_i = 1:size(sigData,1)
           plot(meanTraceStack(trace_i, :), 'linewidth', 2, 'color', traceInfo{trace_i}{end});
           plot(sigData(trace_i,:), 'linewidth', 5, 'color', traceInfo{trace_i}{end});
@@ -147,9 +163,8 @@ for par_i = 1%:length(coreDirectory)
           textHandle = text(bins_for_text_plot(leg_i), plot_text_y(leg_i), legendText, 'FontSize', fontPlotSize, 'color', traceInfo{leg_i}{end} , 'HorizontalAlignment', traceInfo{leg_i}{3}, 'FontWeight', 'bold');
         end
         
-                  
         ylabel('Decoding Accuracy')
-        xlabel('Bin start time')
+        xlabel('Bin End time')
         xticks(bins_to_label);
         xticklabels(points_to_label);
         title(figTitle)
@@ -164,10 +179,14 @@ for par_i = 1%:length(coreDirectory)
         end
         axesh.FontSize = fontPlotSize;
         
+        % Create the needed theoretical chance line
+        templateStruct = load(sprintf(strrep(templateDecodingString, '\', '\\'), analysisDirName, plotCoreFileTag{plot_i}));
+        objectCount = templateStruct.decoding_results.CV_PARAMETERS.num_unique_labels;
         plot(xlim(), [1/objectCount 1/objectCount], 'linewidth', 3, 'color', 'k');
         
         saveFigure(plotOutDir, figTitle, [], figStruct, [])
       end
+      
     end
   end
 end

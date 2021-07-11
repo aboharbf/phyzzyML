@@ -148,12 +148,10 @@ selectButton.Callback = @(src,event)uiresume();
 %Wait for the select button to be hit
 uiwait(listCheckFig, 120)
 
-try
-  filesOfInterestUpdated = filesOfInterest(listCheck.Value);
-  close(listCheckFig)
-catch
-  error('Nothing selected');
-end
+
+filesOfInterestUpdated = filesOfInterest(listCheck.Value);
+close(listCheckFig)
+
 
 % fprintf('Using tmp files, hardcoded \n')
 % load('filesOfInterestUpdatedTmp')

@@ -325,7 +325,7 @@ function dist = venn2( a, b, c, resolution )
     center1_x = r1;
     center1_y = size_y/2;
     center2_x = 2*r1 + r2;
-    center2_y = size_y/2;;
+    center2_y = size_y/2;
     
     [X,Y] = meshgrid( 0:resolution:size_x, 0:resolution:size_y );
     

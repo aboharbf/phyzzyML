@@ -9,7 +9,6 @@ unitTypePlot = {'MUA', 'U&US'};
 alpha = 0.05;                                         % Alpha that the runs were done at.
 outDir = fullfile(params.outputDir, 'selectivityPerSubEvent');
 
-
 % Generate bar plots showing total counts in each category
 tableVars = selTable.Properties.VariableNames';
 subEventSelVars = tableVars(contains(tableVars, 'subSel_') & contains(tableVars, 'selInd') & ~contains(tableVars, 'reward') & ~contains(tableVars, 'blink'));
@@ -20,8 +19,6 @@ subEventPlotNames = strrep(extractBetween(subEventSelVars, 'subSel_', '_selInd')
 % for creating Venn Diagrams
 epochSelInd = contains(tableVars, 'epochSel') & contains(tableVars, '_selInd') & ~contains(tableVars, 'vBase') & contains(tableVars, 'any');
 epochSelIndVars = tableVars(epochSelInd);
-
-
 
 for unitType_i = 1:length(UnitTypes)
   
@@ -42,7 +39,8 @@ for unitType_i = 1:length(UnitTypes)
   % Plot bar graphs for individual events
   figTitle = sprintf('%s activity selective for Stimulus sub-events (%d/%d Unique)', unitTypePlot{unitType_i}, atLeastOne, unitCount);
   figH = createBarPlotWithChanceLine(subEventPlotNames, countPerSubEvent, 0, unitCount, figTitle, []);
-  
+  xlabel('Stimulus Sub-Event');
+
   % Move the legend
   legendHand = findobj(figH.Children, 'Type', 'Legend');
   legendHand.Location = 'northeastoutside';

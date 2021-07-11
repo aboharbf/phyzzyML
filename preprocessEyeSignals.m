@@ -48,8 +48,12 @@ end
 
 eyeX = analogInData(params.eyeXChannelInd,:);
 eyeY = analogInData(params.eyeYChannelInd,:);
-eyeD = analogInData(params.eyeDChannelInd,:);
-
+if size(analogInData,1) == 3
+  eyeD = analogInData(params.eyeDChannelInd,:);
+else
+  eyeD = nan(size(analogInData(params.eyeYChannelInd,:)));
+end
+  
 fixInInds = zeros(size(eyeX));
 transitionInInds = zeros(size(eyeX));
 transitionOutInds = zeros(size(eyeX));
@@ -116,7 +120,7 @@ end
 fixInX = eyeX(fixInInds == 1);
 fixInY = eyeY(fixInInds == 1);
 fixInD = eyeD(fixInInds == 1);
-
+  
 %% monkeyLogic Shift
 % If for whatever reason eye signal on Blackrock is unreliable, create
 % artificial vectors from monkeyLogic's eye data, placing it at the event
@@ -264,8 +268,13 @@ end
 % Construct outputs
 analogInData(params.eyeXChannelInd,:) = eyeX;
 analogInData(params.eyeYChannelInd,:) = eyeY;
-analogInData(params.eyeDChannelInd,:) = eyeD;
-taskData.eyeCal.blinkVals = [max(eyeX), max(eyeY), min(eyeD)];
+if ~isnan(eyeD(1))
+  analogInData(params.eyeDChannelInd,:) = eyeD;
+  taskData.eyeCal.blinkVals = [max(eyeX), max(eyeY), min(eyeD)];
+else
+  taskData.eyeCal.blinkVals = [max(eyeX), max(eyeY)];
+end
+
 
 end
 

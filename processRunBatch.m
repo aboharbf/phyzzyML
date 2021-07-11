@@ -32,9 +32,9 @@ switch machine
 end
 
 replaceAnalysisOut = 0;                                                       % This generates an excel file at the end based on previous analyses. Don't use when running a new.
-usePreprocessed = 1;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
+usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
-debugNoTry = 1;                                                               % Allows for easier debugging of the non-parallel loop.
+debugNoTry = 0;                                                               % Allows for easier debugging of the non-parallel loop.
 
 %% Load Appropriate variables and paths
 addpath('buildAnalysisParamFileLib');
@@ -48,14 +48,18 @@ if ~replaceAnalysisOut
     analysisParamFile = varargin{1};
     analysisParamPath = feval(analysisParamFile);
     load(analysisParamPath);
-       
+    
     varargin = vararginInputs;
     runListFolder = ephysVolume;
     
     if nargin == 2
       runList = buildRunList(runListFolder, 'paradigm', varargin{2});
     elseif nargin ~= 2
-      runList = buildRunList(runListFolder, 'nev');
+      try
+        runList = buildRunList(runListFolder, 'nev');
+      catch
+        error('Nothing selected');
+      end
     end
   elseif nargin >= 4 || nargin == 0
     disp('Must have 1  or 2 inputs.')
@@ -103,27 +107,19 @@ if ~replaceAnalysisOut
       
       % Update the psthPre w/ the ITI. 
       if exist('paramTableVars', 'var') && any(strcmp(paramTableVars, 'psthParams.psthPre'))
-        % Update psthPre
-        psthParams.psthPre = psthParams.psthPre + psthParams.ITI;
-        
-        % Update eyeStats stuff
-        eyeStatsParams.ITI = psthParams.ITI;
-        eyeStatsParams.psthPre = psthParams.psthPre;
-        eyeStatsParams.psthImDur = psthParams.psthImDur;
-                
+                        
         % Update timing related variables for ANOVA analysis
-        preFix = [-psthParams.psthPre -(psthParams.psthPre-psthParams.ITI)];
-        Fix = [-(psthParams.psthPre-psthParams.ITI) 0];
-        stimOnset = [0 500];
-        stimPres = [500 psthParams.psthImDur];
-        reward = [psthParams.psthImDur psthParams.psthImDur + 300];
-        epochTargParams.times = [preFix; Fix; stimOnset; stimPres; reward];
+        preFix = [-500 0];
+        Fix = [-800 0];
+        stimEarly = [0 500];
+        stimLate = [500 psthParams.psthImDur];
+        reward = [psthParams.psthImDur psthParams.psthImDur + 350];
+        epochTargParams.times = [preFix; Fix; stimEarly; stimLate; reward];
         
-        epochSWparams.startTime = -psthParams.psthPre+psthParams.ITI;
+        epochSWparams.startTime = -psthParams.psthPre;
         
         % Update subevent Analysis stuff
         subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
-        subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
         subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
         subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
         subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
@@ -197,7 +193,7 @@ if ~replaceAnalysisOut
   
   %% Process the runs
   [errorMsg, startTimes, endTimes, analysisOutFilename] = deal(cell(size(analysisParamFileList)));
-  [errorMsg{:}] = deal('None');
+  [errorMsg{:}] = deal('notRun');
   
   tmp  = load(analysisParamFileList{1}, 'outputVolume');
   outputVolume = tmp.outputVolume;
@@ -219,6 +215,8 @@ if ~replaceAnalysisOut
         else
           [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
         end
+        errorMsg{run_ind} = 'None';
+        
       catch MyErr
         errorMsg{run_ind} = MyErr;
       end
@@ -238,6 +236,8 @@ if ~replaceAnalysisOut
           else
             [~, analysisOutFilename{run_ind}] = processRun('paramFile', analysisParamFileList{run_ind});
           end
+          errorMsg{run_ind} = 'None';
+
         catch MyErr
           errorMsg{run_ind} = MyErr;
         end
@@ -345,6 +345,7 @@ if any(errorInd)
   errorStack = [errorMsg{:}];
   errorStack = [{errorStack.message}]';
   files2Check = analysisParamFileList(errorInd);
+  error('All done, there were errors');
 else
   error('All done');
 end
@@ -567,22 +568,6 @@ end
 %   createSummaryDoc('buildLayoutParamFile', analysisOutFigDirs{figDir_ind})
 % end
 
-end
-
-function [spike, LFP, names] = autoDetectChannels(parsedFolderName)
-    channelFiles = dir([parsedFolderName '/*.NC5']);
-    channelNames = {channelFiles.name};
-    channelsTmp = [];
-    channelNameTmp = {};
-    for chan_ind = 1:length(channelNames)
-      startInd = regexp(channelNames{chan_ind}, 'Ch') + 2;
-      stopInd = regexp(channelNames{chan_ind},'.NC5') - 1;
-      chanNum = channelNames{chan_ind}(startInd:stopInd);
-      channelNameTmp{chan_ind} = ['Ch' chanNum];
-      channelsTmp(chan_ind) = str2double(channelNames{chan_ind}(startInd:stopInd));
-    end
-    [spike, LFP] = deal(channelsTmp); %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
-    names = channelNameTmp;
 end
 
 function [sigString, allEventSigCount, allEventPerGroupingType, allEventSigExpanded] = returnEventNames(subEventSigStruct, channel_ind, allEventString)

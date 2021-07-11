@@ -1,14 +1,17 @@
-function [selTable] = epochCompareStats(spikesByEvent, selTable, epochStatsParams)
+function [selTable] = epochCompareStats(spikesByEvent, spikesByEventFixAlign, selTable, epochTargParams)
 % This function performs a few statistical tests to determine whether there
 % are meaningful difference between different periods of a task.
 
 % Bin spikes
-timeBins = epochStatsParams.times;
-timeLabels = epochStatsParams.labels;
+timeBins = epochTargParams.times;
+timeLabels = epochTargParams.labels;
+
 spikeCountsByImageByEpoch = cell(size(timeBins,1),1);
-for epoch_i = 1:size(timeBins,1)
-  [spikeCounts, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
-  spikeCountsByImageByEpoch{epoch_i} = spikeCounts;
+% First bin is found using fixAligned data
+[spikeCountsByImageByEpoch{1}, ~, ~] = spikeCounter(spikesByEventFixAlign, timeBins(1, 1), timeBins(1, 2));
+
+for epoch_i = 2:size(timeBins,1)
+  [spikeCountsByImageByEpoch{epoch_i}, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
 end
 
 %% Determine Epoch selectivity, compared to baseline
@@ -41,7 +44,7 @@ for chan_i = 1:chanCount
       epochValues{epoch_i} = allEpoch;
       
       % Run the Test
-      if epochStatsParams.nonParametric
+      if epochTargParams.nonParametric
         [labelVsBasePVal(allUnitInd, epoch_i), ~, ~] = signrank(allEpoch, allBaseline);
       else
         [~, labelVsBasePVal(allUnitInd, epoch_i), ~] = ttest(allEpoch, allBaseline);

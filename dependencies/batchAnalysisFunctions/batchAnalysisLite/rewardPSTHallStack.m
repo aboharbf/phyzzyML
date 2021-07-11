@@ -2,10 +2,6 @@ function rewardPSTHallStack(spikePathBank, params)
 
 outputDir = fullfile(params.subEventPSTHParams.outputDir, 'rewardPSTH');
 
-if ~exist(outputDir, 'dir')
-  mkdir(outputDir);
-end
-
 normalizeSubEvent = 1;
 plotPlots = 1;
 
@@ -23,8 +19,8 @@ for par_i = 1:length(paradigmList)
   % specifically the index to grab in the collected psthes per unit.
   subEventSigStructPerRun = spikePathLoad(spikePathBankParadigm, {'subEventSigStruct'}, params.spikePathLoadParams);
   if normalizeSubEvent
-    psthByImagePerRunUnProc = spikePathLoad(spikePathBankParadigm, {'psthByImage'}, params.spikePathLoadParams);
-    subEventSigStructPerRun = normalizeTraces(subEventSigStructPerRun, psthByImagePerRunUnProc);
+    [psthByImageFixAlignedPerRunUnProc, stimTimingByRun, spikeAlignParamsByRun] = spikePathLoad(spikePathBankParadigm, {'psthByCategoryFixAlign', 'stimTiming', 'spikeAlignParams'}, params.spikePathLoadParams);
+    subEventSigStructPerRun = normalizeTraces(subEventSigStructPerRun, psthByImageFixAlignedPerRunUnProc, stimTimingByRun, spikeAlignParamsByRun);
     normTag = 'Normalized';
   else
     normTag = '';

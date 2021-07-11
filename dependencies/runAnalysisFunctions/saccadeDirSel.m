@@ -83,8 +83,8 @@ saccadetimesAll = [saccadeTimesStats.saccadetimes];
 
 % Collect the offsets to shift times from stimulus onset aligned to
 % fixation dot onset aligned.
-fixDotDuration = taskData.taskEventFixDur;
-trialTimeOffset = round(fixDotDuration(trialIndsAll)');
+fixDotDuration = round(taskData.taskEventStartTimes - taskData.taskEventFixDur)';
+trialTimeOffset = fixDotDuration(trialIndsAll);
 
 comparisonType = {'fixOnset', 'stimOnset', 'stim', 'all'};
 

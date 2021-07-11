@@ -201,12 +201,13 @@ if ~usePreprocessed
 
   % Identify offsets and onsets for each eventID in the stimParam file
   % during this run.
-  [onsetsByEvent, offsetsByEvent, trialIDsByEvent] = deal(cell(size(eventIDs)));
+  [onsetsByEvent, offsetsByEvent, trialIDsByEvent, fixOnsetsByEvent] = deal(cell(size(eventIDs)));
   for event_i = 1:length(eventIDs)
     wholeRunEventInd = strcmp(taskData.taskEventIDs, eventIDs{event_i});
-    trialIDsByEvent{event_i} = find(wholeRunEventInd);
     onsetsByEvent{event_i} = taskData.taskEventStartTimes(wholeRunEventInd);
     offsetsByEvent{event_i} = taskData.taskEventEndTimes(wholeRunEventInd);
+    trialIDsByEvent{event_i} = find(wholeRunEventInd);
+    fixOnsetsByEvent{event_i} = taskData.taskEventFixDur(wholeRunEventInd);
   end
   eventsObserved = ~cellfun('isempty', onsetsByEvent);
   assert(any(eventsObserved), 'No Events observed. Confirm correct stimulus Param file is in use.');
@@ -233,6 +234,7 @@ if ~usePreprocessed
     onsetsByEvent = onsetsByEvent(eventsObserved);
     offsetsByEvent = offsetsByEvent(eventsObserved);
     trialIDsByEvent = trialIDsByEvent(eventsObserved);
+    fixOnsetsByEvent = fixOnsetsByEvent(eventsObserved);
     eventIDs = eventIDs(eventsObserved);
     eventLabels = eventLabels(eventsObserved);
     eventCategories = eventCategories(eventsObserved);
@@ -275,6 +277,13 @@ if ~usePreprocessed
     jumpsByImage = [];
   end
   
+  % Once eventIDs is finished, rearrange things in taskData which are
+  % dependent on this order, just to be sure
+  [~, taskDataResortInd] = ismember(eventIDs, taskData.taskEventList);
+  taskData.frameMotionData = taskData.frameMotionData(taskDataResortInd);
+  taskData.taskEventList = taskData.taskEventList(taskDataResortInd);
+  assert(all(taskDataResortInd' == 1:length(taskDataResortInd)), 'taskEventIDs from taskData not in the same order as eventIDs - consider investigating further')
+  
   % align spikes by trial, and sort by image and category
   spikeAlignParamsToCoverMovingWin.preAlign = lfpAlignParams.msPreAlign; % need to include spikes throughout the window chronux will use to calculate spectra
   spikeAlignParamsToCoverMovingWin.postAlign = lfpAlignParams.msPostAlign;
@@ -282,6 +291,13 @@ if ~usePreprocessed
   [spikesByEvent, psthEmptyByEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ephysParams.spikeChannels, spikeAlignParamsToCoverMovingWin);
   [spikesByCategory, psthEmptyByCategory] = alignSpikes(spikesByChannel, onsetsByCategory, ephysParams.spikeChannels, spikeAlignParamsToCoverMovingWin);
   
+  % Generate a second array of spikesAligned to the fixation cue rather than the stimulus - mostly for fixation analysis and baseline.
+  spikeAlignParamsToCoverMovingWin.preAlign = lfpAlignParams.msPreAlign; % need to include spikes throughout the window chronux will use to calculate spectra
+  spikeAlignParamsToCoverMovingWin.postAlign = lfpAlignParams.msPostAlign;
+  spikeAlignParamsToCoverMovingWin.refOffset = 0;
+  [spikesByEventFixAlign, ~] = alignSpikes(spikesByChannel, fixOnsetsByEvent, ephysParams.spikeChannels, spikeAlignParamsToCoverMovingWin);
+  [spikesByCategoryFixAlign, ~] = alignSpikes(spikesByChannel, onsetsByCategory, ephysParams.spikeChannels, spikeAlignParamsToCoverMovingWin);
+
   % align spikes again, but this time reference time to lfp sample number (required for chronux TF, even spike-spike)
   spikeAlignParamsTF.preAlign = lfpAlignParams.msPreAlign;
   spikeAlignParamsTF.postAlign = lfpAlignParams.msPostAlign;
@@ -302,8 +318,8 @@ if ~usePreprocessed
   
   if savePreprocessed
     save(preprocessedDataFilename,'analysisParamFilename', 'spikesByChannel', 'lfpData', 'analogInData', 'taskData', 'taskDataAll', 'refStruct', 'categoryList', 'eventLabels', 'eventIDs', ...
-      'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByCategory', 'psthEmptyByCategory', 'spikesByEventForTF', 'spikesByCategoryForTF', 'lfpByEvent', 'lfpByCategory', ...
-      'analogInByEvent', 'analogInByCategory', 'channelUnitNames', 'stimTiming', 'eventCategories', 'onsetsByEvent', 'offsetsByEvent', 'onsetsByCategory', 'offsetsByCategory', ...
+      'jumpsByImage', 'spikesByEvent', 'psthEmptyByEvent', 'spikesByEventFixAlign', 'spikesByCategory', 'psthEmptyByCategory', 'spikesByCategoryFixAlign', 'spikesByEventForTF', 'spikesByCategoryForTF', ...
+      'lfpByEvent', 'lfpByCategory', 'analogInByEvent', 'analogInByCategory', 'channelUnitNames', 'stimTiming', 'eventCategories', 'onsetsByEvent', 'offsetsByEvent', 'onsetsByCategory', 'offsetsByCategory', ...
       'trialIDsByEvent', 'trialIDsByCategory', 'excludeStimParams');
   end
 end
@@ -321,8 +337,10 @@ runAnalysisInputs.eventLabels = eventLabels;
 runAnalysisInputs.eventIDs = eventIDs;
 runAnalysisInputs.jumpsByImage = jumpsByImage;
 runAnalysisInputs.spikesByEvent = spikesByEvent;
+runAnalysisInputs.spikesByEventFixAlign = spikesByEventFixAlign;
 runAnalysisInputs.psthEmptyByEvent = psthEmptyByEvent;
 runAnalysisInputs.spikesByCategory = spikesByCategory;
+runAnalysisInputs.spikesByCategoryFixAlign = spikesByCategoryFixAlign;
 runAnalysisInputs.psthEmptyByCategory = psthEmptyByCategory;
 runAnalysisInputs.spikesByEventForTF = spikesByEventForTF;
 runAnalysisInputs.spikesByCategoryForTF = spikesByCategoryForTF;

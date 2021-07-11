@@ -3,7 +3,6 @@ function selectivityPerEventBarGraphs(selTable, paradigm, params)
 % defined in the events variable below. Also if desired, include
 % directional saccade selectivity (probably not what we want).
 
-includeSaccade = false;
 UnitTypes = params.UnitTypes;
 UnitTypePlot = params.UnitTypePlot;
 alpha = 0.05;                                         % Alpha that the runs were done at.
@@ -18,23 +17,16 @@ for unitType_i = 1:length(UnitTypes)
   if ~isempty(selTableParadigmUnit)
     % Plot 1 - fixation/saccade
     unitCount = sum(unitInd);
-    chanceUnitCount = round(sum(unitCount) * alpha);
-    saccSelCount = sum(selTableParadigmUnit.saccDir_selInd);
     fixSelCount = sum(selTableParadigmUnit.subSel_fixation_selInd);
     
     % Reward processing - take the rewardAbsent vec, and use the other reward
     % paradigm to fill in parts where that paradigm wasn't used.
     rewardVec = selTableParadigmUnit.subSel_rewardCombo_selInd;
-    rewardVec = sum(rewardVec ~= 0);
+    rewardVec = sum(rewardVec);
     
     % Collect Data, labels.
-    if includeSaccade
-      events = {'Directional Saccade', 'Fixation', 'Reward'};
-      dataMat = [saccSelCount; fixSelCount; rewardVec];
-    else
-      events = {'Fixation', 'Reward'};
-      dataMat = [fixSelCount; rewardVec];
-    end
+    events = {'Fixation', 'Reward'};
+    dataMat = [fixSelCount; rewardVec];
     
     % Plot
     figTitle = sprintf('%s activity selective for non-Stimulus Events during %s', UnitTypePlot{unitType_i}, paradigm);

@@ -3,7 +3,7 @@ function [psthByImagePerRun, eventDataArray, dataTypeArray, groupTypeArray, even
 
 % Decide which variables to extract from the runs (Any amount of
 % Proc/Normalizing should be considered).
-variables2Extract = {'psthByImage', 'psthParams'};
+variables2Extract = {'psthByImage', 'psthParams', 'spikeAlignParams', 'stimTiming'};
 if params.meanPSTHParams.normalize
   variables2Extract(1) = strcat(variables2Extract(1), 'Proc');
 end
@@ -11,7 +11,18 @@ end
 paradigmRunList = extractAfter(spikePathBankParadigm.Row, 'S');
 variables2Extract = [variables2Extract, 'subEventSigStruct'];
 
-[psthByImagePerRun, psthParamsPerRun, subEventSigStructPerRun] = spikePathLoad(spikePathBankParadigm, variables2Extract, params.spikePathLoadParams);
+[psthByImagePerRun, psthParamsPerRun, spikeAlignParamsByRun, stimTimingByRun, subEventSigStructPerRun] = spikePathLoad(spikePathBankParadigm, variables2Extract, params.spikePathLoadParams);
+
+% Use the taskData and spikeAlignParams to calculate the window of
+% activity to sample inpsthByImageFixAlign, then clear
+ITIwindow = cell(size(spikeAlignParamsByRun));
+for run_i = 1:length(spikeAlignParamsByRun)
+  ITIwindow{run_i} = spikeAlignParamsByRun{run_i}.preAlign - stimTimingByRun{run_i}.ISI : spikeAlignParamsByRun{run_i}.preAlign;
+  if stimTimingByRun{run_i}.ISI == 0
+    % in circumstances where ISI is set to 0 (which the computer does not actually achieve) take a slice of 200 ms instead.
+    ITIwindow{run_i} = spikeAlignParamsByRun{run_i}.preAlign - 200 : spikeAlignParamsByRun{run_i}.preAlign;
+  end
+end
 
 allSubEventSigStructs = vertcat(subEventSigStructPerRun{:});
 eventList = unique(vertcat(allSubEventSigStructs(:).events))';
@@ -20,7 +31,7 @@ psthParams2Use = psthParamsPerRun{1};
 % If you want to normalize these subEvents, you'll need unprocessed forms
 % of the psth from every run
 if params.subEventPSTHParams.normalize
-  psthByImagePerRunUnProc = spikePathLoad(spikePathBankParadigm, {'psthByImage'}, params.spikePathLoadParams);
+  psthByImagePerRunFixAlignedUnProc = spikePathLoad(spikePathBankParadigm, {'psthByImageFixAlign'}, params.spikePathLoadParams);
 end
 
 % Gather data across all the spikeDataBank Structure, generating a cell
@@ -33,6 +44,11 @@ eventDataArray = cell(length(eventList), length(groupTypeArray), length(dataType
 tmpFile = fullfile(params.subEventPSTHParams.outputDir, sprintf('%s_tempFile.mat', spikePathBankParadigm.paradigmName{1}));
 
 if ~exist(tmpFile, 'file')
+  
+  if ~exist(params.subEventPSTHParams.outputDir, 'dir')
+    mkdir(params.subEventPSTHParams.outputDir);
+  end
+  
   tic
   for run_i = 1:length(paradigmRunList)
     subEventSig = subEventSigStructPerRun{run_i};
@@ -63,17 +79,15 @@ if ~exist(tmpFile, 'file')
           
           % Normalize with respect to baseline from all the stimuli.
           if params.subEventPSTHParams.normalize
-            fixStart = 1; %params.fixBuffer;
-            fixEnd = psthParamsPerRun{run_i}.ITI;
-            fixActivity = psthByImagePerRunUnProc{run_i}{chan_i}{unit_i}(:,fixStart:fixEnd);
-            fixActivity = reshape(fixActivity, [], 1);
+            preFixActivity = psthByImagePerRunFixAlignedUnProc{run_i}{chan_i}{unit_i}(:,ITIwindow{run_i});
+            preFixActivity = reshape(preFixActivity, [], 1);
             
-            fixMean = mean(fixActivity);
-            fixSD = std(fixActivity);
+            preFixMean = mean(preFixActivity);
+            preFixSD = std(preFixActivity);
             
-            if fixMean ~= 0 && fixSD ~= 0
-              PSTHData = (PSTHData - fixMean)/fixSD;
-              PSTHNull = (PSTHNull - fixMean)/fixSD;
+            if preFixMean ~= 0 && preFixSD ~= 0
+              PSTHData = (PSTHData - preFixMean)/preFixSD;
+              PSTHNull = (PSTHNull - preFixMean)/preFixSD;
             end
           end
           
@@ -96,7 +110,7 @@ if ~exist(tmpFile, 'file')
   
   % save a temp file
   save(tmpFile, 'eventDataArray', 'subEventSig')
-  fprintf('Done compiling subEvent data: %d s \n', num2str(toc))
+  fprintf('Done compiling subEvent data: %s s \n', num2str(toc))
   
 else
   load(tmpFile, 'eventDataArray', 'subEventSig')  

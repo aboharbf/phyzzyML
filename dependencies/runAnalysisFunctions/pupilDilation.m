@@ -1,7 +1,7 @@
-function eyeDataStruct = pupilDilation(analogInByEvent, eyeStatsParams, eyeDataStruct, catIndStruct, figStruct)
+function eyeDataStruct = pupilDilation(analogInByEvent, psthParams, eventLabels, eyeDataStruct, catIndStruct, figStruct)
 
 %blinkVals = taskData.eyeCal.blinkVals;
-lfpPaddedBy = eyeStatsParams.lfpPaddedBy+1;
+lfpPaddedBy = (psthParams.movingWin(1)/2)+1;
 blinkPad = 15;      % May need to be slightly widdened. Consider simply tiling 1st value.
 pupilImg = cell(length(analogInByEvent),1);
 
@@ -155,9 +155,8 @@ for cat_i = 1:length(catagoryPlot)
 end
 
 % Plot adaptation curves
-eventLabels = eyeStatsParams.eventLabels;
-stimStart = eyeStatsParams.psthPre;
-stimEnd = eyeStatsParams.psthPre + eyeStatsParams.psthImDur;
+stimStart = psthParams.psthPre;
+stimEnd = psthParams.psthPre + psthParams.psthImDur;
 [meanVec, SDVec] = deal(cell(length(eventLabels),1));
 
 figTitle = 'Pupil adaptation';

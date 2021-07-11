@@ -15,7 +15,7 @@ paradigmNameTag = paradigmNameTag{par_i};
 if ~exist(analysisDir, 'dir')
   mkdir(analysisDir)
 else
-  % No need to re-do these analyses.
+%   No need to re-do these analyses.
 %   return
 end
 
@@ -46,14 +46,70 @@ broadCatSocStruct.label_names_to_use = {'objects', 'idle', 'goalDirected', 'soci
 broadCatSocStruct.coreTitle = 'Broad Categories';
 
 coreAnalysisStructs = [categoriesStruct socCategoriesStruct nonSocCategoriesStruct socVNonSocStruct broadCatSocStruct];
+[coreAnalysisStructs.the_training_label_names] = deal([]);
+[coreAnalysisStructs.the_test_label_names] = deal([]);
+[coreAnalysisStructs.pseudoGenString] = deal('stimuli');
 
-% All Generated analyses have these parameters
-coreAnalysisParams.num_cv_splits = 1;
-coreAnalysisParams.k_repeats_needed = 1;
-coreAnalysisParams.save_extra_preprocessing_info = 0;
-coreAnalysisParams.editFieldEnabled = [1 0 0];
-coreAnalysisParams.num_features_to_use = 0;
-coreAnalysisParams.editFieldEnabled = [1 0 0];
+
+% New - Add for Stimuli, make sure pseudoGenString is empty
+stimuliSetAStruct.labelFile = 'stimSetA';
+stimuliSetAStruct.label = 'stimuli';
+stimuliSetAStruct.label_names_to_use = {'landscape_4003.avi', 'landscape_4004.avi', 'monkeyChasing_1111.avi', 'monkeyChasing_1112.avi', 'monkeyFighting_1121.avi', 'monkeyFighting_1123.avi', 'monkeyGoalDir_1101.avi', 'monkeyGoalDir_1102.avi', ...
+      'monkeyGrooming_1141.avi', 'monkeyGrooming_1142.avi', 'monkeyIdle_1302.avi', 'monkeyIdle_1303.avi', 'monkeyMounting_1131.avi', 'monkeyMounting_1133.avi', 'objects_2101.avi', 'objects_2104.avi'};
+stimuliSetAStruct.coreTitle = 'Stim Set A';
+
+stimuliSetBStruct.labelFile = 'stimSetB';
+stimuliSetBStruct.label = 'stimuli';
+stimuliSetBStruct.label_names_to_use = {'landscape_4002.avi', 'landscape_4005.avi', 'monkeyChasing_1113.avi', 'monkeyChasing_1114.avi', 'monkeyFighting_1122.avi', 'monkeyFighting_1124.avi', 'monkeyGoalDir_1103.avi', 'monkeyGoalDir_1104.avi', ...
+  'monkeyGrooming_1143.avi', 'monkeyGrooming_1144.avi', 'monkeyIdle_1301.avi', 'monkeyIdle_1305.avi', 'monkeyMounting_1132.avi', 'monkeyMounting_1134.avi', 'objects_2102.avi', 'objects_2103.avi'};
+stimuliSetBStruct.coreTitle = 'Stim Set B';
+
+stimSetStructs = [stimuliSetAStruct stimuliSetBStruct];
+[stimSetStructs.the_training_label_names] = deal([]);
+[stimSetStructs.the_test_label_names] = deal([]);
+[stimSetStructs.pseudoGenString] = deal('');
+
+coreAnalysisStructs = [coreAnalysisStructs stimSetStructs];
+
+% Generate every possible cross between training and testing data, where
+% for every stimulus category, you are training on stimCount - 1, then
+% testing on the left out stim.
+% 
+% % 2 stimuli sets - find out which stimuli cluster
+% rasterFileData = load(rasterFile, 'binned_labels');
+% stimSet1Ind = find(cellfun(@(x) any(contains(x, 'objects_2103.avi')), rasterFileData.binned_labels.stimuli),1);
+% stimSet2Ind = find(cellfun(@(x) any(contains(x, 'objects_2104.avi')), rasterFileData.binned_labels.stimuli),1);
+% stimSetInd = [stimSet1Ind, stimSet2Ind];
+% 
+% for stimSet_i = 1:length(stimSetInd)
+%   uniqueStimVec = unique([rasterFileData.binned_labels.stimuli{stimSetInd(stimSet_i)}])';
+%   stimClassVec = unique(extractBefore(uniqueStimVec, '_'));
+%   
+%   stimByClass = cell(length(stimClassVec), 1);
+%   for ii = 1:length(stimByClass)
+%     stimByClass{ii} = uniqueStimVec(contains(uniqueStimVec, stimClassVec{ii}));
+%   end
+%   
+%   % Each paradigm iterates across the below values
+%   for ii = 1:2
+%     % Use categoriesStruct as template, adding in a few new fields
+%     stimuliStruct = categoriesStruct;
+%     stimuliStruct.labelFile = sprintf('stimuliGen_stimSet%d_V%d', stimSet_i, ii);
+%     stimuliStruct.pseudoGenString = 'stimuli';
+%     stimuliStruct.genDS = true;
+%     
+%     stimuliStruct.label_names_to_use = uniqueStimVec;
+% %     stimuliStruct.coreTitle = sprintf('Stimuli Gen, Stim Set %d, V%d', stimSet_i, ii);
+%     logicalInd2Take = false(1,2);
+%     logicalInd2Take(ii) = true;
+%     
+%     stimuliStruct.the_training_label_names = cellfun(@(x) x(logicalInd2Take), stimByClass, 'UniformOutput', false);
+%     stimuliStruct.the_test_label_names = cellfun(@(x) x(~logicalInd2Take), stimByClass, 'UniformOutput', false);
+%     
+%     coreAnalysisStructs = [coreAnalysisStructs, stimuliStruct];
+%     
+%   end
+% end
 
 % All Generate analyses are generated with a combination of the features
 % below.
@@ -65,9 +121,9 @@ unitSets = {'MUA', 'U&US'};
 % analysisTags are used to name the file, and put into the title of the
 % figure.
 analyisTag = {'AllUnits', 'noHT', 'onlyHT', 'socIntSelAny', 'noSocIntSelAny', ...
-  'socIntEarly', 'socIntstimLate', 'socIntReward', ...
+  'socIntEarly', 'socIntLate', 'socIntReward', ...
   'socIntSel_noHT', 'socIntSel_onlyHT'...
-  'broadCatEarly', 'broadCatstimLate', 'broadCatReward', ...
+  'broadCatEarly', 'broadCatLate', 'broadCatReward', ...
   'broadCatSliding', 'broadCatAny', ...
   'broadCatAny_onlyHT', 'broadCatAny_noHT', 'nobroadCatAny_onlyHT'...
   'stimEarlySel', 'stimLateSel', 'stimRewardSel'...
@@ -132,12 +188,16 @@ for unit_set_i = 1:length(unitSets)
   
   for core_i = 1:length(coreAnalysisStructs)
     
-    analysisTemplateStruct = struct();
+%     % Copy over the label, label names.
+%     analysisTemplateStruct = struct();
+%     analysisTemplateStruct.labelFile = coreAnalysisStructs(core_i).labelFile;
+%     analysisTemplateStruct.label = coreAnalysisStructs(core_i).label;
+%     analysisTemplateStruct.label_names_to_use = coreAnalysisStructs(core_i).label_names_to_use;
+%     analysisTemplateStruct.the_training_label_names = coreAnalysisStructs(core_i).the_training_label_names;
+%     analysisTemplateStruct.the_test_label_names = coreAnalysisStructs(core_i).the_test_label_names;
     
-    % Copy over the label, label names.
-    analysisTemplateStruct.labelFile = coreAnalysisStructs(core_i).labelFile;
-    analysisTemplateStruct.label = coreAnalysisStructs(core_i).label;
-    analysisTemplateStruct.label_names_to_use = coreAnalysisStructs(core_i).label_names_to_use;
+    analysisTemplateStruct = coreAnalysisStructs(core_i);
+        
     analysisTemplateStruct.save_extra_preprocessing_info = 0;
     analysisTemplateStruct.num_features_to_use = 0;
     
@@ -177,6 +237,9 @@ for unit_set_i = 1:length(unitSets)
             end
             
           end
+          
+          % Extra step for GenDS - make sure all sites have non-0 number.
+          sites2KeepArray = [sites2KeepArray; min_num_repeats_all_sites ~= 0];
           
           % Keep units which check all the boxes, store in the sites field.
           sites2Keep = all(sites2KeepArray,1);

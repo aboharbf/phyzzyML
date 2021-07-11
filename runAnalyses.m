@@ -43,6 +43,9 @@ figStruct.channelNames = ephysParams.channelNames;
 figStruct.figDir = outDir;
 figStruct.figTag = sprintf('%s,Run%s', dateSubject, runNum);
 
+ITI = stimTiming.ISI;
+ITIwindow = spikeAlignParams.preAlign - ITI : spikeAlignParams.preAlign;
+channelNames = ephysParams.channelNames;
 spikeChannels = ephysParams.spikeChannels;
 lfpChannels = ephysParams.lfpChannels;
 
@@ -51,7 +54,6 @@ analogInChannelNames = analogInParams.channelNames;
 analogInChannelUnits = analogInParams.channelUnits;
 
 psthPre = psthParams.psthPre;
-ITI = psthParams.ITI;
 psthPost = psthParams.psthPost;
 smoothingWidth = psthParams.smoothingWidth;
 psthErrorType = psthParams.errorType;
@@ -333,14 +335,17 @@ save(analysisOutFilename,'groupLabelsByImage','groupLabelColorsByImage', '-appen
 %% Eye Signal Processing
 eyeStatsParams.eventIDs = eventIDs;
 eyeStatsParams.eventLabels = eventLabels;
+eyeStatsParams.outDir = outDir;
+
 eyeDataStruct = struct();
 
 if plotSwitch.pupilDilation
-  eyeDataStruct = pupilDilation(analogInByEvent, eyeStatsParams, eyeDataStruct, catIndStruct, figStruct);
+  eyeDataStruct = pupilDilation(analogInByEvent, psthParams, eventLabels, eyeDataStruct, catIndStruct, figStruct);
 end
 
 if plotSwitch.eyeStatsAnalysis
-  [eyeDataStruct, eyeBehStatsByStim, eyeInByEvent] = eyeStatsAnalysis(analogInByEvent, eyeStatsParams, taskData, eyeDataStruct);
+%   error('Update to accomodate changes in origin during run')
+  [eyeDataStruct, eyeBehStatsByStim, eyeInByEvent] = eyeStatsAnalysis(analogInByEvent, psthParams, eyeStatsParams, taskData, eyeDataStruct, figStruct);
   save(analysisOutFilename, 'eyeBehStatsByStim', 'eyeInByEvent', '-append');
 else
   % Reshapes analogInByEvent into eye signal. not smoothed
@@ -351,6 +356,7 @@ end
 
 if plotSwitch.attendedObject
   % See whats being attended
+%   error('Update to accomodate changes in origin during run')
   eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct);
 
   % Assign each Saccade labeled a target.
@@ -369,33 +375,43 @@ end
 %% Spike Processing
 
 if ~calcSwitch.spikeTimes %use 1 ms bins for spikes
+  % Bin and save spike arrays
   spikesByEventBinned = calcSpikeTimes(spikesByEvent, psthParams);
+  spikesByEventBinnedFixAlign = calcSpikeTimes(spikesByEventFixAlign, psthParams);
+  save(analysisOutFilename, 'spikesByEventBinned', 'spikesByEventBinnedFixAlign', '-append');
+  
+  % Category specific vectors sometimes too large for normal saving.
   spikesByCategoryBinned = calcSpikeTimes(spikesByCategory, psthParams);
-  save(analysisOutFilename, 'spikesByEventBinned', '-append');
+  spikesByCategoryBinnedFixAlign = calcSpikeTimes(spikesByCategoryFixAlign, psthParams);
   analysisOutFilenameBig = fullfile(fileparts(analysisOutFilename), 'analyzedDataBig.mat');
-  save(analysisOutFilenameBig,'spikesByCategoryBinned', '-v7.3');
+  save(analysisOutFilenameBig,'spikesByCategoryBinned', 'spikesByCategoryBinnedFixAlign', '-v7.3');
 end
 
 if calcSwitch.imagePSTH && calcSwitch.spikeTimes
   [psthByImage, psthErrByImage] = calcStimPSTH(spikesByEvent, psthEmptyByEvent, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
-  save(analysisOutFilename,'psthByImage','psthErrByImage', '-append');
+  [psthByImageFixAlign, ~] = calcStimPSTH(spikesByEventFixAlign, psthEmptyByEvent, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
+  save(analysisOutFilename,'psthByImage', 'psthErrByImage', 'psthByImageFixAlign', '-append');
 elseif calcSwitch.imagePSTH
   [psthByImage, psthErrByImage] = calcStimPSTH(spikesByEventBinned, psthEmptyByEvent, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
-  save(analysisOutFilename,'psthByImage','psthErrByImage', '-append');
+  [psthByImageFixAlign, ~] = calcStimPSTH(spikesByEventBinnedFixAlign, psthEmptyByEvent, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
+  save(analysisOutFilename,'psthByImage','psthErrByImage', 'psthByImageFixAlign', '-append');
 end
 
 if calcSwitch.categoryPSTH && calcSwitch.spikeTimes
   [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategory, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
-  save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
+  [psthByCategoryFixAlign, ~] = calcStimPSTH(spikesByCategoryFixAlign, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
+  save(analysisOutFilename,'psthByCategory','psthErrByCategory', 'psthByCategoryFixAlign', '-append');
 elseif calcSwitch.categoryPSTH
   [psthByCategory, psthErrByCategory] = calcStimPSTH(spikesByCategoryBinned, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
-  save(analysisOutFilename,'psthByCategory','psthErrByCategory', '-append');
+  [psthByCategoryFixAlign, ~] = calcStimPSTH(spikesByCategoryBinnedFixAlign, psthEmptyByCategory, calcSwitch.spikeTimes, psthParams, spikeAlignParams);
+  save(analysisOutFilename,'psthByCategory','psthErrByCategory', 'psthByCategoryFixAlign', '-append');
   clear spikesByCategoryBinned
 end
 
 %% Spike, Task data, Eye Data Analysis
 
 if plotSwitch.eyeStimOverlay
+%   error('Update to accomodate changes in origin during run')
   [eyeInByEventDS] = eyeStimOverlay(eyeInByEvent, eyeDataStruct, spikesByEventBinned, eventIDs, taskData, psthParams, eyeStimOverlayParams);
   save(analysisOutFilename,'eyeInByEventDS', '-append');
 end
@@ -420,16 +436,20 @@ selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, ev
 selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, selTable);
 
 % Compares epochs against baseline and each other.
-selTable = epochCompareStats(spikesByEvent, selTable, epochTargParams);
+selTable = epochCompareStats(spikesByEvent, spikesByEventFixAlign, selTable, epochTargParams);
 
 % Tests between epochs of the conditions between different targets.
-selTable = epochTargetStats(spikesByEvent, selTable, eventIDs, taskData.paradigm, epochTargParams);
+selTable = epochTargetStats(spikesByEvent, spikesByEventFixAlign, selTable, eventIDs, taskData.paradigm, epochTargParams);
 
 if ~strcmp(taskData.paradigm, 'familiarFace')
   [anovaTable, anovaBinParams] = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochSWparams);
 end
 
 save(analysisOutFilename, 'selTable', 'anovaTable', 'anovaBinParams', '-append');
+
+% Saccade Counts/Matrices.
+[saccadeMatArray, saccadeMatLabel] = saccadePerEvent(eyeBehStatsByStim, taskData, trialIDsByEvent, psthParams, saccadeStackParams);
+save(analysisOutFilename, 'saccadeMatArray', 'saccadeMatLabel', '-append');
 
 % Save a few of these for rapid testing.
 % if strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '001')
@@ -481,8 +501,8 @@ if plotSwitch.imagePsth
         psthTitle = [psthTitle ' - Z scored'];
         for ii = 1:size(psthByImage{channel_i}{unit_i},1)
           if psthParams.Zscore == 1
-            preStimBaseline = mean(psthByImage{channel_i}{unit_i}(ii,1:ITI)); %(Baseline) Mean Subtraction, during pre-fixation period (pre-successful fixation).
-            psthByImage{channel_i}{unit_i}(ii,:) = (psthByImage{channel_i}{unit_i}(ii,:) - preStimBaseline)/std(psthByImage{channel_i}{unit_i}(ii,:)); %Z score.
+            preStimBaseline = psthByImageFixAlign{channel_i}{unit_i}(ii, ITIwindow); %(Baseline) Mean Subtraction, during pre-fixation period (pre-successful fixation).
+            psthByImage{channel_i}{unit_i}(ii,:) = (psthByImage{channel_i}{unit_i}(ii,:) - mean(preStimBaseline))/std(preStimBaseline); %Z score.
           else
             stimBaseline = mean(psthByImage{channel_i}{unit_i}(ii,:)); % Mean Subtraction.
             psthByImage{channel_i}{unit_i}(ii,:) = (psthByImage{channel_i}{unit_i}(ii,:) - stimBaseline)/std(psthByImage{channel_i}{unit_i}(ii,:)); %Z score.
@@ -495,11 +515,7 @@ if plotSwitch.imagePsth
       eventLabelsPlot = strrep(eventLabels, '_', ' ');
       plotPSTH(psthByImage{channel_i}{unit_i}(NewStimOrder,:), [], [], psthParams, 'color', psthTitle, eventLabelsPlot(NewStimOrder));
       clear figData
-      title(psthTitle);
-      figData.z = psthByImage{channel_i}{unit_i};
-      figData.x = -psthPre:psthImDur+psthPost;
-      saveFigure(outDir, sprintf('imPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}, runNum), figData, figStruct, figStruct.figTag);
-      
+      saveFigure(outDir, sprintf('imPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}, runNum), [], figStruct, figStruct.figTag);
     end
   end
 end
@@ -512,8 +528,8 @@ if psthParams.Zscore
     for unit_i = 1:length(channelUnitNames{channel_i})
       for ii = 1:size(psthByCategory{channel_i}{unit_i},1)
         if psthParams.Zscore == 1
-          preStimBaseline = mean(psthByCategory{channel_i}{unit_i}(ii,1:ITI)); %(Baseline) Mean Subtraction, during pre-fixation period (pre-successful fixation).
-          psthByCategory{channel_i}{unit_i}(ii,:) = (psthByCategory{channel_i}{unit_i}(ii,:) - preStimBaseline)/std(psthByCategory{channel_i}{unit_i}(ii,:)); %Z score.
+          preStimBaseline = psthByCategoryFixAlign{channel_i}{unit_i}(ii,ITIwindow); %(Baseline) Mean Subtraction, during pre-fixation period (pre-successful fixation).
+          psthByCategory{channel_i}{unit_i}(ii,:) = (psthByCategory{channel_i}{unit_i}(ii,:) - mean(preStimBaseline))/std(preStimBaseline); %Z score.
         else
           stimBaseline = mean(psthByCategory{channel_i}{unit_i}(ii,:)); % Mean Subtraction.
           psthByCategory{channel_i}{unit_i}(ii,:) = (psthByCategory{channel_i}{unit_i}(ii,:) - stimBaseline)/std(psthByCategory{channel_i}{unit_i}(ii,:)); %Z score.
@@ -538,61 +554,50 @@ if plotSwitch.categoryPsth
       psthTitle = sprintf('Per Catagory PSTH %s, %s, %s',channelNames{channel_i}, channelUnitNames{channel_i}{unit_i}, zTag);
       figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'outerposition', figStruct.figPos);
       plotPSTH(psthByCategory{channel_i}{unit_i}, [],  [], psthParams, 'color', psthTitle, categoryListPlot);
-      clear figData
-      title(psthTitle);
-      figData.z = psthByCategory{channel_i}{unit_i};
-      figData.x = -psthPre:psthImDur+psthPost;
-      saveFigure(outDir, sprintf('catPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag);
+      saveFigure(outDir, sprintf('catPSTH_%s_%s_Run%s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), [], figStruct, figStruct.figTag);
     end
   end
 end
 
 if plotSwitch.analysisGroupsPsth && isfield(analysisGroups.analysisGroupPSTH, taskData.paradigm)
   % Identify which PSTHes to stack.
-%   analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
-  analysisPSTHStruct = analysisGroups.analysisGroupPSTH.(taskData.paradigm);
-  analysisPSTH = fields(analysisPSTHStruct);
-  categoryListPlot = strrep(categoryList, '_', ' ');
-  
-  for ii = 1:length(analysisPSTH)
-    stimOrder = [];
-    categoryListSet = analysisPSTHStruct.(analysisPSTH{ii});
+  %   analysisPSTH = fields(analysisGroups.analysisGroupPSTH);
+  if isfield(analysisGroups.analysisGroupPSTH, taskData.paradigm)
+    analysisPSTHStruct = analysisGroups.analysisGroupPSTH.(taskData.paradigm);
+    analysisPSTH = fields(analysisPSTHStruct);
+    categoryListPlot = strrep(categoryList, '_', ' ');
     
-    % Pick the members which belong in this group
-    for jj = 1:length(categoryListSet)
-      stimOrder = [stimOrder; find(strcmp(categoryList, categoryListSet(jj))')];
-    end
-    
-    if ~isempty(stimOrder)
+    for ii = 1:length(analysisPSTH)
+      stimOrder = [];
+      categoryListSet = analysisPSTHStruct.(analysisPSTH{ii});
       
-      if sum(stimOrder) > 10
-        psthType = 'color';
-      else
-        psthType = 'line';
+      % Pick the members which belong in this group
+      for jj = 1:length(categoryListSet)
+        stimOrder = [stimOrder; find(strcmp(categoryList, categoryListSet(jj))')];
       end
       
-      
-      for channel_i = 1:length(channelNames)
-        for unit_i = 1:length(channelUnitNames{channel_i})
-          if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
-            continue;
+      if ~isempty(stimOrder)
+        
+        if sum(stimOrder) > 10
+          psthType = 'color';
+        else
+          psthType = 'line';
+        end
+        
+        for channel_i = 1:length(channelNames)
+          for unit_i = 1:length(channelUnitNames{channel_i})
+            if length(channelUnitNames{channel_i}) == 2 && unit_i == 1 %if no isolated unit defined, plot just MUA, not also unsorted (since it's identical)
+              continue;
+            end
+            psthTitle = sprintf('Analysis Group %s PSTH %s, %s, %s', analysisPSTH{ii}, channelNames{channel_i}, channelUnitNames{channel_i}{unit_i}, zTag);
+            figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
+            plotPSTH(psthByCategory{channel_i}{unit_i}(stimOrder,:), psthErrByCategory{channel_i}{unit_i}(stimOrder,:),  [], psthParams, psthType, psthTitle, categoryListPlot(stimOrder));
+            saveFigure(outDir, sprintf('analysisGroupPSTH_%s_%s_%s_Run%s', analysisPSTH{ii}, channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), [], figStruct, figStruct.figTag);
           end
-          
-          psthTitle = sprintf('Analysis Group %s PSTH %s, %s, %s', analysisPSTH{ii}, channelNames{channel_i}, channelUnitNames{channel_i}{unit_i}, zTag);
-          figure('Name',psthTitle,'NumberTitle','off','units','normalized','outerposition',figStruct.figPos);
-
-          plotPSTH(psthByCategory{channel_i}{unit_i}(stimOrder,:), psthErrByCategory{channel_i}{unit_i}(stimOrder,:),  [], psthParams, psthType, psthTitle, categoryListPlot(stimOrder));
-
-          clear figData
-          title(psthTitle);
-          figData.z = psthByCategory{channel_i}{unit_i};
-          figData.x = -psthPre:psthImDur+psthPost;
-          saveFigure(outDir, sprintf('analysisGroupPSTH_%s_%s_%s_Run%s', analysisPSTH{ii}, channelNames{channel_i},channelUnitNames{channel_i}{unit_i},runNum), figData, figStruct, figStruct.figTag);
         end
       end
     end
   end
-  
 end
 
 [spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch] = deal(cell(size(frEpochs,1),1));
@@ -625,7 +630,7 @@ trialCountsByImage = cellfun(@(x) length(x{1}{1}), spikesByEvent);
 
 save(analysisOutFilename, 'firingRatesByImageByEpoch', 'firingRateErrsByImageByEpoch', 'spikeCountsByImageByEpoch', '-append');
 
-%% Unit Selectivity Analyses
+%% Null Model Stats
 
 [sigStruct, imageSortOrder, nullModelPvalues, nullTraceMeans, nullTraceSD] = nullModelStats(psthByImage, spikeCountsByImageByEpoch, firingRatesByImageByEpoch, firingRateErrsByImageByEpoch, ...
   trialCountsByImage, analysisGroups, epochLabels, eventIDs, ephysParams);
@@ -1123,6 +1128,8 @@ if taskData.RFmap
   return
 end
 
+%% LFP Analyses
+
 % evokedTF says to do TF analysis on the trial average psth and evoked potentials
 if calcSwitch.meanEvokedTF && calcSwitch.spikeTimes
   % note: because I'm currently working with spike times rather than
@@ -1261,7 +1268,7 @@ if (calcSwitch.inducedSpectra || calcSwitch.inducedCatLFPTF || calcSwitch.induce
 end
 
 %%%% evoked potential plots
-times = -psthPre:psthImDur+psthPost;
+times = -psthParams.psthPre:psthParams.psthImDur+psthParams.psthPost;
 if isfield(plotSwitch,'evokedPsthMuaMultiCh') && plotSwitch.evokedPsthMuaMultiCh
   for group_i = 1:length(analysisGroups.evokedPsthOnePane.groups)
     group = analysisGroups.evokedPsthOnePane.groups{group_i};

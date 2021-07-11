@@ -9,7 +9,24 @@ processedVarFileInd = length(params.spikePathLoadParams.files) + 1;
 if psthParams.normalize || psthParams.rateThreshold
   
   % extract the variables
-  [psthByImage, psthErrByImage, psthByCategory, psthErrByCategory, psthParamsPerRun] = spikePathLoad(spikePathBank, {'psthByImage', 'psthErrByImage', 'psthByCategory', 'psthErrByCategory', 'psthParams'}, psthParams.spikePathLoadParams);
+  [psthByImageByRun, psthErrByImageByRun, psthByCategoryByRun, psthErrByCategoryByRun, psthParamsByRun] = spikePathLoad(spikePathBank, {'psthByImage', 'psthErrByImage', 'psthByCategory', 'psthErrByCategory', 'psthParams'}, psthParams.spikePathLoadParams);
+  if psthParams.normalize
+    [stimTimingByRun, spikeAlignParamsByRun, psthByImageFixAlignByRun] = spikePathLoad(spikePathBank, {'stimTiming', 'spikeAlignParams', 'psthByImageFixAlign'}, psthParams.spikePathLoadParams);
+    
+    % Use the taskData and spikeAlignParams to calculate the window of
+    % activity to sample inpsthByImageFixAlign, then clear
+    ITIwindow = cell(size(spikeAlignParamsByRun));
+    for run_i = 1:length(spikeAlignParamsByRun)
+      ITIwindow{run_i} = spikeAlignParamsByRun{run_i}.preAlign - stimTimingByRun{run_i}.ISI : spikeAlignParamsByRun{run_i}.preAlign;
+      if stimTimingByRun{run_i}.ISI == 0
+        % in circumstances where ISI is set to 0 (which the computer does not actually achieve) take a slice of 200 ms instead.
+        ITIwindow{run_i} = spikeAlignParamsByRun{run_i}.preAlign - 200 : spikeAlignParamsByRun{run_i}.preAlign;
+      end
+    end
+    
+    clear stimTimingByRun spikeAlignParamsByRun
+    
+  end
   runList = spikePathBank.Properties.RowNames;
   procFileName = params.spikePathLoadParams.batchAnalysisOutputName;
   procFileList = fullfile(spikePathBank.analyzedDir, procFileName);
@@ -17,19 +34,19 @@ if psthParams.normalize || psthParams.rateThreshold
   % For every variable above, normalize/threshold as needed, and save it to a
   % file in the local analysis folder.
   tic
-  parfor run_i = 1:length(runList)
+  for run_i = 1:length(runList)
     
     % Initialize structures to save, processed versions.
-    [psthByImageProc, psthErrByImageProc] = deal(initNestedCellArray(psthByImage{run_i}, 'NaN'));
-    [psthByCategoryProc, psthErrByCategoryProc] = deal(initNestedCellArray(psthByCategory{run_i}, 'NaN'));
+    [psthByImageProc, psthErrByImageProc] = deal(initNestedCellArray(psthByImageByRun{run_i}, 'NaN'));
+    [psthByCategoryProc, psthErrByCategoryProc] = deal(initNestedCellArray(psthByCategoryByRun{run_i}, 'NaN'));
     
-    for chan_i = 1:length(psthByImage{run_i})
-      for unit_i = 1:length(psthByImage{run_i}{chan_i})
+    for chan_i = 1:length(psthByImageByRun{run_i})
+      for unit_i = 1:length(psthByImageByRun{run_i}{chan_i})
         % Retrieve correct PSTH from run
-        unitActivity = psthByImage{run_i}{chan_i}{unit_i};
-        unitErr = psthErrByImage{run_i}{chan_i}{unit_i};
-        unitCategoryAct = psthByCategory{run_i}{chan_i}{unit_i};
-        unitCategoryErr = psthErrByCategory{run_i}{chan_i}{unit_i};
+        unitActivity = psthByImageByRun{run_i}{chan_i}{unit_i};
+        unitErr = psthErrByImageByRun{run_i}{chan_i}{unit_i};
+        unitCategoryAct = psthByCategoryByRun{run_i}{chan_i}{unit_i};
+        unitCategoryErr = psthErrByCategoryByRun{run_i}{chan_i}{unit_i};
         
         % Do not include activity which does not meet 1 Hz Threshold.
         if psthParams.rateThreshold ~= 0
@@ -44,25 +61,25 @@ if psthParams.normalize || psthParams.rateThreshold
         
         if psthParams.normalize == 1
           % If desired, Z score PSTHs here based on fixation period activity.
-          runPsthParams = psthParamsPerRun{run_i};
-          tmp = unitActivity(:,1:abs(runPsthParams.ITI));
-          tmp = reshape(tmp, [size(tmp,1) * size(tmp,2), 1]);
-          fixMean = mean(tmp); %Find activity during fixation across all stim.
-          fixSD = std(tmp);
-          if  fixMean ~= 0 && fixSD ~= 0
-            unitActivity = ((unitActivity - fixMean)/fixSD);
-            unitErr = ((unitErr - fixMean)/fixSD);
+          runPsthParams = psthParamsByRun{run_i};
+          unitActivityFixAligned = psthByImageFixAlignByRun{run_i}{chan_i}{unit_i};
+          tmp = unitActivityFixAligned(:, ITIwindow{run_i});
+          itiMean = mean(tmp(:)); %Find activity during fixation across all stim.
+          itiSD = std(tmp(:));
+          if  itiMean ~= 0 && itiSD ~= 0
+            unitActivity = ((unitActivity - itiMean)/itiSD);
+            unitErr = ((unitErr - itiMean)/itiSD);
           end
           
           % Not sure if it is possible for this to yield different number,
           % but will do seperately just in case.
           tmp = unitCategoryAct(:,1:abs(runPsthParams.psthPre));
           tmp = reshape(tmp, [size(tmp,1) * size(tmp,2), 1]);
-          fixMean = mean(tmp); %Find activity during fixation across all stim.
-          fixSD = std(tmp);
-          if  fixMean ~= 0 && fixSD ~= 0
-            unitCategoryAct = ((unitCategoryAct - fixMean)/fixSD);
-            unitCategoryErr = ((unitCategoryErr - fixMean)/fixSD);
+          itiMean = mean(tmp); %Find activity during fixation across all stim.
+          itiSD = std(tmp);
+          if  itiMean ~= 0 && itiSD ~= 0
+            unitCategoryAct = ((unitCategoryAct - itiMean)/itiSD);
+            unitCategoryErr = ((unitCategoryErr - itiMean)/itiSD);
           end
         end
         

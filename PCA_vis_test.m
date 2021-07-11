@@ -1,9 +1,10 @@
 % perTimePt data projected onto PCs 1-3; labeled by bhvtype
 
-
+monkeyName = {'Mo', 'Sam'};
+dataDir = {'D:\DataAnalysisMo\batchAnalysis\PCA\preProc', 'D:\DataAnalysisSam\batchAnalysis\PCA\preProc'};
 % dataFiles = {'PCA_data_allMUA_3smooth', 'PCA_data_SocMUA_3smooth', 'PCA_data_allUUS_3smooth', 'PCA_data_SocUUS_3smooth'};
 % dataFiles = {'pcaData_HTC_MUA', 'pcaData_HTC_SocMUA', 'pcaData_HTC_US&U', 'pcaData_HTC_SocUS&U', 'pcaData_NS_MUA', 'pcaData_NS_SocMUA', 'pcaData_NS_US&U', 'pcaData_NS_SocUS&U'};
-dataFiles = {'pcaData_NS_MUA'};
+dataFiles = {'pcaData_NS_MUA', 'pcaData_HTC_MUA'};
 titles = {'MUA', 'Soc MUA', 'US&U', 'Soc US&U', 'MUA', 'Soc MUA', 'US&U', 'Soc US&U'};
 % dataFiles = {'pcaData_Combo_MUA', 'pcaData_Combo_US&U'};
 % titles = {'MUA', 'US&U'};
@@ -27,11 +28,10 @@ figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
-
+for dir_i = 1:length(dataDir)
 for data_i = 1:length(dataFiles)
   
-  tmp = load(dataFiles{data_i});
-  load(dataFiles{data_i});
+  load(fullfile(dataDir{dir_i}, dataFiles{data_i}));
   
   if data_i == 1
     timeAxis = 1:binCount;
@@ -40,7 +40,7 @@ for data_i = 1:length(dataFiles)
   end
   
   % Color scatter plot distinguishing clusters
-  figTitle = sprintf('%s - %s PC 1-3 time evolution bhvtype - %s', paradigmLabel, titles{data_i}, strjoin(bhvLabels, '-'));
+  figTitle = sprintf('%s - %s - %s PC 1-3 time evolution bhvtype - %s', monkeyName{dir_i}, paradigmLabel, titles{data_i}, strjoin(bhvLabels, '-'));
   figH = figure('name', figTitle, 'units','normalized','position', [0.4214    0.1528    0.5568    0.6917]);
   axHands = gobjects(length(bhvLabels)+1,1);
 
@@ -81,38 +81,38 @@ for data_i = 1:length(dataFiles)
   saveFigure(outputDir, ['1. ' figTitle], [], figStruct, [])
   
   
-  axHands(1).CameraPosition = [-1 0 180];
-  axHands(1).CameraUpVector = [0 1 0];
-  saveFigure(outputDir, ['1a. ' figTitle], [], figStruct, [])  
-  
+%   axHands(1).CameraPosition = [-1 0 180];
+%   axHands(1).CameraUpVector = [0 1 0];
+%   saveFigure(outputDir, ['1a. ' figTitle], [], figStruct, [])  
+%   
   % Trajectories
-  figTitle = sprintf('Paradigm %s - Trajectories in Population %s', paradigmLabel, titles{data_i});
-  figH2 = figure('name', figTitle, 'units', 'normalized', 'position', [0.25    0.3    0.86    0.45]);
-  sgtitle(figTitle);
-  for PC = 1:pcCount
-    subplot(1,pcCount,PC);
-    hold on
-    for i = 1:length(bhvLabels)
-      PrincipleAxis = score(start(i):stops(i), PC);
-      plot(1:binCount,PrincipleAxis, colors(i), 'LineWidth', 2);
-    end
-    
-    % Label the plot
-    xticks(binLabelInfo.bins_to_label)
-    xticklabels(binLabelInfo.points_to_label)
-    yLims = ylim();
-    ylim(yLims)
-    for line_i = 1:length(binLabelInfo.x_for_lines)
-      plot([binLabelInfo.x_for_lines(line_i), binLabelInfo.x_for_lines(line_i)], [yLims(1), yLims(2)], 'color', 'k', 'lineWidth', 3)
-    end
-    
-    xlabel('Time'); ylabel('a.u.');
-    title(sprintf('PC %d : bhvtype %s', PC, bhvLabels{i}))
-    hold on
-  end
+%   figTitle = sprintf('Paradigm %s - Trajectories in Population %s', paradigmLabel, titles{data_i});
+%   figH2 = figure('name', figTitle, 'units', 'normalized', 'position', [0.25    0.3    0.86    0.45]);
+%   sgtitle(figTitle);
+%   for PC = 1:pcCount
+%     subplot(1,pcCount,PC);
+%     hold on
+%     for i = 1:length(bhvLabels)
+%       PrincipleAxis = score(start(i):stops(i), PC);
+%       plot(1:binCount,PrincipleAxis, colors(i), 'LineWidth', 2);
+%     end
+%     
+%     % Label the plot
+%     xticks(binLabelInfo.bins_to_label)
+%     xticklabels(binLabelInfo.points_to_label)
+%     yLims = ylim();
+%     ylim(yLims)
+%     for line_i = 1:length(binLabelInfo.x_for_lines)
+%       plot([binLabelInfo.x_for_lines(line_i), binLabelInfo.x_for_lines(line_i)], [yLims(1), yLims(2)], 'color', 'k', 'lineWidth', 3)
+%     end
+%     
+%     xlabel('Time'); ylabel('a.u.');
+%     title(sprintf('PC %d : bhvtype %s', PC, bhvLabels{i}))
+%     hold on
+%   end
+%   
+%   saveFigure(outputDir, ['2. ' figTitle], [], figStruct, [])
   
-  saveFigure(outputDir, ['2. ' figTitle], [], figStruct, [])
   
-  
-  
+end
 end

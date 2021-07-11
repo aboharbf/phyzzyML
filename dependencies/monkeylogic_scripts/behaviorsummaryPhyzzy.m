@@ -215,50 +215,52 @@ else                     % smoothe the performance curve if there are 50 trials 
 end
 
 % Recording Site Image
-recordingSite = subplot('position',[0.6 0.65 0.35 0.3]);
-monthYearRec = data(1).TrialDateTime(1)*100+data(1).TrialDateTime(2); %Determine the month/year of the recording
-if monthYearRec < 201808
-  %If recording took place prior to August 2018, Old Grid
-  gridPic = imread('Grid_v1.png');
-  gridOrigin = [37 159];
-  gridStep = 34;
-  holeDiam = 14;
-  MLOffset = 1;
-else %monthYearRec < 201901 %New Grid was used (August - Dec 2018)
-  gridPic = imread('Grid_v2.png');
-  gridOrigin = [60 70];
-  gridStep = 45.5;
-  holeDiam = 19;
-  MLOffset = 4;
-end
-
-% Look for the number of holes and plot each correctly.
-holes = split(userVars2.gridHole,[";",","]);
-if length(holes) > 1
-  removeSpaces = @(cellX) cellX(~isspace(cellX));
-  holes = cellfun(removeSpaces, holes,'UniformOutput',false);
-end
-
-if any(~isnan(userVars2.gridHole))
-  %Draw each of the holes, appropriately given the way they are described
-  for hole_i = 1:length(holes)
-    if isletter(userVars2.gridHole(1))
-      APGridHole = str2double(holes{hole_i}(2:end))-1;
-      letters = {'A','B','C','D','E'};
-      MLGridHole = find(strcmp(letters, holes{hole_i}(1)))+3;
-      holeCords = [APGridHole (MLGridHole-MLOffset)];
-    else
-      APGridHole = (str2double(holes{hole_i}(3:end))-1);
-      holeCords = [APGridHole (str2double(holes{hole_i}(1))-MLOffset)];
-    end
-    recHoleSite = [gridOrigin + holeCords.*gridStep holeDiam];
-    try
-      gridPic = insertShape(gridPic,'FilledCircle',recHoleSite,'color','black','Opacity',1);
-    catch ME
-      warning('computer vision toolbox missing')
-    end
+if contains(filename, 'Mo')
+  recordingSite = subplot('position',[0.6 0.65 0.35 0.3]);
+  monthYearRec = data(1).TrialDateTime(1)*100+data(1).TrialDateTime(2); %Determine the month/year of the recording
+  if monthYearRec < 201808
+    %If recording took place prior to August 2018, Old Grid
+    gridPic = imread('Grid_v1.png');
+    gridOrigin = [37 159];
+    gridStep = 34;
+    holeDiam = 14;
+    MLOffset = 1;
+  else %monthYearRec < 201901 %New Grid was used (August - Dec 2018)
+    gridPic = imread('Grid_v2.png');
+    gridOrigin = [60 70];
+    gridStep = 45.5;
+    holeDiam = 19;
+    MLOffset = 4;
   end
-  imagesc(gridPic);
+  
+  % Look for the number of holes and plot each correctly.
+  holes = split(userVars2.gridHole,[";",","]);
+  if length(holes) > 1
+    removeSpaces = @(cellX) cellX(~isspace(cellX));
+    holes = cellfun(removeSpaces, holes,'UniformOutput',false);
+  end
+  
+  if any(~isnan(userVars2.gridHole))
+    %Draw each of the holes, appropriately given the way they are described
+    for hole_i = 1:length(holes)
+      if isletter(userVars2.gridHole(1))
+        APGridHole = str2double(holes{hole_i}(2:end))-1;
+        letters = {'A','B','C','D','E'};
+        MLGridHole = find(strcmp(letters, holes{hole_i}(1)))+3;
+        holeCords = [APGridHole (MLGridHole-MLOffset)];
+      else
+        APGridHole = (str2double(holes{hole_i}(3:end))-1);
+        holeCords = [APGridHole (str2double(holes{hole_i}(1))-MLOffset)];
+      end
+      recHoleSite = [gridOrigin + holeCords.*gridStep holeDiam];
+      try
+        gridPic = insertShape(gridPic,'FilledCircle',recHoleSite,'color','black','Opacity',1);
+      catch ME
+        warning('computer vision toolbox missing')
+      end
+    end
+    imagesc(gridPic);
+  end
 end
 
 recordingSite.YTickLabel = [];

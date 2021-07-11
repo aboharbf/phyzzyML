@@ -133,7 +133,8 @@ for run_i = 1:length(runList)
   % then repmat them.
   
   % Generate a vector for stimuli for each trial.
-  stimuliVecTmp = cellfun(@(x) convertCharsToStrings(x), runData.eventIDs);
+%   stimuliVecTmp = cellfun(@(x) convertCharsToStrings(x), runData.eventIDs);
+  stimuliVecTmp =  runData.eventIDs;
   stimuliVecTmp = arrayfun(@(x) repmat(stimuliVecTmp(x), [trialsPerStim(x), 1]), stimCount, 'UniformOutput', 0)';
   stimuliVec = vertcat(stimuliVecTmp{:});
   
@@ -146,7 +147,7 @@ for run_i = 1:length(runList)
     
   % Assign to raster labels.
   raster_labels = struct();
-  raster_labels.stimuli = stimuliVec';
+  raster_labels.stimuli = stimuliVec;
   %   raster_labels.stimPresCount = stimPresCountPerTrial';
   
   % iterate through rasterLabels, creating a string array which grants the

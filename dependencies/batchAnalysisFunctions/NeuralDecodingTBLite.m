@@ -40,7 +40,7 @@ for paradigm_i = 1:length(paradigmList)
   % Check if the raster data is present, if not, make it
   binnedDirName = fullfile(pRasterDir, 'rasterData_binned');
   rasterDataPath = fullfile(pRasterDir, 'S20*');
-%     [params.binWidth, params.stepSize] = deal(100);
+  [params.binWidth, params.stepSize] = deal(100);
   binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedDirName, params.binWidth, params.stepSize);
   
   if ~exist(binnedFileNameOut, 'file')
@@ -59,6 +59,8 @@ for paradigm_i = 1:length(paradigmList)
   
   % Cycle through and perform analyses.
   analysesToRun = fields(analysesStructs);
+  analysesToRun = analysesToRun(~contains(analysesToRun, 'broadCat') & ~contains(analysesToRun, 'catBroad') & contains(analysesToRun, 'stimSet'));
+  
   for analysis_i = 1:length(analysesToRun)
     % Get Analysis structure
     analysisStruct = analysesStructs.(analysesToRun{analysis_i}); % Which label in the binned data would you like to classify?
@@ -77,17 +79,22 @@ for paradigm_i = 1:length(paradigmList)
       
       % Step 2 - generate the data source object
       % analysisStruct.load_data_as_spike_counts = 1; % FOR TESTING PNB CLASSIFIER
-      ds = basic_DS(binnedFileName, analysisStruct.label,  analysisStruct.num_cv_splits, analysisStruct.load_data_as_spike_counts);
+%       if analysisStruct.genDS
+%         ds = generalization_DS(binnedFileName, analysisStruct.label,  analysisStruct.num_cv_splits, analysisStruct.the_training_label_names, analysisStruct.the_test_label_names, analysisStruct.load_data_as_spike_counts);
+%         ds.use_unique_data_in_each_CV_split = 1;
+%       else
+        ds = basic_DS(binnedFileName, analysisStruct.label,  analysisStruct.num_cv_splits, analysisStruct.load_data_as_spike_counts, analysisStruct.pseudoGenString);
+        ds.label_names_to_use = analysisStruct.label_names_to_use;
+%       end
       
       % If the num_cv_splits was changed, dial this value up.
       if analysisChangeParams.expandLabelPerSplit
-        ds.num_times_to_repeat_each_label_per_cv_split = 3;
+        ds.num_times_to_repeat_each_label_per_cv_split = 4;
       else
         ds.num_times_to_repeat_each_label_per_cv_split = 1;
       end
       
       % Add in steps to ensure only sites with adequate repeats are used
-      ds.label_names_to_use = analysisStruct.label_names_to_use;
       ds.sites_to_use = analysisStruct.sites;
       
       % Step 3 - Generate a classifier and data preprocessor objects compatible with that data source.
@@ -176,11 +183,8 @@ for paradigm_i = 1:length(paradigmList)
     % Load the normal decoding results
     save_file_name = dir(fullfile(save_file_dir, 'decoding_results*'));
     save_file_name = fullfile({save_file_name.folder}, {save_file_name.name})';
-    decoding_results = cell(size(save_file_name));
-    for result_i = 1:length(save_file_name)
-      tmp_decoding = load(save_file_name{result_i});
-      decoding_results{result_i} = tmp_decoding.decoding_results;
-    end
+    tmp_decoding = load(save_file_name{1});
+    decoding_results = tmp_decoding.decoding_results;
     
     % Step 8 - Plotting
     % Assign params for correct plotting.

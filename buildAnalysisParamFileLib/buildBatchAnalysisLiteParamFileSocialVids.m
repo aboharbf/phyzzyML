@@ -8,15 +8,15 @@ switch machine
   case 'Skytech_FA'
     analysisDirectory = slashSwap('D:\DataAnalysis');
     outputDir = [analysisDirectory '/batchAnalysis'];
-    stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
-    stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
+    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
     batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
-    eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+    eventDataPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
     recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
-    NDTPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
-    NDTAnalysesPath = 'C:\Users\aboha\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
+    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
   case 'homeDesktopWork'
     analysisDirectory = 'H:\Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];
@@ -37,7 +37,7 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 1;    % export figure using export_fig.
+figStruct.exportFig = 0;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 
@@ -48,6 +48,8 @@ plotSwitch.stimPresCount = 0;         % Figures showing presentation counts acro
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+
+plotSwitch.saccadeAnalysis = 0;
 plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
@@ -60,11 +62,13 @@ plotSwitch.slidingWindowANOVA = 0;    %
 %% Parameters
 spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat
 
-preprocessedDataVars = {'spikesByEvent','eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData'}; %Variables extracted from preprocessedData.mat
+preprocessedDataVars = {'spikesByEvent', 'spikesByEvent', 'eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData', 'stimTiming'}; %Variables extracted from preprocessedData.mat
+
+AnalysisParamVars = {'psthParams', 'epochTargParams', 'epochSWparams', 'spikeAlignParams', 'saccadeStackParams'}; %Variables extracted from analysisParam.mat
+
 analyzedDataVars = {'analysisParamFilename', 'dateSubject', 'runNum', 'groupLabelsByImage','psthByImage','psthErrByImage', 'eyeInByEvent'...
                                   'stimStatsTable', 'subEventSigStruct', 'eyeDataStruct','spikesByEventBinned', 'selTable', 'anovaTable', 'anovaBinParams', 'psthByCategory', ...
-                                  'psthErrByCategory', 'gridHole', 'recDepth'}; %Variables extracted from analyzedData.mat
-AnalysisParamVars = {'psthParams', 'epochTargParams', 'epochSWparams'}; %Variables extracted from analysisParam.mat
+                                  'psthErrByCategory', 'gridHole', 'recDepth', 'psthByImageFixAlign', 'psthByCategoryFixAlign', 'saccadeMatArray', 'saccadeMatLabel'}; %Variables extracted from analyzedData.mat
 analyzedDataBigVars = {'spikesByCategoryBinned', 'spikeEyeData'};
 
 spikePathLoadParams.batchAnalysisOutputName = 'batchAnalyzedData.mat';
@@ -254,27 +258,6 @@ spikeEyeOverlay.outputDir = fullfile(outputDir,'spikeEyeOverlay');
 spikeEyeOverlay.threshold = 1;
 spikeEyeOverlay.thresholdHz = 5;
 spikeEyeOverlay.stimDir = stimDir;
-
-frameFiringParams.stimParamsFilename = stimParamsFilename;
-frameFiringParams.outputDir = fullfile(outputDir,'frameFiring');
-frameFiringParams.broadLabelPool = {'chasing','fighting','mounting','grooming','holding','following','observing',...
-    'foraging','sitting','objects','goalDirected','idle','scramble','scene','animControl','animSocialInteraction'}; %If broadLabel is on, all stimuli will have their labels changed to one of the labels in this array.
-frameFiringParams.broadLabels = 1;
-frameFiringParams.useRates = 0;                                               % collected data per frame can be in rates or spike counts. 1 = Rates, 0 = spikeCounts.
-frameFiringParams.delay = 70;                                                 % Hypothetical delay between frame and the activity it causes. deduced from Mean PSTHs.
-frameFiringParams.plotRuns = 0;                                               % Plot Histograms of values across individual runs. 
-
-slidingTestParams.plotTest = 0;                                               % Plot individual cell pVectors. Saves these to individual files.
-slidingTestParams.binSize = 100;
-slidingTestParams.binStep = 25;
-slidingTestParams.scrambleCount = 100;                                        % Count of trials to come up with control p values.
-slidingTestParams.Omega = 1;                                                  % switch to convert ANOVA curves to Omega curves.
-slidingTestParams.target = {'socialInteraction','agents','interaction'};      % Labels which must exist in the stimParamFile associated with the runs. 
-slidingTestParams.stimParamFile = stimParamsFilename;
-slidingTestParams.outputDir = fullfile(outputDir,'slidingTest');
-slidingTestParams.spikeDataFileName = spikePathLoadParams.spikePathFileName;
-slidingTestParams.exportFig = figStruct.exportFig;
-slidingTestParams.plotSize = [.8 .6];        
 
 % Neural Decoding Toolbox parameters
 % Paths

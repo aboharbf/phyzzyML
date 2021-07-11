@@ -18,9 +18,9 @@ switch machine
     ephysVolume = slashSwap('D:\EphysData\Data');
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('D:\DataAnalysis');
-    stimParamsFilename = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
-    stimDir = slashSwap('C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
-    neuroGLMPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
+    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
+    neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case {'turing.rockefeller.edu','hopper.rockefeller.edu'}
     ephysVolume = '/Freiwald/lab_files/raw_data/EPHYS/Farid_ESINRec/Data2018';
     stimulusLogVolume = ephysVolume;
@@ -322,10 +322,9 @@ tfParams.movingWin = [300 5];
 tfParams.specgramRowAve = 0;
 
 psthParams.type = 'normal'; %options are 'normal', 'baselineSub', 'meanWhite'
-psthParams.ITI = 500; 
-psthParams.psthPre = 800 + psthParams.ITI; % if e.g. +200, then start psth 200ms before trial onset; 
+psthParams.psthPre = 1200; % if e.g. +200, then start psth 200ms before trial onset; 
 psthParams.psthImDur = 2800;  % only need to set this for variable length stim runs; else, comes from log file
-psthParams.psthPost = 500;
+psthParams.psthPost = 400;
 psthParams.latency = 0;
 psthParams.movingWin = tfParams.movingWin;
 psthParams.smoothingWidth = 40;  %psth smoothing width, in ms
@@ -344,7 +343,6 @@ psthParams.psthColormapFilename = 'cocode2.mat'; % a file with one variable, a c
 load(psthParams.psthColormapFilename);
 psthParams.colormap = map;
 
-eyeStatsParams.ITI = psthParams.ITI;
 eyeStatsParams.psthPre = psthParams.psthPre;
 eyeStatsParams.psthImDur = psthParams.psthImDur;
 eyeStatsParams.stimDir = stimDir;
@@ -371,6 +369,7 @@ subEventAnalysisParams.preAlign = 300;
 subEventAnalysisParams.postAlign = 800;
 subEventAnalysisParams.nullAllStim = 1;
 subEventAnalysisParams.RewardEvent = 1;
+subEventAnalysisParams.rewardAntTime = 200;       % A time to look prior to the mean reward time. This window is compared to the period after reward delivery. PreReward > Post Reward = Reward Anticipation Neuron.
 subEventAnalysisParams.FixEvent = 1;
 subEventAnalysisParams.nullSampleMult = 10;       % For every n stimuli with the event, sample all other stimuli this number of times for the null distribution.
 subEventAnalysisParams.psthParams = psthParams;
@@ -381,19 +380,24 @@ subEventAnalysisParams.psthParams.smoothingWidth = 10;
 subEventAnalysisParams.testPeriod = [0 200];                            % The period during which spikes are counted and a t-test is performed.
 subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
 subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
-subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
 subEventAnalysisParams.spikeTimes = calcSwitch.spikeTimes;
-subEventAnalysisParams.genPlots = 0;                                    % Asks if you want to generate plots.
+subEventAnalysisParams.genPlots = 1;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
-                                         'pre-saccades', 'saccades', 'blinks', 'fixation', 'reward', 'rewardAbsent'};
+                                         'pre-saccades', 'saccades', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
-                                             [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]];
+                                             [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
 subEventAnalysisParams.preSaccOffset = 200;                               % Use non parametric test.
 subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
+
+saccadeStackParams.preEventTime = 300;
+saccadeStackParams.postEventTime = 300;
+saccadeStackParams.preStimTime = saccadeStackParams.preEventTime;
+saccadeStackParams.postStimTime = 100;
+saccadeStackParams.smoothingWidth = 20;
 
 correlParams.maxShift = []; % a number, or empty
 correlParams.matchTimeRanges = 1;
@@ -441,7 +445,7 @@ frEpochsCell = {{60, @(stimDur) stimDur+60}};...
 epochLabels = {'Presentation'};%,'Fixation','Reward'};
 
 % epochStats Params, more are below analysisGroups
-preFix = [-psthParams.psthPre -psthParams.psthPre+psthParams.ITI];
+preFix = [-500 0];      % Calculated on a fixation dot aligned activity trace.
 Fix = [-800 0];
 stimEarly = [0 500];
 stimLate = [500 psthParams.psthImDur];
@@ -459,7 +463,7 @@ epochTargParams.labels = {'preFix', 'Fix', 'stimEarly', 'stimLate', 'reward'};
 
 epochTargParams.naturalSocial.targNames = {'socVNonSoc', 'categories', 'broadCategories'};
 epochTargParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}};
-epochTargParams.naturalSocial.targetEpochs = [0 1 1 1 1; 0 1 1 1 1 ; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochTargParams.naturalSocial.targetEpochs = [0 1 1 1 1; 0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
 epochTargParams.naturalSocial.oneVsAll = [0 0 0];
 
 epochTargParams.headTurnCon.targNames = {'socVNonSoc', 'categories', 'broadCategories'};
@@ -476,7 +480,8 @@ epochTargParams.headTurnIso.oneVsAll = [1 1 1 1];
 epochSWparams.stimParamsFilename = stimParamsFilename;
 epochSWparams.binSize = 150;
 epochSWparams.binStep = 25;
-epochSWparams.startTime = -psthParams.psthPre + psthParams.ITI;
+% epochSWparams.startTime = -psthParams.psthPre;
+epochSWparams.startTime = -psthParams.psthPre;
 
 epochSWparams.naturalSocial.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
 epochSWparams.naturalSocial.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...

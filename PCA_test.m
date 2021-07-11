@@ -1,10 +1,10 @@
 % PCA Notepad
 
 % define these
-dataFiles = {'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\headTurnCon\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat',...
-  'D:\DataAnalysis\batchAnalysis\NeuralDecodingTB\NaturalSocial\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat'};
-plotIndParams.stimParamsFilename = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';
-outputDir = 'D:\DataAnalysis\batchAnalysis\PCA\preProc';
+dataFiles = {'D:\DataAnalysisSam\batchAnalysis\NeuralDecodingTB\headTurnCon\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat',...
+  'D:\DataAnalysisSam\batchAnalysis\NeuralDecodingTB\NaturalSocial\rasterData\rasterData_binned_100ms_bins_100ms_sampled.mat'};
+plotIndParams.stimParamsFilename = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';
+outputDir = 'D:\DataAnalysisSam\batchAnalysis\PCA\preProc';
 
 if ~exist(outputDir, 'dir')
   mkdir(outputDir)
@@ -15,10 +15,10 @@ end
 % array, where each entry is trials*1.
 % binned_site_info -  a struct with some labels, each of which is a N * 1
 % structure with different values each can take on (many are logical).
-% paradigm = {'HTC', 'NS'};
-paradigm = {'NS'};
-% unitIndName = {'MUA', 'SocMUA', 'US&U', 'SocUS&U'};
-unitIndName = {'US&U'};
+paradigm = {'HTC', 'NS'};
+% paradigm = {'NS'};
+unitIndName = {'MUA', 'SocMUA', 'US&U', 'SocUS&U'};
+% unitIndName = {'US&U'};
 labels2Include = {{'chasing', 'fighting', 'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scenes'}}; % Label sorting
 % labels2Include = {{'socialInteraction', 'goalDirected', 'idle', 'objects', 'scene'}}; % Label sorting
 
@@ -31,7 +31,7 @@ verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
 storeData = cell(length(paradigm), length(unitIndName)); 
 
-for paradigm_i = 2%:length(paradigm)
+for paradigm_i = 1:length(paradigm)
   
   % load the binned data
   binnedData = load(dataFiles{paradigm_i});
@@ -250,7 +250,7 @@ for paradigm_i = 2%:length(paradigm)
       
       bhvLabels = labels2Include{1};
       paradigmLabel = paradigm{paradigm_i};
-      save(sprintf('pcaData_%s_%s', paradigm{paradigm_i}, unitIndName{unit_Type_i}), 'coeff', 'score', 'latent', 'binCount', 'paradigmLabel', 'bhvLabels', 'binLabelInfo')
+      save(fullfile(outputDir, sprintf('pcaData_%s_%s', paradigm{paradigm_i}, unitIndName{unit_Type_i})), 'coeff', 'score', 'latent', 'binCount', 'paradigmLabel', 'bhvLabels', 'binLabelInfo')
       
     end
   end

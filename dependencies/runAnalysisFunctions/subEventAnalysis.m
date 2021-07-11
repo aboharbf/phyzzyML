@@ -196,13 +196,18 @@ end
 % Event Type 3 - add the Reward as an event
 if subEventParams.RewardEvent
   
+  % Establish times of reward delivery
   rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
   rewardTimesNull = createNullScrambleTimes({rewardTimes}, 300, 200);  % Generate Null times for the rewardTimes event.
+    
+  % Establish reward anticipation vector based on 'rewardAntTime' param.
+  rewardAntTimes = rewardTimes - subEventParams.rewardAntTime;
+  rewardAntNull = rewardTimes;                                    % Null times for reward anticipation is right after delivery. Reward Ant neurons should have Hz Pre Reward > Hz Post Reward
   
-  % Stick onto larger structures
-  subEventNames = [subEventNames; "reward"];
-  onsetsByEvent = [onsetsByEvent; rewardTimes];
-  onsetsByEventNull = [onsetsByEventNull; rewardTimesNull];
+  % Stick onto larger structures - rewardAnt is t tested for the period 
+  subEventNames = [subEventNames; "reward"; "rewardAnt"];
+  onsetsByEvent = [onsetsByEvent; rewardTimes; rewardAntTimes];
+  onsetsByEventNull = [onsetsByEventNull; rewardTimesNull; rewardAntNull];
   
   % Generate a 2nd reward comparison, contraining reward to to unrewarded trials.
   if taskData.rewardParadigm
@@ -225,10 +230,7 @@ end
 
 % Event Type 4 - add Fixation as an event
 if subEventParams.FixEvent
-  fixOnTimesPerTrial = taskData.taskEventFixDur;
-  stimOnTimesAbsolute = taskData.taskEventStartTimes;
-  
-  fixOnTimes = stimOnTimesAbsolute - fixOnTimesPerTrial;
+  fixOnTimes = taskData.taskEventFixDur;
   fixOnTimesNull = createNullScrambleTimes({fixOnTimes}, 400, 200);  % Generate Null times for the rewardTimes event.
 
   subEventNames = [subEventNames; 'fixation'];

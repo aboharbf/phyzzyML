@@ -56,7 +56,7 @@ for par_i = 1:length(paradigmList)
     swVars = selTableVars(contains(selTableVars, 'SW') & contains(selTableVars, testName{1}) & contains(selTableVars, 'sigObj'));
     swVarsParts = cellfun(@(x) strsplit(x, '_'), swVars, 'UniformOutput', false);
     epochs = cellfun(@(x) x(3), swVarsParts);
-    epochSequence = {'stimOnset (0-500 ms)', 'stimPres (500-2800 ms)', 'reward (2800-3050 ms)'};
+    epochSequence = {'preFix (ITI)', 'Fixation (-800 - 0)', 'stimEarly (0-500 ms)', 'stimLate (500-2800 ms)', 'reward (2800-3050 ms)'};
     
     % Turn the pVal vector into counts.
     for unitType_i = 1:length(unitTypePlot)

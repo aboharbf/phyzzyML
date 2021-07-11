@@ -37,6 +37,13 @@ function [ taskData, stimTiming ] = preprocessLogFileMonkeyLogic(logfile, taskTr
 disp('Loading MonkeyLogic log file');
 assert(logical(exist(logfile,'file')),'The logfile you requested does not exist.');
 [data, MLConfig, TrialRecord] = mlread(logfile);
+
+% Check if there are duplicates (in this case, just check for more than 1
+% 10 in the code.
+if sum(data(1).BehavioralCodes.CodeNumbers == 10) > 1
+  data = removeDups(data);
+end
+
 % assert(length(unique(TrialRecord.ConditionsPlayed)) < ceil((length(TrialRecord.ConditionsPlayed))/2) , 'MonkeyLogic file reports each condition was not repeated at least 2 times')
 
 % Find out experiment length
@@ -170,6 +177,15 @@ packetData = double(taskTriggers.UnparsedData);
 
 assert(~isempty(packetData), 'The Blackrock Digital inputs are empty. Digital inputs may have not been plugged in.')
 
+% Check for 8s (in some runs, the 1 bit seems to be malfunctioning, other
+% times something more wide ranging). Other numbers are signs of other
+% malfunctions.
+if any(packetData == 8) || any(packetData == 22) || any(packetData == 39)
+  warning('Every trial doesnt have a condition number - this may be due to changes in when the marker is sent. Seeing if we can use MKL data to recreate')
+  % This code will now take the monkeyLogic signals as ground truth
+  [packetData, packetTimes] = replacePacketData(data, TrialRecord, packetData, packetTimes);
+end
+
 %Code to get rid of any markers prior to the first trial beginning, or after the final trial end.
 %a defense against double 9's
 trueStart = find(packetData == trialStartMarker);
@@ -189,16 +205,12 @@ packetTimes = packetTimes(trueStart:trueEnd);
 %Below are things which should happen every trial
 trialStartInds = find(packetData == trialStartMarker);
 trialEndInds = find(packetData == trialEndMarker);
-stimStartInds = packetData == stimStartMarker;
 condNumbers = packetData(packetData > 100)-100;
-fixStartInds = find(packetData == fixCueMarker);
 stimFixEndInds = find(packetData == stimEndMarker);
-
-assert(length(trialStartInds) == length(condNumbers), 'Every trial doesnt have a condition number - this may be due to changes in when the marker is sent.')
 
 %Now, use the correct trial array from MKL to pick out only the correct
 %trials from the whole array. Assign them them to the correct vectors.
-[trialStartTimesBlk, fixOnsetTimesBlk, taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, rewardTrialInds] = deal(nan(size(trialStartInds)));
+[trialStartTimesBlk, taskEventStartTimesBlk, taskEventEndTimesBlk, juiceOnTimesBlk, juiceOffTimesBlk, rewardTrialInds] = deal(nan(size(trialStartInds)));
 
 % Identify which trials were rewarded by looking for the correct series
 % of eventMarkers.
@@ -241,8 +253,8 @@ taskEventIDsBlk = condNumbers;
 trialStartTimesAll = packetTimes(packetData == trialStartMarker);
 trialStartTimesBlk(stimOnTrials) = trialStartTimesAll(stimOnTrials);
 
-fixOnTimesAll = packetTimes(packetData == fixCueMarker);
-fixOnsetTimesBlk(stimOnTrials) = fixOnTimesAll(stimOnTrials);
+% Save all the trials fixation dot (happens on 100% of trials).
+fixOnsetTimesBlk = packetTimes(packetData == fixCueMarker);
 
 taskEventStartTimesBlk(stimOnTrials) = packetTimes(packetData == stimStartMarker); %Stores every trial where stim started (no fail during fix);
 taskEventEndTimesBlk(stimOnTrials) = packetTimes(stimFixEndInds(stimOnTrials));
@@ -255,7 +267,6 @@ juiceOffTimesBlk(rewardTrialInds == 1) = packetTimes(trialEndInds(rewardTrialInd
 %use the condition number to fill out the taskEventsIDs using the
 %translation table.
 taskEventIDs = translationTable(condNumbers);
-
 
 %% Run some checks comparing data collected from Blackrock, MonkeyLogic.
 if (length(taskEventIDsLog) ~= length(taskEventIDsBlk))
@@ -376,7 +387,7 @@ end
 if any(strfind(translationTable{1},'.avi'))
   %assumes filename below sitting in directory with stimuli
   frameMotionFile = dir([params.stimDir '/**/frameMotion_complete.mat']);
-  load([frameMotionFile(1).folder filesep frameMotionFile(1).name],'frameMotionData');
+  load(fullfile(frameMotionFile(1).folder, frameMotionFile(1).name), 'frameMotionData');
   %go through the translation table, comparing to frameMotionData.stimVid
   frameMotionNames = [{frameMotionData(:).stimVid}'];
   tmpFrameMotionData = struct('stimVid',[],'objNames',[],'objShapes',[],'objRadii',[],'vidB_XShift',[],'objLoc',[],'frameCount',[],'timePerFrame',[],'fps',[],'width',[],'height',[]);
@@ -467,31 +478,19 @@ if ~isempty(eventDataFile)
   end
 end
 
-%% Addtion in Aug 2020 - Realization of diversity of fixation times due to 'punishment' dynamic (failed trial = +50 msec on subsuquent fix time to initiate next trial)
-% Revised May 2020 - Needs to account for the fact the fix duration is the
-% shortest possible time, not the actual time the dot is displayed.
-% Cycle through trials and collect pre-stimulus fixation duration
-
-% Establish a metric for the duration of the trial pre stimulus. Will be
-% useful for shifting things to a trial aligned, instead of stimulus
-% aligned, analysis.
-taskEventFixDurBlk = taskEventStartTimesBlk - fixOnsetTimesBlk;
-assert(length(taskEventFixDurBlk) == length(taskEventIDs), 'Problem w/ fixation times')
-
+%% Reward processing
 % Generate a vector of reward times relative to stimulus onset.
 rewardTimePerTrial = juiceOnTimesBlk - taskEventStartTimesBlk;
 
-%% Nov 2020 - merge stimuli across certains domains.
-% This segment identifies whether a head turning paradigm is being used,
-% and collapses the output data across those stimuli (pretending they are
-% the same stimulus).
-  
-% Structures which need to be updated TrialRecord, and taskEventIDs.
-% if strncmp(taskEventIDs{1}, 'headTurn', 8)
-%     [taskEventIDs, translationTable] = mergeStimuli(taskEventIDs, translationTable);
-% end
+% Identify if rewards are missing on correct trials (rewardParadigm).
+% Missing reward on completed trials
+missingReward = rewardTimePerTrial(TrialRecord.TrialErrors == 0);
 
-% Update: Will be instead performed as catagories.
+if any(isnan(missingReward))
+  rewardParadigm = true;
+else
+  rewardParadigm = false;
+end
 
 %% Jan 2021 - Add paradigm tag, based on stimuli present
 
@@ -542,15 +541,9 @@ end
 % Merge IDs for the animated paradigms
 taskEventIDsMerged = eventIDMerge(taskEventIDs);
 
-% Identify if rewards are missing on correct trials (rewardParadigm).
-% Missing reward on completed trials
-missingReward = rewardTimePerTrial(TrialRecord.TrialErrors == 0);
-
-if any(isnan(missingReward))
-  rewardParadigm = true;
-else
-  rewardParadigm = false;
-end
+%% Create a fixation time per stimulus
+taskEventFixDurBlk = fixOnsetTimesBlk;
+assert(length(taskEventFixDurBlk) == length(taskEventIDs), 'Problem w/ fixation times')
 
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
@@ -581,7 +574,7 @@ taskData.rewardParadigm = rewardParadigm;
 taskData.runTime = runTimeMins;
 taskData.taskEventStartTimes = taskEventStartTimesBlk;
 taskData.taskEventEndTimes = taskEventEndTimesBlk;
-taskData.taskEventFixDur = taskEventFixDurBlk;
+taskData.taskEventFixDur = fixOnsetTimesBlk;
 taskData.rewardTimePerTrial = rewardTimePerTrial;
 taskData.trialStartTimesMkl = mklTrialStarts';
 taskData.logVsBlkModel = logVsBlkModel;
