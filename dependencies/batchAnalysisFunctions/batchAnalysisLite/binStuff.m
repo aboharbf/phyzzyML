@@ -1,4 +1,6 @@
 function binnedData = binStuff(data2Bin, binSizes)
+% Function which bins previously binned events, by summing across the bins
+% of a particular index.
 
 totalBinsCurrent = size(data2Bin,2);
 binEdges = [1:binSizes:totalBinsCurrent totalBinsCurrent];
