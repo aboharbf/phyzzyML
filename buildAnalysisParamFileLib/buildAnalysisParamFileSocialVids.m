@@ -62,8 +62,8 @@ plotSwitch.spikePupilCorr = 0;              % see the correlation between single
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
-plotSwitch.imagePsth = 0;                   % a PSTH for every stimulus in the file.
-plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
+plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
+plotSwitch.categoryPsth = 1;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
 plotSwitch.analysisGroupsPsth = 0;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
 plotSwitch.prefImRasterColorCoded = 0;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.

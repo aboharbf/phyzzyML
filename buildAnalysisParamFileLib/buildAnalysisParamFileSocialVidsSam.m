@@ -385,7 +385,7 @@ subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
 subEventAnalysisParams.stimPlotParams.psthPost = psthParams.psthPost;
 subEventAnalysisParams.stimDir = stimDir;
 subEventAnalysisParams.spikeTimes = calcSwitch.spikeTimes;
-subEventAnalysisParams.genPlots = 0;                                    % Asks if you want to generate plots.
+subEventAnalysisParams.genPlots = 1;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
                                          'pre-saccades', 'saccades', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
