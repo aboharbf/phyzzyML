@@ -6,8 +6,8 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 % headTurnCon Test - 20201115Mo 001
 % naturalSocial Test - 20201117Mo 001
 
-runNum = '001';
-dateSubject = '20201117Mo';
+runNum = '002';
+dateSubject = '20201201Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');

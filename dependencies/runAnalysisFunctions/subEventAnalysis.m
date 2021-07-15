@@ -221,10 +221,10 @@ if ~isempty(eyeBehStatsByStim)
   subEventNames = reshape(subEventNamesNew', [], 1);
     
   % Remove empty ones
-  keepInd = ~cellfun('isempty', onsetsByEvent);
-  onsetsByEvent = onsetsByEvent(keepInd);
-  subEventNames = subEventNames(keepInd);
-  onsetsByEventNull = onsetsByEventNull(keepInd);
+%   keepInd = ~cellfun('isempty', onsetsByEvent);
+%   onsetsByEvent = onsetsByEvent(keepInd);
+%   subEventNames = subEventNames(keepInd);
+%   onsetsByEventNull = onsetsByEventNull(keepInd);
   
   % Add Previously generate eye focused events to array
   subEventNames = [subEventNames; ["blinks"; "saccades"; "pre-saccades"]]; % Presaccade will have the same times as saccades, but the comparison window for the t test will stretch back.
@@ -371,10 +371,14 @@ if ~isempty(onsetsByEvent)
         nullSpikes = [spikeCountsNull{event_i}{chan_i}{unit_i}{1}.rates];
         
         % Perform the test, and store results.
-        if subEventParams.nonParametric
-          [pVal, ~, ~] = ranksum(eventSpikes,  nullSpikes);
+        if isempty(eventSpikes) || isempty(nullSpikes)
+          pVal = 1;
         else
-          [~, pVal, ~] = ttest2(eventSpikes,  nullSpikes);
+          if subEventParams.nonParametric
+            [pVal, ~, ~] = ranksum(eventSpikes,  nullSpikes);
+          else
+            [~, pVal, ~] = ttest2(eventSpikes,  nullSpikes);
+          end
         end
         
         % Save the pValue and Cohen's D.

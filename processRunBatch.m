@@ -347,7 +347,7 @@ if any(errorInd)
   files2Check = analysisParamFileList(errorInd);
   error('All done, there were errors');
 else
-  error('All done');
+  error('All done, no errors!');
 end
 
 firstEntry = find(~cellfun('isempty', analysisOutFilename), 3);

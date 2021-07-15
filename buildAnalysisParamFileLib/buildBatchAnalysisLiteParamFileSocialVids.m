@@ -6,8 +6,9 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    analysisDirectory = slashSwap('D:\DataAnalysis');
-    outputDir = [analysisDirectory '/batchAnalysis'];
+    monkey = 'Sam';
+    analysisDirectory = strcat('D:\DataAnalysis', monkey);
+    outputDir = strcat('C:/batchAnalysis', monkey);
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
@@ -35,9 +36,9 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.saveFig = 0;      % save the figure in its output directory.           
+figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 
@@ -46,11 +47,11 @@ calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.selectivityCurve = 1;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
 
 plotSwitch.saccadeAnalysis = 0;
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.rewardPSTH = 1;            % Analysis of reward psthes specifically.
@@ -92,8 +93,10 @@ stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
 
 selParam.outputDir =  fullfile(outputDir,'selCount');
-selParam.comboEvents = {'subSel_headTurn_all_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
-selParam.comboSubEvents = {{'subSel_headTurn_left_selInd', 'subSel_headTurn_right_selInd'}, ...
+selParam.comboEvents = {'subSel_headTurn_all_saccNone_selInd','subSel_headTurn_all_sacc_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
+selParam.comboSubEvents = {...
+  {'subSel_headTurn_left_saccNone_selInd', 'subSel_headTurn_right_saccNone_selInd'}, ...
+  {'subSel_headTurn_left_sacc_selInd', 'subSel_headTurn_right_sacc_selInd'}, ...
   {'epochSel_socVNonSoc_stimEarly_selInd', 'epochSel_socVNonSoc_stimLate_selInd', 'epochSel_socVNonSoc_reward_selInd'}, ...
   {'epochSel_categories_stimEarly_selInd', 'epochSel_categories_stimLate_selInd', 'epochSel_categories_reward_selInd'}...
   {'epochSel_broadCategories_stimEarly_selInd', 'epochSel_broadCategories_stimLate_selInd', 'epochSel_broadCategories_reward_selInd'}...

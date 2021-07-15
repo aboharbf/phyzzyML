@@ -63,10 +63,8 @@ for par_i = 1:length(paradigmList)
   selectivityPerAnyAndHeadTurn(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
 
   % Now, for each unitType and selectivity, map out gridHole contents.
-%   batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
-%   selectivityPerGridHole(spikePathBankParadigm, selTableParadigm, batchAnalysisParams)
-%   
-%   plotCountsOnBrain(selTableParadigm, batchAnalysisParams);
+  batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
+  plotCountsOnBrain(selTableParadigm, batchAnalysisParams);
 
 end
 

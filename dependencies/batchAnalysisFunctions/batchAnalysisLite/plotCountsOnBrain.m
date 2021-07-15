@@ -15,26 +15,35 @@ unitType = labelArray{4};
 positionC = find(strcmp(MLlabel, 'C'));
 position8 = find(strcmp(APlabel, '8'));
 
-MLcoords = [4 5 6 7];
-APcoords = [25.5 26.5 27.5 28.5];
-[X, Y] = meshgrid(1:length(MLcoords), 1:length(APcoords));
-
-xCoord = reshape(X', [length(X(:)), 1]);
-yCoord = reshape(Y', [length(X(:)), 1]);
+if all(contains(selTable.dateSubj, 'Sam'))
+  MLcoords = [4 5 6];
+  APcoords = [25.5 26.5 27.5 28.5 29.5];
+  [X, Y] = meshgrid(1:length(APcoords), 1:length(MLcoords));
+else
+  MLcoords = [4 5 6];
+  APcoords = [25.5 26.5 27.5 28.5];
+  [X, Y] = meshgrid(1:length(APcoords), 1:length(MLcoords));
+end
 
 cmap = colormap();
+xCoord = reshape(X, [], 1);
+yCoord = reshape(Y, [], 1);
 
 for unit_i = 1:length(unitType)
   for event_i = 1:length(eventLabels)
     
     eventData = squeeze(selIndGridMat(:,:, event_i, unit_i));
     eventName = eventLabels{event_i};
-    figTitle = sprintf('%s - %s', eventName, unitType{unit_i});
     
     % Collect the data
-    eventData = reshape(eventData', [length(xCoord),1]);
+    eventData = reshape(eventData, [], 1);
     
     if ~all(eventData == 0)
+      % See which points to keep
+      keepInd = eventData ~= 0;
+      xCoordunit = xCoord(keepInd);
+      yCoordunit = yCoord(keepInd);
+      eventData = eventData(keepInd);
       
       % Scale to color line, and create dummy objects to create the desired
       % colorbar.
@@ -49,33 +58,28 @@ for unit_i = 1:length(unitType)
       linkprop([dummyImageHandle.Parent, axesH], 'Position');
       
       % Create an index for referencing the color map.
-      scaleFactor = max(eventData)/256;
+      scaleFactor = max(eventData)/size(cmap,1);      % Scale the highest value in the data to the index for the highest value in the color map.
       sizeDataScaled = round(eventData/scaleFactor);
-      
-      % See which points to keep
-      keepInd = sizeDataScaled ~= 0;
-      xCoordunit = xCoord(keepInd);
-      yCoordunit = yCoord(keepInd);
-      sizeDataScaled = sizeDataScaled(keepInd);
-      
+            
       % Plot them
-      scatter(xCoordunit, yCoordunit, sizeDataScaled, cmap(sizeDataScaled), 'filled');
+      scatter(xCoordunit, yCoordunit, sizeDataScaled, cmap(sizeDataScaled, :), 'filled');
       
       % Labels, colors
       ylabel('ML Position (mm)');
-      axesH.YLim = [0.5 4.5];
-      axesH.YTick = 1:4;
+      axesH.YLim = [0.5 length(MLcoords)+0.5];
+      axesH.YTick = 1:length(MLcoords);
       axesH.YTickLabel = MLcoords;
       set(axesH, 'YDir','reverse')
       
       xlabel('AP Position (mm)');
-      axesH.XLim = [0.5 4.5];
-      axesH.XTick = 1:4;
+      axesH.XLim = [0.5 length(APcoords)+0.5];
+      axesH.XTick = 1:length(APcoords);
       axesH.XTickLabel = APcoords;
       
       axesH.Color = [0.5 0.5 0.5];
       axesH.FontSize = 11;
       
+      figTitle = sprintf('%s - %s', eventName, unitType{unit_i});
       title(figTitle);
       saveFigure(fullfile(params.outputDir, 'plotsOnBrains'), figTitle, [], params.figStruct, [])
       

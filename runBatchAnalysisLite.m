@@ -22,6 +22,11 @@ end
 
 % stimulusEventCounts = stimulusPresence(spikePathBank);
 
+% Get rid of headTurnIso
+if any(strcmp(spikePathBank.paradigmName, 'headTurnIso'))
+  spikePathBank = spikePathBank(~strcmp(spikePathBank.paradigmName, 'headTurnIso'), :);
+end
+
 if ~contains('selTable', spikePathBank.Properties.VariableNames)
   spikePathBank = processAppendSelTable(spikePathBank, batchAnalysisParams);
   spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;

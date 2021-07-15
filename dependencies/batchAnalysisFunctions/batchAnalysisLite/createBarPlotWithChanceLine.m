@@ -10,11 +10,17 @@ ylimSize = ylim();
 if any(size(dataMat) == 1)
   barh.BarWidth = 0.5;
   legLoc = 'northeastoutside';
+elseif length(legendEntries) > 4
+  legLoc = 'northeastoutside';
 else
   legLoc = 'northeast';
 end
 
 for bar_i = 1:length(barh)
+  if all(barh(bar_i).FaceColor == [0 0 1]);
+    barh(bar_i).FaceColor = [0 0.25 1];
+  end
+  
   xtips1 = barh(bar_i).XEndPoints;
   ytips1 = barh(bar_i).YEndPoints;
   
