@@ -42,6 +42,8 @@ for par_i = 1:length(paradigmList)
   % Make the directory specific to paradigm.
   batchAnalysisParams.selParam.outputDir = fullfile(outputDir, paradigmList{par_i});
   
+  jointTuningPlot(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
+  
   % Make a bar plot and distribution describing epoch preferences (Activity
   % above baseline during an epoch).
   EpochPreferenceBarGraphsAndVennDiagram(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)

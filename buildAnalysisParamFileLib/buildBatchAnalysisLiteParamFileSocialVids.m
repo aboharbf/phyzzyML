@@ -6,8 +6,8 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    monkey = 'Sam';
-    analysisDirectory = strcat('D:\DataAnalysis', monkey);
+    monkey = 'Combo';
+    analysisDirectory = strcat('C:\DataAnalysis', monkey);
     outputDir = strcat('C:/batchAnalysis', monkey);
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
@@ -46,11 +46,11 @@ figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.selectivityCurve = 1;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
 
-plotSwitch.saccadeAnalysis = 0;
+plotSwitch.saccadeAnalysis = 1;
 plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.

@@ -3,6 +3,8 @@ function vennXExpanded(sigInd, figTitle, colNames)
 % array of logical values into the appropriate cross sections. 
 
 [unitCount, colInCount] = size(sigInd);
+numberSize = 20;
+labelSize = 16;
 
 if colInCount == 2
   sigIndTmp = nan(unitCount, 3);
@@ -50,7 +52,7 @@ figH.Units = 'normalized';
 if colInCount == 3
   figH.Position = [0.4 0.2 .46, .62];
 elseif colInCount == 2
-  figH.Position = [0.4    0.2    0.46    0.4691];
+  figH.Position = [0.4 0.2 .46  .4691];
 end
 figH.NumberTitle = 'off';
 
@@ -63,15 +65,15 @@ for num_i = 1:length(numberHandles)
   if strcmp(numberHandles(num_i).String, '0')
     delete(numberHandles(num_i));
   else
-    numberHandles(num_i).FontSize = 15;
+    numberHandles(num_i).FontSize = numberSize;
   end
 end
 
 % Add Labels
-text(0.06, 0.95, colNames{1}, 'units', 'normalized', 'FontSize', 16, 'FontWeight', 'bold');
-text(0.856, 0.95, colNames{2}, 'units', 'normalized', 'FontSize', 16, 'FontWeight', 'bold');
+text(0.06, 0.95, colNames{1}, 'units', 'normalized', 'FontSize', labelSize, 'FontWeight', 'bold');
+text(0.856, 0.95, colNames{2}, 'units', 'normalized', 'FontSize', labelSize, 'FontWeight', 'bold');
 if length(sigCountVenn) == 7
-  text(0.63, 0.045, colNames{3}, 'units', 'normalized', 'FontSize', 16, 'FontWeight', 'bold');
+  text(0.53, 0.045, colNames{3}, 'units', 'normalized', 'FontSize', labelSize, 'FontWeight', 'bold');
 end
 
 labelCount = 0;

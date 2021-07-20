@@ -1,21 +1,21 @@
 % perTimePt data projected onto PCs 1-3; labeled by bhvtype
 
 monkeyName = {'Mo', 'Sam'};
-dataDir = {'D:\DataAnalysisMo\batchAnalysis\PCA\preProc', 'D:\DataAnalysisSam\batchAnalysis\PCA\preProc'};
+
+for m_i = 1:length(monkeyName)
+  
+dataDir = sprintf('D:\\DataAnalysis%s\\batchAnalysis\\PCA\\preProc', monkeyName{m_i});
+outputDir = sprintf('D:\\DataAnalysis%s\\batchAnalysis\\PCA', monkeyName{m_i});
+
 % dataFiles = {'PCA_data_allMUA_3smooth', 'PCA_data_SocMUA_3smooth', 'PCA_data_allUUS_3smooth', 'PCA_data_SocUUS_3smooth'};
 % dataFiles = {'pcaData_HTC_MUA', 'pcaData_HTC_SocMUA', 'pcaData_HTC_US&U', 'pcaData_HTC_SocUS&U', 'pcaData_NS_MUA', 'pcaData_NS_SocMUA', 'pcaData_NS_US&U', 'pcaData_NS_SocUS&U'};
 dataFiles = {'pcaData_NS_MUA', 'pcaData_HTC_MUA'};
-titles = {'MUA', 'Soc MUA', 'US&U', 'Soc US&U', 'MUA', 'Soc MUA', 'US&U', 'Soc US&U'};
+titles = strrep(extractAfter(dataFiles, 'pcaData_'), '_', ' ');
+% titles = {'MUA', 'Soc MUA', 'US&U', 'Soc US&U', 'MUA', 'Soc MUA', 'US&U', 'Soc US&U'};
 % dataFiles = {'pcaData_Combo_MUA', 'pcaData_Combo_US&U'};
 % titles = {'MUA', 'US&U'};
 
 colors = 'rbgkcmyk';
-
-outputDir = 'D:\DataAnalysis\batchAnalysis\PCA';
-
-if ~exist(outputDir, 'dir')
-  mkdir(outputDir);
-end
 
 markerSize = 30;
 % bhvLabels = {'socialInteraction', 'goalDirected', 'idle', 'objects'};
@@ -28,10 +28,13 @@ figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 1;  % If a figure is already there, don't make it again.
 verbosity = 'INFO';         %other options, 'DEBUG', 'VERBOSE';
 
-for dir_i = 1:length(dataDir)
 for data_i = 1:length(dataFiles)
   
-  load(fullfile(dataDir{dir_i}, dataFiles{data_i}));
+  load(fullfile(dataDir, dataFiles{data_i}));
+  
+  if any(contains(bhvLabels, 'chasing'))
+    bhvPlot = 'Catagories';
+  end
   
   if data_i == 1
     timeAxis = 1:binCount;
@@ -40,7 +43,7 @@ for data_i = 1:length(dataFiles)
   end
   
   % Color scatter plot distinguishing clusters
-  figTitle = sprintf('%s - %s - %s PC 1-3 time evolution bhvtype - %s', monkeyName{dir_i}, paradigmLabel, titles{data_i}, strjoin(bhvLabels, '-'));
+  figTitle = sprintf('%s - %s PC 1-3 Trajectories %s', monkeyName{m_i}, titles{data_i}, bhvPlot);
   figH = figure('name', figTitle, 'units','normalized','position', [0.4214    0.1528    0.5568    0.6917]);
   axHands = gobjects(length(bhvLabels)+1,1);
 

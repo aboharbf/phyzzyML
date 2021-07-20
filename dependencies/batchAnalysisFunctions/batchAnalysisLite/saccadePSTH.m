@@ -35,8 +35,9 @@ for monkey_i = 1:length(monkeyList)
   for par_i = 1:length(paradigmList)
     
     pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
-    mInd = contains(spikePathBank.analyzedDir, monkeyList{monkey_i});
-    spikePathBankParadigm = spikePathBank(pInd & mInd, :);
+%     mInd = contains(spikePathBank.analyzedDir, monkeyList{monkey_i});
+%     spikePathBankParadigm = spikePathBank(pInd & mInd, :);
+    spikePathBankParadigm = spikePathBank(pInd, :);
     
     % Grab necessary data from each run.
     [saccadeStackParamsPerRun, saccadeMatArrayPerRun, saccadeMatLabelPerRun] = spikePathLoad(spikePathBankParadigm, {'saccadeStackParams', 'saccadeMatArray', 'saccadeMatLabel'}, params.spikePathLoadParams);

@@ -1,4 +1,4 @@
-function selTable = expandSelTableComboEvents(selTable, params);
+function selTable = expandSelTableComboEvents(selTable, params)
 % Inputs:
 % selTable - usual output of selectivity functions in runAnalyses
 % params - struct containing:

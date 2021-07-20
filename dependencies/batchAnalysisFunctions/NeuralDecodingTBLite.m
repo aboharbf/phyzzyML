@@ -31,7 +31,7 @@ for paradigm_i = 1:length(paradigmList)
   pRasterDir = fullfile(pFolder, 'rasterData');
   
   % Check if Raster data is present, if not, generate.
-  if ~exist(pRasterDir, 'dir')
+  if ~exist(pRasterDir, 'dir') | length(dir(pRasterDir)) == 2
     paradigmParams = params.spikeToRasterParams;
     paradigmParams.rasterParams = params.spikeToRasterParams.(pName);
     spikePathBank_to_rasterData(spikePathBankParadigm, pRasterDir, paradigmParams);

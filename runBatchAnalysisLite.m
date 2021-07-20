@@ -38,6 +38,10 @@ if calcSwitch.dataHigh
   dataHighPrep(spikePathBank, batchAnalysisParams)
 end
 
+if calcSwitch.PCA
+  
+end
+
 %% Counting
 % crossParadigmCheck(spikePathBank, batchAnalysisParams)
 

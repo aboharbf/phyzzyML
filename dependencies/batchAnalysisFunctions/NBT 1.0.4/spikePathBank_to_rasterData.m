@@ -51,7 +51,8 @@ vars2AddOrig = [
   {'baseV_stimEarly_selInd'                    }
   {'baseV_stimLate_selInd'                     }
   {'baseV_reward_selInd'                       }
-  {'subSel_headTurn_all_selInd'                }
+  {'subSel_headTurn_all_sacc_selInd'           }
+  {'subSel_headTurn_all_saccNone_selInd'       }
   {'subSel_rewardCombo_selInd'                 }
   {'epochSel_socVNonSoc_stimEarly_selInd'      }
   {'epochSel_socVNonSoc_stimLate_selInd'       }
@@ -72,7 +73,8 @@ vars2Add = strrep(vars2Add, 'slidingWin', 'SW');
 %     {'baseV_stimEarly_selInd'    }
 %     {'baseV_stimLate_selInd'     }
 %     {'baseV_reward_selInd'       }
-%     {'subSel_headTurn_all_selInd'}
+%     {'subSel_headTurn_all_sacc_selInd'}
+%     {'subSel_headTurn_all_saccNone_selInd'}
 %     {'subSel_rewardCombo_selInd' }
 %     {'sVns_stimEarly_selInd'     }
 %     {'sVns_stimLate_selInd'      }
