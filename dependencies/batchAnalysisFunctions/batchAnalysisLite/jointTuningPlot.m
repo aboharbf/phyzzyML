@@ -26,26 +26,18 @@ unitData = selTable{:, 'unitType'};
 vennCombos = {[1 2 3], [3 4 5], [1 4 2]}; 
 
 % Mo, US, Units, MUA
-MoUSInd = find(contains(dateSubjData, 'Mo') & contains(unitData, 'US'));
-MoUInd = find(contains(dateSubjData, 'Mo') & contains(unitData, digitsPattern));
-MoMUAInd = find(contains(dateSubjData, 'Mo') & contains(unitData, 'MUA'));
 
-SamUSInd = find(contains(dateSubjData, 'Sam') & contains(unitData, 'US'));
-SamUInd = find(contains(dateSubjData, 'Sam') & contains(unitData, digitsPattern));
-SamMUAInd = find(contains(dateSubjData, 'Sam') & contains(unitData, 'MUA'));
-
-resortInd = [MoUSInd; MoUInd; MoMUAInd; SamUSInd; SamUInd; SamMUAInd];
-
-monkey = {'Sam', 'Mo'};
+monkey = {'Sam', 'Mo', 'Combo'};
 unitTypes = {'MUA', digitsPattern'};
 unitTypesPlot = {'MUA', 'Units'};
-setInd = 1;
+setInd = 5;
 
 for mo_i = 1:length(monkey)
   for unit_i = 1:length(unitTypes)
     
     % Identify units, pull data
-    unitInd = contains(dateSubjData, monkey{mo_i}) & contains(unitData, unitTypes{unit_i});
+    % unitInd = contains(dateSubjData, monkey{mo_i}) & contains(unitData, unitTypes{unit_i});
+    unitInd = contains(unitData, unitTypes{unit_i});
     sigIndArray = selTableVars{unitInd, :};
     
     % Plot the Image version

@@ -74,18 +74,22 @@ if isfield(params, 'waveClus') && params.waveClus
 %     cd(parsedDir);
   end
   
+  % Changes - 7.21 - most likely moving to kilosort, but to preserve the
+  % code below - spikes are now the 'ground truth', rather than the .NC5
+  % files, as they are being deleted due to being very large. 
+  
   % See what parsed files exist.
-  parsedFiles = dir(fullfile(parsedDir, '*.NC5'))';
+%   parsedFiles = dir(fullfile(parsedDir, '*.NC5'))';
   spikesFiles = dir(fullfile(parsedDir, '*_spikes.mat'));
   timesFiles = dir(fullfile(parsedDir, 'times_*.mat'));
-  parsedFiles = {parsedFiles.name}';
+%   parsedFiles = {parsedFiles.name}';
   
   % If one file is missing, assume they are all missing.
-  if length(parsedFiles) ~= length(spikesFiles)
-    % Generate spike files
-    Get_spikes(parsedFiles, 'par', params.paramHandle(), 'parallel', true);
-    spikesFiles = dir('*_spikes.mat');
-  end
+%   if length(parsedFiles) ~= length(spikesFiles)
+%     % Generate spike files
+%     Get_spikes(parsedFiles, 'par', params.paramHandle(), 'parallel', true);
+%     spikesFiles = dir('*_spikes.mat');
+%   end
   spikesFiles = fullfile({spikesFiles.folder}, {spikesFiles.name})';
   
   if length(spikesFiles) ~= length(timesFiles)

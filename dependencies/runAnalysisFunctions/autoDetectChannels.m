@@ -4,8 +4,8 @@ function [spike, LFP, names] = autoDetectChannels(parsedFolderName)
 
 assert(exist(parsedFolderName,'dir') == 7, 'parsed directory not found, parse then set autoDetect')
 
-channelFiles = dir([parsedFolderName '/*.NC5']);
-channelNums = extractBetween({channelFiles.name}, 'NSX_', '.NC5');
+channelFiles = dir(fullfile(parsedFolderName, 'times_*'));
+channelNums = extractBetween({channelFiles.name}, 'NSX_', '.mat');
 channelNums = sort(str2double(channelNums));
 
 % spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both

@@ -323,9 +323,9 @@ tfParams.movingWin = [300 5];
 tfParams.specgramRowAve = 0;
 
 psthParams.type = 'normal'; %options are 'normal', 'baselineSub', 'meanWhite'
-psthParams.psthPre = 1300; % if e.g. +200, then start psth 200ms before trial onset; 
+psthParams.psthPre = 1200; % if e.g. +200, then start psth 200ms before trial onset; 
 psthParams.psthImDur = 2800;  % only need to set this for variable length stim runs; else, comes from log file
-psthParams.psthPost = 500;
+psthParams.psthPost = 400;
 psthParams.latency = 0;
 psthParams.movingWin = tfParams.movingWin;
 psthParams.smoothingWidth = 40;  %psth smoothing width, in ms

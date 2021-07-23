@@ -38,7 +38,21 @@ if calcSwitch.dataHigh
   dataHighPrep(spikePathBank, batchAnalysisParams)
 end
 
-if calcSwitch.PCA
+if plotSwitch.PCA
+  % Prepare for PCA
+  pcaPrep(spikePathBank, batchAnalysisParams)
+  
+  % Visualize the results
+  pcaVisualize(batchAnalysisParams)
+  
+end
+
+if plotSwitch.dPCA
+  % Prepare for PCA
+  dpcaPrep(spikePathBank, batchAnalysisParams)
+  
+  % Visualize the results
+  pcaVisualize(batchAnalysisParams)
   
 end
 

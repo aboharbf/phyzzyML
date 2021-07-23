@@ -18,7 +18,7 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
+    outputVolumeBatch = 'D:\DataAnalysisSam';                                            % The output folder for analyses performed.
     dataLog = 'D:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);

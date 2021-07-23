@@ -36,7 +36,7 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 0;      % save the figure in its output directory.           
+figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 1;     % close the figure once it is saved
 figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
@@ -49,6 +49,8 @@ plotSwitch.stimPresCount = 0;         % Figures showing presentation counts acro
 plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.PCA = 1;                   % 	
+plotSwitch.dPCA = 1;                  %
 
 plotSwitch.saccadeAnalysis = 1;
 plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
@@ -91,7 +93,6 @@ stimStructParams.xyEventparams.plotTitle = 'Events Per Stimulus Count, Sorted by
 stimStructParams.xyEventparams.XLabel = 'Event Name';
 stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
-
 selParam.outputDir =  fullfile(outputDir,'selCount');
 selParam.comboEvents = {'subSel_headTurn_all_saccNone_selInd','subSel_headTurn_all_sacc_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
 selParam.comboSubEvents = {...
@@ -123,6 +124,9 @@ cellCountParams.excludePhase2 = 0;                                  % a switch w
 cellCountParams.batchRunxls = batchRunxls;                          % Batch analysis xlsx produced by processRunBatch.
 cellCountParams.recordingLogxls = recordingLogxls;                  % Used to exclude phase 2 to give accurate unit counts.
 cellCountParams.subEventBatchStructPath = subEventBatchStructPath;  % a structure containing info about subEvent selectivity.
+
+pcaParams.outputDir = fullfile(outputDir, 'pca');
+pcaParams.preprocDir = fullfile(outputDir, 'pca', 'preProc');
 
 meanPSTHParams.outputDir = fullfile(outputDir,'meanPSTH');
 meanPSTHParams.stimParamsFilename = stimParamsFilename;
