@@ -56,7 +56,7 @@ if isfield(params,'offlineSorted') && params.offlineSorted == 1
   NEV.Data.Spikes.Waveform = spikeMat(:,4:end);
 end
 
-if isfield(params, 'waveClus') && params.waveClus
+if params.spikeSort == 1
   addpath(genpath('dependencies/wave_clus'))
   
   %use the typical naming convention to find the contious trace (ns5)
@@ -211,6 +211,18 @@ if isfield(params, 'waveClus') && params.waveClus
     cd(originalDir);
   end
   
+elseif params.spikeSort == 2
+  
+  % Phy
+  params.phyParams.waveFormSize = size(NEV.Data.Spikes.Waveform,2);
+  tmpSpikes = phy2Struct(spikeFile, params);
+  
+  % Unscale the time stamps
+  tmpSpikes.TimeStamp = tmpSpikes.TimeStamp/params.cPtCal;
+  
+  
+  NEV.Data.Spikes = tmpSpikes;
+
 end
 
 % Load the output structure spikesByChannel

@@ -31,6 +31,7 @@ end
 % selTable = vertcat(selTable{:});
 % runList = spikePathBank.Properties.RowNames;
 
+% [spikesByEventBinned, psthParams, eyeInByEventPerRun] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams', 'eyeInByEvent'}, params.spikePathLoadParams);
 [spikesByEventBinned, psthParams] = spikePathLoad(spikePathBank, {'spikesByEventBinned', 'psthParams'}, params.spikePathLoadParams);
 selTable = vertcat(spikePathBank.selTable{:});
 runList = spikePathBank.Properties.RowNames;
@@ -111,6 +112,8 @@ for run_i = 1:length(runList)
   
   runData.spikesByEventBinned = spikesByEventBinned{run_i};
   runData.eventIDs = spikePathBank.stimuli{run_i};
+%   runData.eyeInByEvent = eyeInByEventPerRun{run_i};
+  runData.padSize = padSize;
   
   % Indicies for activity, accounting for padding, ITI
   vecLength = size(runData.spikesByEventBinned{1}{1}{1},2);

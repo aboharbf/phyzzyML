@@ -38,21 +38,19 @@ if calcSwitch.dataHigh
   dataHighPrep(spikePathBank, batchAnalysisParams)
 end
 
-if plotSwitch.PCA
-  % Prepare for PCA
-  pcaPrep(spikePathBank, batchAnalysisParams)
+if plotSwitch.dimRed
+  % Process data into a more readible format for different dimensionality
+  % reduction functions
+  dimRedPrep(spikePathBank, batchAnalysisParams)
   
-  % Visualize the results
-  pcaVisualize(batchAnalysisParams)
+  % Perform a PCA and visualize results
+  pcaAndPlot(batchAnalysisParams)
   
-end
-
-if plotSwitch.dPCA
-  % Prepare for PCA
-  dpcaPrep(spikePathBank, batchAnalysisParams)
+  % Perform a dPCA and visualize results
+  dpcaAndPlot(batchAnalysisParams)
   
-  % Visualize the results
-  pcaVisualize(batchAnalysisParams)
+  % Perform PSID
+  psidAndPlot(batchAnalysisParams)
   
 end
 

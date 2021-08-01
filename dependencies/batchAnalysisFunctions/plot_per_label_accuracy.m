@@ -92,7 +92,7 @@ figTitle = sprintf('Decoding for %s', analysisStruct.plotTitle);
 figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
 
 axesh = axes(figh);
-axesh.FontSize = 24;
+axesh.FontSize = 20;
 title(figTitle)
 hold on
 linePlotHandles = gobjects(length(labels) + 2, 1)';
@@ -129,7 +129,8 @@ decodingAx = gca;
 
 % Add the legend
 % legend(linePlotHandles, allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
-legend(allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside')
+legH = legend(allLabels, 'AutoUpdate', 'off', 'location', 'northeastoutside');
+legH.FontSize = 14
 
 % Label axes correctly
 the_bin_times_shift = the_bin_times - shift;

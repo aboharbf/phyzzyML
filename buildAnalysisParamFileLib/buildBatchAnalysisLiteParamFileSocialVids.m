@@ -6,9 +6,9 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    monkey = 'Combo';
-    analysisDirectory = strcat('C:\DataAnalysis', monkey);
-    outputDir = strcat('C:/batchAnalysis', monkey);
+    monkey = 'Sam';
+    analysisDirectory = strcat('D:\DataAnalysis', monkey);
+    outputDir = strcat('D:/batchAnalysis', monkey);
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
@@ -46,14 +46,13 @@ figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 calcSwitch.excludeRepeats = 0;
 calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
-plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
-plotSwitch.PCA = 1;                   % 	
-plotSwitch.dPCA = 1;                  %
+plotSwitch.dimRed = 0;                 
 
-plotSwitch.saccadeAnalysis = 1;
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.saccadeAnalysis = 0;
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.rewardPSTH = 1;            % Analysis of reward psthes specifically.
@@ -65,7 +64,7 @@ plotSwitch.slidingWindowANOVA = 0;    %
 %% Parameters
 spikePathLoadParams.spikePathFileName = 'spikePathBank'; %File ending in .mat
 
-preprocessedDataVars = {'spikesByEvent', 'spikesByEvent', 'eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData', 'stimTiming'}; %Variables extracted from preprocessedData.mat
+preprocessedDataVars = {'spikesByEvent', 'eventIDs','eventCategories','preAlign','postAlign', 'categoryList', 'taskData', 'stimTiming'}; %Variables extracted from preprocessedData.mat
 
 AnalysisParamVars = {'psthParams', 'epochTargParams', 'epochSWparams', 'spikeAlignParams', 'saccadeStackParams'}; %Variables extracted from analysisParam.mat
 
@@ -125,8 +124,8 @@ cellCountParams.batchRunxls = batchRunxls;                          % Batch anal
 cellCountParams.recordingLogxls = recordingLogxls;                  % Used to exclude phase 2 to give accurate unit counts.
 cellCountParams.subEventBatchStructPath = subEventBatchStructPath;  % a structure containing info about subEvent selectivity.
 
-pcaParams.outputDir = fullfile(outputDir, 'pca');
-pcaParams.preprocDir = fullfile(outputDir, 'pca', 'preProc');
+dimRedParams.outputDir = fullfile(outputDir, 'dimRed');
+dimRedParams.preprocDir = fullfile(outputDir, 'dimRed', 'preProc');
 
 meanPSTHParams.outputDir = fullfile(outputDir,'meanPSTH');
 meanPSTHParams.stimParamsFilename = stimParamsFilename;

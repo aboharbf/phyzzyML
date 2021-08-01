@@ -11,7 +11,7 @@ analysisChangeParams.reportFeaturepVal = 0;   % Turns off the Z scoring
 
 % train and test only at the same times - this avoids needing to generate a
 % full cross temporal correlation matrix, analyses take much less time.
-crossTempDecoding = false;
+crossTempDecoding = true;
 
 % Add the path to the NB
 addpath(genpath(params.NDTPath));
@@ -31,7 +31,7 @@ for paradigm_i = 1:length(paradigmList)
   pRasterDir = fullfile(pFolder, 'rasterData');
   
   % Check if Raster data is present, if not, generate.
-  if ~exist(pRasterDir, 'dir') | length(dir(pRasterDir)) == 2
+  if ~exist(pRasterDir, 'dir') || length(dir(pRasterDir)) == 2
     paradigmParams = params.spikeToRasterParams;
     paradigmParams.rasterParams = params.spikeToRasterParams.(pName);
     spikePathBank_to_rasterData(spikePathBankParadigm, pRasterDir, paradigmParams);
@@ -40,7 +40,6 @@ for paradigm_i = 1:length(paradigmList)
   % Check if the raster data is present, if not, make it
   binnedDirName = fullfile(pRasterDir, 'rasterData_binned');
   rasterDataPath = fullfile(pRasterDir, 'S20*');
-  [params.binWidth, params.stepSize] = deal(100);
   binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedDirName, params.binWidth, params.stepSize);
   
   if ~exist(binnedFileNameOut, 'file')
@@ -125,7 +124,7 @@ for paradigm_i = 1:length(paradigmList)
       cross_val_resample = params.AnalysesDefault.cross_validator_num_resample;
       runShuff = [false(params.AnalysesDefault.real_shuffle_count, 1); true(params.AnalysesDefault.null_shuffle_count,1)]';
       
-      % Cycle through the runs
+       % Cycle through the runs
       parfor shuff_ind = 1:length(runShuff)
         fprintf('Running Shuffle ind %d, @ %s \n', shuff_ind, datetime())
         tic

@@ -16,8 +16,11 @@ machine = machine(~isspace(machine));
 switch machine
   case 'Skytech_FA'
     ephysVolume = slashSwap('D:\EphysData\Data');
+    ephysBinVolume = 'C:\EphysDataBin';
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('D:\DataAnalysis');
+    phyDir = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\Spike Sorting\npy-matlab';
+    spikesDir = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\Spike Sorting\spikes';
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
     neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
@@ -150,7 +153,7 @@ ephysParams.lfpChannels = channels2Read;
 ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
 ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read), 1]); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
-ephysParams.waveClus = 1;             % Does automated offline sorting using wave_clus.
+ephysParams.spikeSort = 2;            % Using other spike sorting packages. 1 = waveClus, 2 = previously sorted on Phy.
 ephysParams.paramHandle = @set_parameters_batchFeb2020; %Function which produces param struct for wave_clus. in wave_clus folder.
 ephysParams.waveClusReclass = 0;      % Reclassify clusters (as defined by mean waveform proximity to threshold) to MUA.
 ephysParams.waveClusMUAThreshold = 1.25; %scaling for reclassification of clusters as MUA. 1 = 0 scaling = no reclassification of clusters.
@@ -182,6 +185,9 @@ ephysParams.filter = butter1Hz200Hz_v1; % if filtering desired, ephysFilter is a
 ephysParams.plotFilterResult = 0; 
 ephysParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
 ephysParams.saveFig = figStruct.saveFig;
+ephysParams.phyParams.phyPath = phyDir;
+ephysParams.phyParams.spikesDir = spikesDir;
+ephysParams.phyParams.ephysBinVolume = ephysBinVolume;
 
 % parameters preprocessAnalogIn, see function for details
 analogInParams.needAnalogIn = 1;

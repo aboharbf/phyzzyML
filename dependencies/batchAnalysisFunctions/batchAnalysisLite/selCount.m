@@ -66,7 +66,9 @@ for par_i = 1:length(paradigmList)
 
   % Now, for each unitType and selectivity, map out gridHole contents.
   batchAnalysisParams.selParam.paradigm = paradigmList{par_i};
-  plotCountsOnBrain(selTableParadigm, batchAnalysisParams);
+  if ~contains(batchAnalysisParams.analysisDirectory, 'Combo')
+    plotCountsOnBrain(selTableParadigm, batchAnalysisParams);
+  end
 
 end
 
