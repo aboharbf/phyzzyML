@@ -58,7 +58,6 @@ for paradigm_i = 1:length(paradigmList)
   
   % Cycle through and perform analyses.
   analysesToRun = fields(analysesStructs);
-  analysesToRun = analysesToRun(~contains(analysesToRun, 'broadCat') & ~contains(analysesToRun, 'catBroad') & contains(analysesToRun, 'stimSet'));
   
   for analysis_i = 1:length(analysesToRun)
     % Get Analysis structure

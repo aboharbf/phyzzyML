@@ -271,6 +271,7 @@ for unit_set_i = 1:length(unitSets)
           % If there is a pseudoGen label, add that to the name
           if ~isempty(analysisStruct.pseudoGenString)
             saveFileName = sprintf('%s_%s', saveFileName, analysisStruct.pseudoGenString);
+            analysisStruct.plotTitle = sprintf('%s (pseudoGen - %s)', analysisStruct.plotTitle, analysisStruct.pseudoGenString);
           end
           
           % Save structure

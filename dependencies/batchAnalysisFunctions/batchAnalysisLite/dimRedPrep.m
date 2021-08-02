@@ -52,6 +52,7 @@ for m_i = 1:length(nameArray)
       paradigmParams = params.NDTParams.spikeToRasterParams;
       paradigmParams.spikePathLoadParams = params.spikePathLoadParams;
       paradigmParams.rasterParams = params.NDTParams.spikeToRasterParams.(paradigmLabel);
+      paradigmParams.fixShorten = 0;
       spikePathBank_to_rasterData(spikePathBankMP, rasterDataDirMP, paradigmParams);
     end
     

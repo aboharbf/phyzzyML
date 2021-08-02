@@ -103,8 +103,7 @@ for run_i = 1:length(runList)
   
   % Collect data for this particular run
   runData = struct();
-%   runData.start = -psthParams{run_i}.psthPre + psthParams{run_i}.ITI + params.fixShorten;
-  runData.start = -psthParams{run_i}.psthPre - params.fixShorten;
+  runData.start = -psthParams{run_i}.psthPre + params.fixShorten;
   runData.end = psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost;
   padSize = psthParams{run_i}.movingWin(1)/2;
   
@@ -121,8 +120,7 @@ for run_i = 1:length(runList)
   assert(vecLength == theoreticalLength, 'Something is off w/ vector lengths');
 
   % Determine the slice of activity to be used.
-%   startTime = psthParams{run_i}.psthPre - params.fixShorten + padSize;
-  startTime = padSize;
+  startTime = psthParams{run_i}.psthPre - params.fixShorten + padSize;
   endTime = vecLength - padSize;
   dataLength = endTime - startTime + 1;
   
@@ -204,7 +202,8 @@ for run_i = 1:length(runList)
       % Cycle through the stim, store into raster_data.
       raster_data = zeros(trialsPerUnit, dataLength);
       for stim_i = 1:length(runData.spikesByEventBinned)
-        raster_data(trialsPerStimStart(stim_i):trialsPerStimEnd(stim_i),:) = runData.spikesByEventBinned{stim_i}{chan_i}{unit_i}(:, startTime:endTime);
+        raster_data(trialsPerStimStart(stim_i):trialsPerStimEnd(stim_i),:) = ...
+          runData.spikesByEventBinned{stim_i}{chan_i}{unit_i}(:, startTime:endTime);
       end
       
       % Generate the raster_site_info

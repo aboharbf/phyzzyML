@@ -6,7 +6,7 @@ machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    monkey = 'Sam';
+    monkey = 'Combo';
     analysisDirectory = strcat('D:\DataAnalysis', monkey);
     outputDir = strcat('D:/batchAnalysis', monkey);
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
@@ -37,7 +37,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
@@ -276,7 +276,7 @@ NDTParams.spikeToRasterParams.subEventBatchStructPath = subEventBatchStructPath;
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
 % spikeDataBank to rasterData Parameters.
-NDTParams.spikeToRasterParams.fixShorten = 0; % Push the start of the data collected an additional X past the start (not including the ITI). No point in decoding full fixation.
+NDTParams.spikeToRasterParams.fixShorten = 800; % Push the start of the data collected an additional X past the start (not including the ITI). No point in decoding full fixation.
 NDTParams.spikeToRasterParams.comboEvents = selParam.comboEvents;
 NDTParams.spikeToRasterParams.comboSubEvents = selParam.comboSubEvents;
 
@@ -303,13 +303,13 @@ NDTParams.binWidth = 150;
 NDTParams.stepSize = 50;
 
 NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
-NDTParams.AnalysesDefault.null_shuffle_count = 10;            % The number of times to randomly shuffle the data to generate a null distribution.
+NDTParams.AnalysesDefault.null_shuffle_count = 7;            % The number of times to randomly shuffle the data to generate a null distribution.
 NDTParams.AnalysesDefault.load_data_as_spike_counts = 0;      % loading spike counts is required for poisson_naive_bayes_CL, optional for the rest.
 NDTParams.AnalysesDefault.cross_validator_num_resample = 50;  % Number of times to resample runs for cross validator.
 
 NDTParams.figStruct = figStruct;
 NDTParams.plotParams = figStruct;
-NDTParams.NaturalSocial.plotParams.points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.NaturalSocial.plotParams.points_to_label = [-200, 0, 500, 1000, 1500, 2000, 2500, 3000];
 NDTParams.NaturalSocial.plotParams.points_for_lines = [0, 2800];
 NDTParams.NaturalSocial.plotParams.shift = 400; % prePSTH in the code elsewhere.
 

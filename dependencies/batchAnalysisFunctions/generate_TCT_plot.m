@@ -19,10 +19,23 @@ plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information
 title(params.figTitle);
 
 % Generate vectors for new X and Y axes
+tmp = load(save_file_name);
+binningParams = tmp.decoding_results.DS_PARAMETERS.binned_site_info.binning_parameters;
+
 points_to_label = params.plotParams.points_to_label;
 points_for_lines = params.plotParams.points_for_lines;
-the_bin_start_times = 1:params.stepSize:(params.end_time - params.binWidth  + 1);
-the_bin_start_times_shift = the_bin_start_times - params.plotParams.shift;
+the_bin_start_times = binningParams.the_bin_start_times - 1;
+the_bin_start_times_shift = the_bin_start_times - binningParams.alignment_event_time;
+
+% Identify what the x axis will represent.
+binLabel = params.plot_per_label_acc.binLabel;
+switch binLabel
+  case 'End'
+    offSet = params.binWidth;
+  case 'Middle'
+    offSet = params.binWidth/2;
+end
+the_bin_start_times_shift = the_bin_start_times_shift + offSet;
 
 bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
 lines_to_add = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
@@ -73,6 +86,6 @@ if params.addTCTSigShading
 end
 
 % Save Figure
-saveFigure(pFolder, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
+saveFigure(analysisStruct.plotOutDir, ['2. ' params.figTitle], analysisStruct, params.figStruct, [])
 
 end
