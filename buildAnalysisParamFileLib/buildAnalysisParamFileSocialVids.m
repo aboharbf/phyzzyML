@@ -141,8 +141,6 @@ calcSwitch.useJacknife = 0;
 
 %% Parameters
 channels2Read = 1:32;
-% channels2Read = 33:64;
-% channels2Read = [5 13];
 
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
@@ -330,7 +328,7 @@ tfParams.specgramRowAve = 0;
 psthParams.type = 'normal'; %options are 'normal', 'baselineSub', 'meanWhite'
 psthParams.psthPre = 1200; % if e.g. +200, then start psth 200ms before trial onset; 
 psthParams.psthImDur = 2800;  % only need to set this for variable length stim runs; else, comes from log file
-psthParams.psthPost = 400;
+psthParams.psthPost = 800;
 psthParams.latency = 0;
 psthParams.movingWin = tfParams.movingWin;
 psthParams.smoothingWidth = 40;  %psth smoothing width, in ms
@@ -394,9 +392,9 @@ subEventAnalysisParams.genPlots = 1;                                    % Asks i
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 subEventAnalysisParams.preSaccOffset = 200;                               % Offset to use when determining pre-saccade period.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
-                                         'pre-saccades', 'saccades', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
+                                         'pre-saccades', 'saccades', 'pre-saccadeNonStim', 'saccadesNonStim', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
-                                             [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
+                                             [0 200]; [0 100]; [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
 subEventAnalysisParams.nonParametric = 1;                                 % Use non parametric test.
 
 % Variables for creating saccade rasters and PSTHes.

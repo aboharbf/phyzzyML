@@ -140,10 +140,7 @@ calcSwitch.spikeTimes = 0;
 calcSwitch.useJacknife = 0;      
 
 %% Parameters
-% channels2Read = [16:32 48:64];
 channels2Read = [17:32 49:64];
-% channels2Read = 33:64;
-% channels2Read = [5 13];
 
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
@@ -331,7 +328,7 @@ tfParams.specgramRowAve = 0;
 psthParams.type = 'normal'; %options are 'normal', 'baselineSub', 'meanWhite'
 psthParams.psthPre = 1200; % if e.g. +200, then start psth 200ms before trial onset; 
 psthParams.psthImDur = 2800;  % only need to set this for variable length stim runs; else, comes from log file
-psthParams.psthPost = 400;
+psthParams.psthPost = 800;
 psthParams.latency = 0;
 psthParams.movingWin = tfParams.movingWin;
 psthParams.smoothingWidth = 40;  %psth smoothing width, in ms
@@ -394,9 +391,9 @@ subEventAnalysisParams.spikeTimes = calcSwitch.spikeTimes;
 subEventAnalysisParams.genPlots = 1;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
-                                         'pre-saccades', 'saccades', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
+                                         'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
-                                             [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
+                                             [0 200]; [0 100]; [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
 subEventAnalysisParams.preSaccOffset = 200;                               % Use non parametric test.
 subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
 

@@ -545,6 +545,25 @@ taskEventIDsMerged = eventIDMerge(taskEventIDs);
 taskEventFixDurBlk = fixOnsetTimesBlk;
 assert(length(taskEventFixDurBlk) == length(taskEventIDs), 'Problem w/ fixation times')
 
+%% Resort the stimuli in order
+
+if any(contains(translationTable, 'monkey'))
+  chaseInd = find(contains(translationTable, 'Chas'));
+  fightInd = find(contains(translationTable, 'Fight'));
+  mountInd = find(contains(translationTable, 'Moun'));
+  gromInd = find(contains(translationTable, 'Groom'));
+  gdInd = find(contains(translationTable, 'GoalDir'));
+  idInd = find(contains(translationTable, 'Idle'));
+  objInd = find(contains(translationTable, 'obj'));
+  sceneInd = find(contains(translationTable, 'landscape'));
+  
+  newSortInd = [chaseInd; fightInd; mountInd; gromInd; gdInd; idInd; objInd; sceneInd];
+  
+end
+
+translationTable = translationTable(newSortInd);
+tmpFrameMotionData = tmpFrameMotionData(newSortInd);
+
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.

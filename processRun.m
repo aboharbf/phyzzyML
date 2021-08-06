@@ -229,6 +229,16 @@ if ~usePreprocessed
     %disp(eventIDs(eventsObserved));
   end
   
+  % Once eventIDs is finished, rearrange things in taskData which are
+  % dependent on this order, just to be sure
+  
+%   assert(all(eventIDResort' == 1:length(eventIDResort)), 'taskEventIDs from taskData not in the same order as eventIDs - consider investigating further')
+  
+  eventsObserved = find(eventsObserved);
+  eventIDsTmp = eventIDs(eventsObserved);
+  [~, eventIDResort] = ismember(taskData.taskEventList, eventIDsTmp);
+  eventsObserved = eventsObserved(eventIDResort);
+  
   if ~keepItemsNotPresented
     refStruct = tmp.refStruct(eventsObserved);
     onsetsByEvent = onsetsByEvent(eventsObserved);
@@ -276,13 +286,6 @@ if ~usePreprocessed
   else
     jumpsByImage = [];
   end
-  
-  % Once eventIDs is finished, rearrange things in taskData which are
-  % dependent on this order, just to be sure
-  [~, taskDataResortInd] = ismember(eventIDs, taskData.taskEventList);
-  taskData.frameMotionData = taskData.frameMotionData(taskDataResortInd);
-  taskData.taskEventList = taskData.taskEventList(taskDataResortInd);
-  assert(all(taskDataResortInd' == 1:length(taskDataResortInd)), 'taskEventIDs from taskData not in the same order as eventIDs - consider investigating further')
   
   % align spikes by trial, and sort by image and category
   spikeAlignParamsToCoverMovingWin.preAlign = lfpAlignParams.msPreAlign; % need to include spikes throughout the window chronux will use to calculate spectra

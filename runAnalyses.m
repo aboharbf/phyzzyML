@@ -424,7 +424,7 @@ if plotSwitch.subEventAnalysis
   subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
   subEventAnalysisParams.eventIDs = eventIDs;
     
-  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventAnalysisParams, selTable, figStruct);
+  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventAnalysisParams, selTable, psthParams, figStruct);
   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
 end
 

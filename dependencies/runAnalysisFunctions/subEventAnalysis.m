@@ -1,4 +1,4 @@
-function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventParams, selTable, figStruct)
+function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventParams, selTable, psthParams, figStruct)
 % subEventAnalysis
 % Description - looks through spikesByEvent, calculates PSTH for activity
 % aligned to a specific event as well as a null distribution from the
@@ -164,7 +164,9 @@ if ~isempty(eyeBehStatsByStim)
   trialsPerStim = cellfun('length', eyeBehStatsByStim);
   stimuliStartTimes = subEventParams.onsetsByEvent;     % Find all the start times for the stimulus
   
-  [blinkTimes, saccadeTimes] = deal([]);                          % Initialize vectors
+  [stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, eventIDs, psthParams);
+  
+  [blinkTimes, saccadeTimes, saccadeNonStimTimes, saccadeNullTimes, saccadeNonStimNullTimes] = deal([]);                          % Initialize vectors
   for stim_i = 1:length(eyeBehStatsByStim)
     for trial_i = 1:trialsPerStim(stim_i)
       % Find Absolute eye event start times.
@@ -174,8 +176,16 @@ if ~isempty(eyeBehStatsByStim)
         blinkTimes = [blinkTimes; (eyeTrial.blinktimes(1,:)' + stimuliStartTimes{stim_i}(trial_i))];
       end
       
+      saccadeBins = find(stimSaccadeArrays{stim_i}(trial_i,:)) - psthParams.psthPre;
+      saccadeNullBins = find(stimSaccadeNullArrays{stim_i}(trial_i,:)) - psthParams.psthPre;
+      nonStimSaccInd = saccadeBins < 0 | saccadeBins > psthParams.psthImDur + psthParams.psthPost;
+      nonStimNullSaccInd = saccadeNullBins < 0 | saccadeNullBins > psthParams.psthImDur + psthParams.psthPost;
+      
       if ~isempty(eyeTrial.saccadetimes)
-        saccadeTimes = [saccadeTimes; (eyeTrial.saccadetimes(1,:)' + stimuliStartTimes{stim_i}(trial_i))];
+        saccadeTimes = [saccadeTimes; (saccadeBins' + stimuliStartTimes{stim_i}(trial_i))];
+        saccadeNonStimTimes = [saccadeNonStimTimes; (saccadeBins(nonStimSaccInd)' + stimuliStartTimes{stim_i}(trial_i))];
+        saccadeNullTimes = [saccadeNullTimes; (saccadeNullBins' + stimuliStartTimes{stim_i}(trial_i))];
+        saccadeNonStimNullTimes = [saccadeNonStimNullTimes; (saccadeNullBins(nonStimNullSaccInd)' + stimuliStartTimes{stim_i}(trial_i))];
       end
       
     end
@@ -183,14 +193,19 @@ if ~isempty(eyeBehStatsByStim)
   
   % Generate pre-saccade times
   preSaccadeTimes = saccadeTimes - subEventParams.preSaccOffset;
+  preSaccadeNonStimTimes = saccadeNonStimTimes - subEventParams.preSaccOffset;
+  preSaccadeNullTimes = saccadeNullTimes - subEventParams.preSaccOffset;
+  preSaccadeNonStimNullTimes = saccadeNonStimNullTimes - subEventParams.preSaccOffset;
   
   % Sort these lists for the next processing steps
-  eyeEventTimes = {blinkTimes; saccadeTimes; preSaccadeTimes}; % Putting saccadeTimes in twice for pre-saccade times.
+%   eyeEventTimes = {blinkTimes; saccadeTimes; preSaccadeTimes}; % Putting saccadeTimes in twice for pre-saccade times.
+  eyeEventTimes = {blinkTimes; saccadeTimes; preSaccadeTimes; saccadeNonStimTimes; preSaccadeNonStimTimes}; % Putting saccadeTimes in twice for pre-saccade times.
   
   % Generate Null times, add a number (100 - 1000), shuffle them and check
   % if its close to a number on the list. If not, its a null value.
   
-  eyeEventNullTimes = createNullScrambleTimes(eyeEventTimes, 500, 300);
+  blinkTimesNull = createNullScrambleTimes({blinkTimes}, 500, 300);
+  eyeEventNullTimes = [blinkTimesNull; saccadeNullTimes; preSaccadeNullTimes; saccadeNonStimNullTimes; preSaccadeNonStimNullTimes];
   
   if saccadeSplit
     % Event Type 2.5 - subEvents occuring in the stimuli, split by whether a
@@ -231,7 +246,7 @@ if ~isempty(eyeBehStatsByStim)
 %   onsetsByEventNull = onsetsByEventNull(keepInd);
   
   % Add Previously generate eye focused events to array
-  subEventNames = [subEventNames; ["blinks"; "saccades"; "pre-saccades"]]; % Presaccade will have the same times as saccades, but the comparison window for the t test will stretch back.
+  subEventNames = [subEventNames; ["blinks"; "saccades"; "pre-saccades"; "saccadesNonStim"; "pre-saccadesNonStim"]]; % Presaccade will have the same times as saccades, but the comparison window for the t test will stretch back.
   onsetsByEvent = [onsetsByEvent; eyeEventTimes];
   onsetsByEventNull = [onsetsByEventNull; eyeEventNullTimes];
   
