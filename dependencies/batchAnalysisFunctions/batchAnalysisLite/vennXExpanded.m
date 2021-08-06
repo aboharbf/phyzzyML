@@ -50,9 +50,9 @@ figH = gcf;
 figH.Children.FontSize = 13;
 figH.Units = 'normalized';
 if colInCount == 3
-  figH.Position = [0.4 0.2 .46, .62];
+  figH.Position = [0.4 0.2 .53, .72];
 elseif colInCount == 2
-  figH.Position = [0.4 0.2 .46  .4691];
+  figH.Position = [0.4 0.2 .5  .5];
 end
 figH.NumberTitle = 'off';
 

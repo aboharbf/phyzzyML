@@ -154,7 +154,7 @@ ephysParams.lfpChannels = channels2Read;
 ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
 ephysParams.lfpChannelScaleBy = repmat(8191/32764, [length(channels2Read), 1]); %converts raw values to microvolts
 ephysParams.offlineSorted = 0;        % Checks for a '*.xls' Structure in the folder, with resorted spikes.
-ephysParams.spikeSort = 2;            % Using other spike sorting packages. 1 = waveClus, 2 = previously sorted on Phy.
+ephysParams.spikeSort = 1;            % Using other spike sorting packages. 1 = waveClus, 2 = previously sorted on Phy.
 ephysParams.paramHandle = @set_parameters_batchFeb2020; %Function which produces param struct for wave_clus. in wave_clus folder.
 ephysParams.waveClusReclass = 0;      % Reclassify clusters (as defined by mean waveform proximity to threshold) to MUA.
 ephysParams.waveClusMUAThreshold = 1.25; %scaling for reclassification of clusters as MUA. 1 = 0 scaling = no reclassification of clusters.

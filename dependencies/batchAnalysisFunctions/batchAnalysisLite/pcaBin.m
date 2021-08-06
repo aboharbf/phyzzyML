@@ -19,7 +19,7 @@ binnedDataPath = fullfile(rasterDir, sprintf('binned_data_%dW_%dS.mat', binWidth
 
 if exist(binnedDataPath, 'file') && ~overwrite
   fprintf('Data in %s already binned. Returning. \n', rasterDir)
-  return
+%   return
 else
   fprintf('Binning data in %s... \n', rasterDir)
 end
@@ -84,8 +84,7 @@ binned_site_info.binning_parameters.start_time = 1;
 binned_site_info.binning_parameters.end_time = binEnds(end);
 binned_site_info.binning_parameters.the_bin_start_times = binStarts;
 
-
-disp(['  Saving the binned data to the file:  ' binnedDataPath])
+disp(['Saving the binned data to the file: ' binnedDataPath])
 save(binnedDataPath, 'binned_data', 'binned_labels', 'binned_site_info');
 
 

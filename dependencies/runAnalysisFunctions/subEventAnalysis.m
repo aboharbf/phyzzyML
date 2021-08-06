@@ -11,6 +11,8 @@ function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(ey
 % subEventParams - has path to eventData, stimDir, and variables used to
 % plot PSTHes.
 
+saccadeSplit = false;           % Split subEvent in the stimulus depending on whether they were followed by a saccade.
+
 % Unpack Variables, some preprocessing. Generate an index for individual
 % trials that take place during the run, matching them to the stimuli as
 % present in the taskData.eventIDs field.
@@ -190,35 +192,37 @@ if ~isempty(eyeBehStatsByStim)
   
   eyeEventNullTimes = createNullScrambleTimes(eyeEventTimes, 500, 300);
   
-  % Event Type 2.5 - subEvents occuring in the stimuli, split by whether a
-  % subsequent saccade took place.
-  saccadeTimes = sort(saccadeTimes);
-  subEventsNew = cell(length(subEventNames), 2);
-  subEventNull = [onsetsByEventNull, onsetsByEventNull];
-  subEventNamesNew = [strcat(subEventNames, '_sacc'), strcat(subEventNames, '_saccNone')];
-  for event_i = 1:length(subEventNames)
+  if saccadeSplit
+    % Event Type 2.5 - subEvents occuring in the stimuli, split by whether a
+    % subsequent saccade took place.
+    saccadeTimes = sort(saccadeTimes);
+    subEventsNew = cell(length(subEventNames), 2);
+    subEventNull = [onsetsByEventNull, onsetsByEventNull];
+    subEventNamesNew = [strcat(subEventNames, '_sacc'), strcat(subEventNames, '_saccNone')];
+    for event_i = 1:length(subEventNames)
+      
+      % Pull event times
+      eventOnsets = onsetsByEvent{event_i};
+      
+      % See how they compare to previously collect saccade times
+      eventOnsets2Check = repmat(saccadeTimes, [1, length(eventOnsets)]);
+      eventOnsetsOffsetBySacc = eventOnsets2Check - eventOnsets';
+      
+      % If any number is between 0 and the previously defined window, it means
+      % a saccade occured close enough after.
+      eventsWSaccades = any(eventOnsetsOffsetBySacc > 0 & eventOnsetsOffsetBySacc < saccadeWindow, 1);
+      
+      % Store them as distinct events
+      subEventsNew{event_i, 1} = eventOnsets(eventsWSaccades);
+      subEventsNew{event_i, 2} = eventOnsets(~eventsWSaccades);
+      
+    end
     
-    % Pull event times
-    eventOnsets = onsetsByEvent{event_i};
-    
-    % See how they compare to previously collect saccade times
-    eventOnsets2Check = repmat(saccadeTimes, [1, length(eventOnsets)]);
-    eventOnsetsOffsetBySacc = eventOnsets2Check - eventOnsets';
-    
-    % If any number is between 0 and the previously defined window, it means
-    % a saccade occured close enough after.
-    eventsWSaccades = any(eventOnsetsOffsetBySacc > 0 & eventOnsetsOffsetBySacc < saccadeWindow, 1);
-    
-    % Store them as distinct events
-    subEventsNew{event_i, 1} = eventOnsets(eventsWSaccades);
-    subEventsNew{event_i, 2} = eventOnsets(~eventsWSaccades);
-    
+    % Rearrange and overwrite originals
+    onsetsByEvent = reshape(subEventsNew', [], 1);
+    onsetsByEventNull = reshape(subEventNull', [], 1);
+    subEventNames = reshape(subEventNamesNew', [], 1);
   end
-  
-  % Rearrange and overwrite originals
-  onsetsByEvent = reshape(subEventsNew', [], 1);
-  onsetsByEventNull = reshape(subEventNull', [], 1);
-  subEventNames = reshape(subEventNamesNew', [], 1);
     
   % Remove empty ones
 %   keepInd = ~cellfun('isempty', onsetsByEvent);
@@ -394,6 +398,7 @@ if ~isempty(onsetsByEvent)
   end
   
   % Plotting
+  subEventParams.genPlots = 0;
   if subEventParams.genPlots
     
     % Plotting Below

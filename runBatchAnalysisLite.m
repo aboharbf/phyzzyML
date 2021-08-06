@@ -6,11 +6,9 @@ batchAnalysisParams = load(fullfile(batchAnalysisParams.outputDir, 'batchAnalysi
 batchAnalysisParams.spikePathLoadParams = spikePathLoadParamsKeep;
 
 % Load basic inputs
-runList = spikePathBank.Properties.RowNames;
 plotSwitch = batchAnalysisParams.plotSwitch;
 calcSwitch = batchAnalysisParams.calcSwitch;
 figStruct = batchAnalysisParams.figStruct;
-meanPSTHParams = batchAnalysisParams.meanPSTHParams;
 
 %% Pre-Analysis processing
 
@@ -47,10 +45,10 @@ if plotSwitch.dimRed
   pcaAndPlot(batchAnalysisParams)
   
   % Perform a dPCA and visualize results
-  dpcaAndPlot(batchAnalysisParams)
+%   dpcaAndPlot(batchAnalysisParams)
   
   % Perform PSID
-  psidAndPlot(batchAnalysisParams)
+%   psidAndPlot(batchAnalysisParams)
   
 end
 

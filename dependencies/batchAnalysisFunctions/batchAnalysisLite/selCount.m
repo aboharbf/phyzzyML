@@ -1,15 +1,15 @@
 function selCount(spikePathBank, batchAnalysisParams)
 % A Function to tally across processed runs and the 'selTable' produced.
 
-% Collect unit selectivity
-outputDir = batchAnalysisParams.selParam.outputDir;
-
 % Now, selectivity across paradigms...
 % selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
 
 paradigmList = unique(spikePathBank.paradigmName);
-
 for par_i = 1:length(paradigmList)
+  
+  % Make the directory specific to paradigm.
+  batchAnalysisParams.selParam.outputDir = fullfile(batchAnalysisParams.selParam.outputDir, paradigmList{par_i});
+  
   
   pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
   selTableParadigmPerRun = spikePathBank.selTable(pInd);
@@ -38,9 +38,6 @@ for par_i = 1:length(paradigmList)
   % effects.
   exampleCellFinder(selTableParadigm);
   exampleCellFinderObject(selTableParadigm)
-  
-  % Make the directory specific to paradigm.
-  batchAnalysisParams.selParam.outputDir = fullfile(outputDir, paradigmList{par_i});
   
   jointTuningPlot(selTableParadigm, paradigmList{par_i}, batchAnalysisParams.selParam)
   

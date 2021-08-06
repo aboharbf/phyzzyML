@@ -63,20 +63,27 @@ else
   analysisParamList = dir([analysisDirectory filesep '**' filesep 'AnalysisParams.mat']);
   analyzedListTmp = {analyzedList.folder}';
   paramList = {analysisParamList.folder}';
+  
   disp(setdiff(paramList, analyzedListTmp));
   fprintf('Found %d processed runs.\n', length(analyzedList));
   
-  sessionList = cell(size(preprocessedList));
+  sessionList = cell(size(analyzedListPathList));
   spikePathBank = table();
   spikePathBank.analyzedDir = {preprocessedList.folder}';
   
-  for ii = 1:length(preprocessedList)
+  for ii = 1:length(analyzedListPathList)
     analyzedData = load(analyzedListPathList{ii}, 'analysisParamFilename','dateSubject', 'runNum');
     [~, sessionList{ii}] = deal(['S' analyzedData.dateSubject analyzedData.runNum]);
   end
   
   % Add session List as the row names.
   spikePathBank.Properties.RowNames = sessionList;
+  
+  if ~strcmp(batchAnalysisParams.monkey, 'Combo')
+    monkeyInd = contains(spikePathBank.Properties.RowNames, batchAnalysisParams.monkey);
+    spikePathBank = spikePathBank(monkeyInd, :);
+    fprintf('spikePathBank reduces to only runs with %s \n', batchAnalysisParams.monkey);
+  end
   
   % Save to folder
   save(spikePathFile, 'spikePathBank')

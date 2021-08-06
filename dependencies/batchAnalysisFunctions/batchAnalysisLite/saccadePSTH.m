@@ -6,13 +6,14 @@ smoothingWidth = 50;
 
 collapseBins = 1;    % Triggers the 'binStuff' function on the saved data, which simply rebins to a larger window
 binningSize = 100;       % Defines the size of the larger window.
+binStep = 100;       % Defines the step of the window.
 load(params.subEventPSTHParams.eventData, 'eventData'); %loads 'eventData' var.
 
 outputDir = fullfile(params.outputDir, 'saccadeDynamics');
 
 % Collect unit selectivity
 paradigmList = unique(spikePathBank.paradigmName);
-monkeyList = {'Sam', 'Mo'};
+monkeyList = {'Sam', 'Mo', 'Combo'};
 
 % Generate smoothing filter
 if smoothTraces
@@ -35,9 +36,14 @@ for monkey_i = 1:length(monkeyList)
   for par_i = 1:length(paradigmList)
     
     pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
-%     mInd = contains(spikePathBank.analyzedDir, monkeyList{monkey_i});
-%     spikePathBankParadigm = spikePathBank(pInd & mInd, :);
-    spikePathBankParadigm = spikePathBank(pInd, :);
+    if ~strcmp(monkeyList{monkey_i}, 'Combo')
+      mInd = contains(spikePathBank.analyzedDir, monkeyList{monkey_i});
+      spikePathBankParadigm = spikePathBank(pInd & mInd, :);
+    else
+      spikePathBankParadigm = spikePathBank(pInd, :);
+    end
+    
+%     spikePathBankParadigm = spikePathBank(pInd, :);
     
     % Grab necessary data from each run.
     [saccadeStackParamsPerRun, saccadeMatArrayPerRun, saccadeMatLabelPerRun] = spikePathLoad(spikePathBankParadigm, {'saccadeStackParams', 'saccadeMatArray', 'saccadeMatLabel'}, params.spikePathLoadParams);
@@ -134,7 +140,7 @@ for monkey_i = 1:length(monkeyList)
     
     % Then bin
     if collapseBins
-      plotDataStacks = cellfun(@(x) binStuff(x, binningSize), plotDataStacks, 'UniformOutput', false);
+      plotDataStacks = cellfun(@(x) binStuff(x, binningSize, binStep), plotDataStacks, 'UniformOutput', false);
     end
     
     % Plot the data

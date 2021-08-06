@@ -1,12 +1,12 @@
 function dimRedPrep(spikePathBank, params)
 
 % Switches
-normalizeTraces = false;     % A switch which normalizes a trace, following the mean being taken.
+normalizeTraces = true;     % A switch which normalizes a trace, following the mean being taken.
 smoothTraces = true;        % A switch that smooths a trace.
 HzThreshold = true;         % A switch which removes units with low firing rate
-HzThresNum = 5;             % The threshold used.
-binSize = 50;
-binStep = 50;
+HzThresNum = 1;             % The threshold used.
+binSize = 100;
+binStep = 100;
 
 % Identify monkeys in set
 dateSubjClipped = extractBefore(spikePathBank.Row, '00');
@@ -19,7 +19,7 @@ if ~exist(preprocDir, 'dir')
 end
 
 % Identify present monkeys in dataset
-nameArray = unique(nameVec);
+nameArray = [unique(nameVec); 'Combo'];
 paradigmVec = unique(spikePathBank.paradigmName);
 plotIndParams.stimParamsFilename = params.stimParamsFilename;
 dataFilesFound = params.NDTParams.rasterDir;
@@ -32,9 +32,9 @@ unitTypesLabel = {'MUA', 'Units'};
 
 % Labels to collect - the code grabs data belonging to each of these labels
 % and takes a mean to create a block per unit. 
-labels2Include = {{'chasing', 'fighting', 'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}}; % Label sorting
+labels2Include = {{'chasing', 'fighting', 'grooming', 'mounting', 'goalDirected', 'idle', 'objects', 'scene'}, {'socialInteraction', 'goalDirected', 'idle', 'objects', 'scene'}}; % Label sorting
 % labels2Include = {{'socialInteraction', 'goalDirected', 'idle', 'objects', 'scene'}}; % Label sorting
-labelSet = {'categories'};
+labelSet = {'categories', 'condensedCategories'};
 
 % storeData = cell(length(paradigmVec), length(unitTypes), length(nameArray));
 
@@ -45,7 +45,11 @@ for m_i = 1:length(nameArray)
     
     % Define path to data file and load it.
     rasterDataDirMP = fullfile(rasterDataDir, paradigmVec{paradigm_i}, nameArray{m_i});
-    spikePathBankMP = spikePathBank(contains(spikePathBank.Row, nameArray{m_i}) & contains(spikePathBank.paradigmName, paradigmVec{paradigm_i}), :);
+    if ~strcmp(nameArray{m_i}, 'Combo')
+      spikePathBankMP = spikePathBank(contains(spikePathBank.Row, nameArray{m_i}) & contains(spikePathBank.paradigmName, paradigmVec{paradigm_i}), :);
+    else
+      spikePathBankMP = spikePathBank(contains(spikePathBank.paradigmName, paradigmVec{paradigm_i}), :);
+    end
     
     % Check if Raster data is present, if not, generate.
     if ~exist(rasterDataDirMP, 'dir') || length(dir(rasterDataDirMP)) == 2
@@ -117,16 +121,16 @@ for m_i = 1:length(nameArray)
     % Scramble labels - Done by hand.
     % unitInd = unitInd(randperm(length(unitInd)));
     
-    binStarts = binnedData.binned_site_info.binning_parameters.the_bin_start_times;
-    starts = 1200;
+    binStarts = binnedData.binned_site_info.binning_parameters.the_bin_start_times - 1;
+    preStim = unique([binnedData.binned_site_info.alignment_event_time{:}]);
 
     points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
     points_for_lines = [0, 2800];
     
-    the_bin_start_times_shift = binStarts - starts;
+    the_bin_start_times_shift = binStarts - preStim;
     bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
     x_for_lines = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_for_lines);
-    
+        
     binLabelInfo.the_bin_start_times_shift = the_bin_start_times_shift;
     binLabelInfo.bins_to_label = bins_to_label;
     binLabelInfo.points_to_label = points_to_label;

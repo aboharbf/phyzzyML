@@ -63,7 +63,7 @@ for group_i = 1:length(targNames)
   trueUnitInd = 1;
   
   for chan_i = 1:chanCount
-    for unit_i = 1:chanUnits(chan_i);
+    for unit_i = 1:chanUnits(chan_i)
       
       % Group Saccade
       targSacc = cell(2, 1);

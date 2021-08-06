@@ -49,7 +49,9 @@ broadCatSocStruct.coreTitle = 'Broad Categories';
 coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
 [coreAnalysisStructs.the_training_label_names] = deal([]);
 [coreAnalysisStructs.the_test_label_names] = deal([]);
+[coreAnalysisStructs.pseudoGenString] = deal('');
 
+if strcmp(paradigmName, 'NaturalSocial')
 % PseudoGen related - create a version which does and does not generalize
 % across instances of stimuli
 coreAnalysisStructsPG = coreAnalysisStructs;
@@ -58,24 +60,25 @@ coreAnalysisStructsPG = coreAnalysisStructs;
 coreAnalysisStructs = [coreAnalysisStructs coreAnalysisStructsPG];
 
 % New - Add for Stimuli, make sure pseudoGenString is empty
-stimuliSetAStruct.labelFile = 'stimSetA';
-stimuliSetAStruct.label = 'stimuli';
-stimuliSetAStruct.label_names_to_use = {'landscape_4003.avi', 'landscape_4004.avi', 'monkeyChasing_1111.avi', 'monkeyChasing_1112.avi', 'monkeyFighting_1121.avi', 'monkeyFighting_1123.avi', 'monkeyGoalDir_1101.avi', 'monkeyGoalDir_1102.avi', ...
-      'monkeyGrooming_1141.avi', 'monkeyGrooming_1142.avi', 'monkeyIdle_1302.avi', 'monkeyIdle_1303.avi', 'monkeyMounting_1131.avi', 'monkeyMounting_1133.avi', 'objects_2101.avi', 'objects_2104.avi'};
-stimuliSetAStruct.coreTitle = 'Stim Set A';
-
-stimuliSetBStruct.labelFile = 'stimSetB';
-stimuliSetBStruct.label = 'stimuli';
-stimuliSetBStruct.label_names_to_use = {'landscape_4002.avi', 'landscape_4005.avi', 'monkeyChasing_1113.avi', 'monkeyChasing_1114.avi', 'monkeyFighting_1122.avi', 'monkeyFighting_1124.avi', 'monkeyGoalDir_1103.avi', 'monkeyGoalDir_1104.avi', ...
-  'monkeyGrooming_1143.avi', 'monkeyGrooming_1144.avi', 'monkeyIdle_1301.avi', 'monkeyIdle_1305.avi', 'monkeyMounting_1132.avi', 'monkeyMounting_1134.avi', 'objects_2102.avi', 'objects_2103.avi'};
-stimuliSetBStruct.coreTitle = 'Stim Set B';
-
-stimSetStructs = [stimuliSetAStruct stimuliSetBStruct];
-[stimSetStructs.the_training_label_names] = deal([]);
-[stimSetStructs.the_test_label_names] = deal([]);
-[stimSetStructs.pseudoGenString] = deal('');
-
-coreAnalysisStructs = [coreAnalysisStructs stimSetStructs];
+  stimuliSetAStruct.labelFile = 'stimSetA';
+  stimuliSetAStruct.label = 'stimuli';
+  stimuliSetAStruct.label_names_to_use = {'landscape_4003.avi', 'landscape_4004.avi', 'monkeyChasing_1111.avi', 'monkeyChasing_1112.avi', 'monkeyFighting_1121.avi', 'monkeyFighting_1123.avi', 'monkeyGoalDir_1101.avi', 'monkeyGoalDir_1102.avi', ...
+    'monkeyGrooming_1141.avi', 'monkeyGrooming_1142.avi', 'monkeyIdle_1302.avi', 'monkeyIdle_1303.avi', 'monkeyMounting_1131.avi', 'monkeyMounting_1133.avi', 'objects_2101.avi', 'objects_2104.avi'};
+  stimuliSetAStruct.coreTitle = 'Stim Set A';
+  
+  stimuliSetBStruct.labelFile = 'stimSetB';
+  stimuliSetBStruct.label = 'stimuli';
+  stimuliSetBStruct.label_names_to_use = {'landscape_4002.avi', 'landscape_4005.avi', 'monkeyChasing_1113.avi', 'monkeyChasing_1114.avi', 'monkeyFighting_1122.avi', 'monkeyFighting_1124.avi', 'monkeyGoalDir_1103.avi', 'monkeyGoalDir_1104.avi', ...
+    'monkeyGrooming_1143.avi', 'monkeyGrooming_1144.avi', 'monkeyIdle_1301.avi', 'monkeyIdle_1305.avi', 'monkeyMounting_1132.avi', 'monkeyMounting_1134.avi', 'objects_2102.avi', 'objects_2103.avi'};
+  stimuliSetBStruct.coreTitle = 'Stim Set B';
+  
+  stimSetStructs = [stimuliSetAStruct stimuliSetBStruct];
+  [stimSetStructs.the_training_label_names] = deal([]);
+  [stimSetStructs.the_test_label_names] = deal([]);
+  [stimSetStructs.pseudoGenString] = deal('');
+  
+  coreAnalysisStructs = [coreAnalysisStructs stimSetStructs];
+end
 
 % Generate every possible cross between training and testing data, where
 % for every stimulus category, you are training on stimCount - 1, then
@@ -122,7 +125,7 @@ coreAnalysisStructs = [coreAnalysisStructs stimSetStructs];
 decoders = {'max_correlation_coefficient_CL'};
 decoderTags = {'MCC'};
 preProcArray = {'zscore_normalize_FP'};
-unitSets = {'MUA', 'U&US'};
+unitSets = {'MUA', 'U&US', 'U'};
 
 % analysisTags are used to name the file, and put into the title of the
 % figure.
@@ -188,12 +191,16 @@ for unit_set_i = 1:length(unitSets)
   sites2KeepTemplate = true(size(binnedSiteInfoMatrix));
   unitTypeInd = strcmp(varFields, 'UnitType');
   
-  if strcmp(unitSets{unit_set_i}, 'MUA')
-    sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 1);
-    unitTag = 'MUA';
-  else
-    sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), [2 3]);
-    unitTag = 'UnUS';
+  switch unitSets{unit_set_i}
+    case 'MUA'
+      sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 1);
+      unitTag = 'MUA';
+    case 'U&US'
+      sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), [2 3]);
+      unitTag = 'UnUS';
+    case 'U'
+      sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 2);
+      unitTag = 'U';
   end
   
   for core_i = 1:length(coreAnalysisStructs)

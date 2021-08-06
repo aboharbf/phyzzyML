@@ -1,6 +1,6 @@
 function figH = createBarPlotWithChanceLine(barLabels, dataMat, alpha, unitCount, figTitle, legendEntries)
 
-figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [.3 .3 .5 .6]);
+figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [.3 .3 .65 .77]);
 
 X = categorical(barLabels);
 X = reordercats(X,barLabels);
@@ -17,7 +17,7 @@ else
 end
 
 for bar_i = 1:length(barh)
-  if all(barh(bar_i).FaceColor == [0 0 1]);
+  if all(barh(bar_i).FaceColor == [0 0 1])
     barh(bar_i).FaceColor = [0 0.25 1];
   end
   
@@ -43,7 +43,7 @@ for bar_i = 1:length(barh)
   end
   
   textH = text(xtips1, ytips1, unitTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 14);
-  textH = text(xtips1, ytips1, percentTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'FontSize', 10);
+  textH = text(xtips1, ytips1, percentTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'FontSize', 14);
   ytipsLast = ytips1;
 end
 

@@ -11,9 +11,9 @@ tableLabels = {'Fix Dot', 'Reward', 'Saccades', ...
     'headTurning', 'Saccade, Directional'};
 
 % Combine across the appropriate ones (mostly the saccade ones)
-comboparams.comboEvents = {'subSel_headTurn_all_selInd', };
-comboparams.comboSubEvents = {{'subSel_headTurn_all_saccNone_selInd', 'subSel_headTurn_all_sacc_selInd'}};
-selTable = expandSelTableComboEvents(selTable, comboparams);
+% comboparams.comboEvents = {'subSel_headTurn_all_selInd'};
+% comboparams.comboSubEvents = {{'subSel_headTurn_all_selInd', 'subSel_headTurn_all_sacc_selInd'}};
+% selTable = expandSelTableComboEvents(selTable, comboparams);
 
 % The image to be produced will be a stack of images, where every pixel is
 % either colored in or black. The colors will vary by monkey and unit type.

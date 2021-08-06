@@ -20,7 +20,7 @@ psthImDur = psthParams.psthImDur;
 % Variables
 scrambleCount = 2000;
 preSacc = 200;
-postSacc = 50;
+postSacc = 0;
 cardinalDir = true;       % A switch for analyzing things in terms of cardinal directions vs raw angles.
 
 % Reorganize spikesByEventBinned{event}{chan}{unit} into
@@ -113,7 +113,7 @@ for comparison_i = 1:length(comparisonType)
   saccadeSpikes = zeros(saccadeCount, 1);
 
   for chan_i = 1:chanCount
-    for unit_i = 1:length(spikesByUnitBinned{chan_i});
+    for unit_i = 1:length(spikesByUnitBinned{chan_i})
       
       % For each saccade, gather spikes which occured during that period.
       for sacc_i = 1:saccadeCount

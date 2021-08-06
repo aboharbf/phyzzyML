@@ -52,8 +52,7 @@ vars2AddOrig = [
   {'baseV_stimEarly_selInd'                    }
   {'baseV_stimLate_selInd'                     }
   {'baseV_reward_selInd'                       }
-  {'subSel_headTurn_all_sacc_selInd'           }
-  {'subSel_headTurn_all_saccNone_selInd'       }
+  {'subSel_headTurn_all_selInd'                }
   {'subSel_rewardCombo_selInd'                 }
   {'epochSel_socVNonSoc_stimEarly_selInd'      }
   {'epochSel_socVNonSoc_stimLate_selInd'       }
@@ -103,7 +102,6 @@ for run_i = 1:length(runList)
   
   % Collect data for this particular run
   runData = struct();
-  runData.start = -psthParams{run_i}.psthPre + params.fixShorten;
   runData.end = psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost;
   padSize = psthParams{run_i}.movingWin(1)/2;
   
@@ -119,10 +117,12 @@ for run_i = 1:length(runList)
   theoreticalLength = psthParams{run_i}.psthPre + psthParams{run_i}.psthImDur + psthParams{run_i}.psthPost + psthParams{run_i}.movingWin(1) + 1;
   assert(vecLength == theoreticalLength, 'Something is off w/ vector lengths');
 
-  % Determine the slice of activity to be used.
-  startTime = psthParams{run_i}.psthPre - params.fixShorten + padSize;
-  endTime = vecLength - padSize;
-  dataLength = endTime - startTime + 1;
+  % Determine the slice of activity to be used. Make sure the correct
+  % psthPre is stored for later use.
+  startTime = params.fixShorten + padSize; % Start data extraction after the pad, and shorten fix data by some amount.
+  runData.start = psthParams{run_i}.psthPre - params.fixShorten; % Alignment time is the psthPre (full fix time) minus whatever is taken off.
+  endTime = vecLength - padSize - 1;
+  dataLength = length(startTime:endTime);
   
   % find out trials per stimuli to generate useful indicies
   trialsPerStim = cellfun(@(x) size(x{1}{1},1), runData.spikesByEventBinned);
@@ -180,7 +180,7 @@ for run_i = 1:length(runList)
   
   % raster_site_info
   raster_site_info.session_ID = runList{run_i};
-  raster_site_info.alignment_event_time = abs(runData.start);
+  raster_site_info.alignment_event_time = runData.start;
   
   % Construct raster_data and save file per unit.
   selTableRows = selTable(strcmp(selTable.dateSubj, runList{run_i}(2:end-3)) & strcmp(selTable.runNum, runList{run_i}(end-2:end)), :);

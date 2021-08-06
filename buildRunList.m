@@ -1,4 +1,4 @@
-function [dirList] = buildRunList(dataDir, tag, paradigms2Analyze)
+function [dirList] = buildRunList(dataDir, tag, paradigms2Analyze, monkeyName)
 % Constructs the runList variable for the processRunBatch function based on
 % the selection of a directory and a tag, which both denotes the directory
 % contents of interest but also changes output formating.
@@ -102,10 +102,17 @@ if strcmp(tag, 'paradigm')
   paradigmList = paradigmListStruct.paradigmList;
   
   run2KeepInd = false(length(filesOfInterest),1);
+  % Cycle through the paradigms
   for par_i = 1:length(paradigms2Analyze)
     run2KeepInd = run2KeepInd | strcmp(paradigmList, paradigms2Analyze{par_i});
   end
   filesOfInterest = filesOfInterest(run2KeepInd);
+  
+  % If Monkey name specified, only run that monkey's data
+  if exist('monkeyName', 'var')
+    fileNameList = {filesOfInterest.name}';
+    filesOfInterest = filesOfInterest(contains(fileNameList, monkeyName));
+  end
   
 else
   

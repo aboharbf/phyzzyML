@@ -84,6 +84,7 @@ for par_i = 1:length(paradigmList)
   
   % Variable preperation - extract variables depending on switches
   % variables2Extract = {'psthByImage', 'psthErrByImage', 'psthByCategory', 'psthErrByCategory', 'psthParams'};
+  selectionInd = logical([params.meanPSTHParams.allStimPSTH params.meanPSTHParams.catPSTH params.meanPSTHParams.analysisGroupPSTH]);
   variables2Extract = {'psthByImage', 'psthByCategory', 'psthParams'};
   if params.meanPSTHParams.normalize
     variables2Extract(1:2) = strcat(variables2Extract(1:2), 'Proc');
@@ -95,6 +96,10 @@ for par_i = 1:length(paradigmList)
     
   % [psthByImage, psthErrByImage, psthByCategory, psthErrByCategory, psthParamsPerRun] = spikePathLoad(spikePathBank, variables2Extract, params.spikePathLoadParams);
   [psthByImage, psthByCategory, psthParamsPerRun] = spikePathLoad(spikePathBankParadigm, variables2Extract, params.spikePathLoadParams);
+  
+  if ~params.meanPSTHParams.catPSTH
+    clear psthByCategory
+  end
   
   selTable = spikePathBankParadigm.selTable;
   paradigmInd = unique(spikePathBankParadigm.paradigmInd);
@@ -293,8 +298,9 @@ for par_i = 1:length(paradigmList)
       
       % Create an array of selectivity type, unitType, Sign, and dataType
       dataType = {'agents', 'socialInteraction'};
-      normalizedActivity = cell(length(variableList), length(UnitTypes), 2, length(dataType));
-      [normalizedActivity{:}] = deal(nan(1e5 ,size(psthByImageParadigm{1}{1}{1},2)));
+      [emptySlotCount, normalizedActivity] = deal(cell(length(variableList), length(UnitTypes), 2, length(dataType)));
+      [normalizedActivity{:}] = deal(int16(nan(1e5 ,size(psthByImageParadigm{1}{1}{1},2))));
+      [emptySlotCount{:}] = deal(true(1e5 , 1));
       
       % For every event, find the unit traces selective for it.
       for event_i = 1:length(variableList)
@@ -338,9 +344,12 @@ for par_i = 1:length(paradigmList)
               
               % store traces
               for trace_i = 1:2
-                nanInd = find(isnan(normalizedActivity{event_i, unitType_i, sign_i, trace_i}(:,1)), 1);
+%                 nanInd = find(isnan(normalizedActivity{event_i, unitType_i, sign_i, trace_i}(:,1)), 1);
+                nanInd = find(emptySlotCount{event_i, unitType_i, sign_i, trace_i}, 1);
                 traces2Store = traceIndexPerStimuli == trace_i;
-                normalizedActivity{event_i, unitType_i, sign_i, trace_i}(nanInd:nanInd+sum(traces2Store)-1, :) = psthRun(traces2Store,:);
+                slot2Fill = nanInd:nanInd+sum(traces2Store)-1;
+                normalizedActivity{event_i, unitType_i, sign_i, trace_i}(slot2Fill, :) = int16(psthRun(traces2Store,:) * 1e4);
+                emptySlotCount{event_i, unitType_i, sign_i, trace_i}(slot2Fill) = false;
               end
             end
             
@@ -350,7 +359,7 @@ for par_i = 1:length(paradigmList)
       
       % After retrieving all the traces, remove the NaNs from the stored
       % values
-      normalizedActivity = cellfun(@(x) x(1:find(isnan(x(:,1)))-1, :), normalizedActivity, 'UniformOutput', false);
+%       normalizedActivity = cellfun(@(x) x(1:find(isnan(x(:,1)))-1, :), normalizedActivity, 'UniformOutput', false);
               
       % Plot Time - % normalizedActivity - selectivity type, unitType, Sign, and dataType
       signPlot = {'Increased Activity', 'Decreased Activity'};
@@ -363,12 +372,15 @@ for par_i = 1:length(paradigmList)
             
             % Extract 2 traces
             traces2Plot = squeeze(normalizedActivity(event_i, unitType_i, sign_i, :));
-            
+            emptySlotsPlot = squeeze(emptySlotCount(event_i, unitType_i, sign_i, :));
+
             [meanTraces, stdTraces] = deal(zeros(2, size(traces2Plot{1}, 2)));
             % Take means across each
             for jj = 1:length(traces2Plot)
-              meanTraces(jj,:) = mean(traces2Plot{jj}, 1);
-              stdTraces(jj,:) = std(traces2Plot{jj}, 0, 1)./sqrt(size(traces2Plot{jj},1));
+              dataPrcd = traces2Plot{jj};
+              dataPrcd = double(dataPrcd(1:find(emptySlotsPlot{jj}, 1) - 1, :))/1e4;
+              meanTraces(jj,:) = mean(dataPrcd, 1);
+              stdTraces(jj,:) = std(dataPrcd, 0, 1)./sqrt(size(dataPrcd,1));
             end
             
             % Plot the Figure

@@ -1,14 +1,15 @@
 function [batchAnalysisParamFilename] = buildBatchAnalysisLiteParamFileSocialVids( varargin )
 % Generate a file which specifies the parameters for batch analysis. 
 
+monkey = 'Combo';    % Which monkeys data to analyze - 'Sam', 'Mo', or 'Combo'.
+
 [~, machine] = system('hostname');
 machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
-    monkey = 'Combo';
-    analysisDirectory = strcat('D:\DataAnalysis', monkey);
-    outputDir = strcat('D:/batchAnalysis', monkey);
+    analysisDirectory = 'D:\DataAnalysis';
+    outputDir = 'D:\batchAnalysis';
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
@@ -49,13 +50,13 @@ plotSwitch.stimPresCount = 0;         % Figures showing presentation counts acro
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
-plotSwitch.dimRed = 0;                 
+plotSwitch.dimRed = 1;                 
 
 plotSwitch.saccadeAnalysis = 0;
 plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
-plotSwitch.subEventPSTH = 1;          % Analysis of subEvents taking place during stimuli.
-plotSwitch.rewardPSTH = 1;            % Analysis of reward psthes specifically.
+plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
+plotSwitch.rewardPSTH = 0;            % Analysis of reward psthes specifically.
 plotSwitch.spikeEyeOverlay = 0;       % Generate an overlay of activity across units according to eye signal.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
@@ -93,10 +94,17 @@ stimStructParams.xyEventparams.XLabel = 'Event Name';
 stimStructParams.xyEventparams.YLabel = 'Stimulus Name';
 
 selParam.outputDir =  fullfile(outputDir,'selCount');
-selParam.comboEvents = {'subSel_headTurn_all_saccNone_selInd','subSel_headTurn_all_sacc_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
+% selParam.comboEvents = {'subSel_headTurn_all_saccNone_selInd','subSel_headTurn_all_sacc_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
+% selParam.comboSubEvents = {...
+%   {'subSel_headTurn_left_saccNone_selInd', 'subSel_headTurn_right_saccNone_selInd'}, ...
+%   {'subSel_headTurn_left_sacc_selInd', 'subSel_headTurn_right_sacc_selInd'}, ...
+%   {'epochSel_socVNonSoc_stimEarly_selInd', 'epochSel_socVNonSoc_stimLate_selInd', 'epochSel_socVNonSoc_reward_selInd'}, ...
+%   {'epochSel_categories_stimEarly_selInd', 'epochSel_categories_stimLate_selInd', 'epochSel_categories_reward_selInd'}...
+%   {'epochSel_broadCategories_stimEarly_selInd', 'epochSel_broadCategories_stimLate_selInd', 'epochSel_broadCategories_reward_selInd'}...
+% };
+selParam.comboEvents = {'subSel_headTurn_all_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
 selParam.comboSubEvents = {...
-  {'subSel_headTurn_left_saccNone_selInd', 'subSel_headTurn_right_saccNone_selInd'}, ...
-  {'subSel_headTurn_left_sacc_selInd', 'subSel_headTurn_right_sacc_selInd'}, ...
+  {'subSel_headTurn_left_selInd', 'subSel_headTurn_right_selInd'}, ...
   {'epochSel_socVNonSoc_stimEarly_selInd', 'epochSel_socVNonSoc_stimLate_selInd', 'epochSel_socVNonSoc_reward_selInd'}, ...
   {'epochSel_categories_stimEarly_selInd', 'epochSel_categories_stimLate_selInd', 'epochSel_categories_reward_selInd'}...
   {'epochSel_broadCategories_stimEarly_selInd', 'epochSel_broadCategories_stimLate_selInd', 'epochSel_broadCategories_reward_selInd'}...
@@ -313,15 +321,15 @@ NDTParams.NaturalSocial.plotParams.points_to_label = [-200, 0, 500, 1000, 1500, 
 NDTParams.NaturalSocial.plotParams.points_for_lines = [0, 2800];
 NDTParams.NaturalSocial.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
-NDTParams.headTurnCon.plotParams.points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.headTurnCon.plotParams.points_to_label = [-200, 0, 500, 1000, 1500, 2000, 2500, 3000];
 NDTParams.headTurnCon.plotParams.points_for_lines = [0, 2800];
 NDTParams.headTurnCon.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
-NDTParams.FamiliarFace.plotParams.points_to_label = [-250, 0, 250, 500, 750, 1000, 1250];
+NDTParams.FamiliarFace.plotParams.points_to_label = [-200, 0, 250, 500, 750, 1000, 1250];
 NDTParams.FamiliarFace.plotParams.points_for_lines = [0, 1000];
 NDTParams.FamiliarFace.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
-NDTParams.headTurnIso.plotParams.points_to_label = [-250, 0, 250, 500, 750, 1000, 1250];
+NDTParams.headTurnIso.plotParams.points_to_label = [-200, 0, 250, 500, 750, 1000, 1250];
 NDTParams.headTurnIso.plotParams.points_for_lines = [0, 1000];
 NDTParams.headTurnIso.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
