@@ -14,6 +14,7 @@ processedSelTableArray = cell(size(selTablePerRun));
 % Variables to exclude
 varExcludeanova = {'slidingWin_socIntTest_Eye'};
 % varExcludesel = {'_cohensD'};
+switch2StimWhole = true;            % Convert the sliding window test from parameters defined in the initial run to those defined below.
 
 for run_i = 1:length(selTablePerRun)
   
@@ -73,6 +74,13 @@ for run_i = 1:length(selTablePerRun)
   selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params);
   
   % Sliding Window to Epoch conversion.
+  if switch2StimWhole
+%     epochSParamsRun.times = [-500 0; -800 0; 0 2800; 2800 3150];
+%     epochSParamsRun.labels = {'preFix', 'Fix', 'Stimulus', 'Reward'};
+    epochSParamsRun.times = [0 2800];
+    epochSParamsRun.labels = {'Stimulus'};
+  end
+  
   selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, anovaParamsRun, psthParamsRun, epochCParamsRun, epochSParamsRun, params);
   
   % Replace the channel names for 20201123Mo
@@ -110,6 +118,8 @@ function selTableRun = slidingWindowToEpochs(anovaTableRun, selTableRun, anovaPa
 
 BaseArrayTests = {{'chasing', 'fighting', 'goalDirected', 'grooming', 'idle', 'mounting', 'objects', 'scene'}, {'goalDirected', 'idle', 'objects', 'scene', 'socialInteraction'}};
 BaseArrayTestNames = {'categoriesTest', 'broadCatTest'};
+% BaseArrayResort = {{'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}, {'socialInteraction', 'goalDirected', 'idle', 'objects'}};
+% Resorted in another function
 
 strThres = params.selParam.stretchThreshold;
 objectStretches = params.selParam.objectStretches;   
@@ -149,7 +159,8 @@ testNames = extractBetween(prefStimName, '_', '_');
 
 for test_i = 1:length(testNames)
   
-  BaseArray = BaseArrayTests{strcmp(testNames{test_i}, BaseArrayTestNames)};
+  testInd = strcmp(testNames{test_i}, BaseArrayTestNames);
+  BaseArray = BaseArrayTests{testInd};
   testData = anovaTableRun{:, prefStimInd(test_i)};  
   testData = vertcat(testData{:});
   [testDataIndicies, A] = cellArray2Indicies(testData);
@@ -193,7 +204,7 @@ end
 
 end
 
-function selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params);
+function selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params)
 % Finds significant stretches of object selectivity, as defined in
 % anovaTable, and adds new columns to selTable based on those results.
 

@@ -8,6 +8,11 @@ HzThresNum = 1;             % The threshold used.
 binSize = 100;
 binStep = 100;
 
+points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
+points_for_lines = [0, 2800];
+binLabelInfo.points_to_label = points_to_label;
+binLabelInfo.points_for_lines = points_for_lines;
+
 % Identify monkeys in set
 dateSubjClipped = extractBefore(spikePathBank.Row, '00');
 nameVec = cellfun(@(x) x(10:end), dateSubjClipped, 'UniformOutput', false);
@@ -66,6 +71,7 @@ for m_i = 1:length(nameArray)
     minRate = round((binnedData.binned_site_info.binning_parameters.end_time/1000) * HzThresNum, 1);
     
     % Process switches below on smoothing, normalizing, or thresholding.
+    tic
     if smoothTraces || normalizeTraces || HzThreshold
       preProcTagAll = 'SNT';
       smoothKernal = gausswin(5);
@@ -116,16 +122,13 @@ for m_i = 1:length(nameArray)
       unitTypeVec = binnedData.binned_site_info.UnitType;
       
     end
+    toc
 
-    
     % Scramble labels - Done by hand.
     % unitInd = unitInd(randperm(length(unitInd)));
     
     binStarts = binnedData.binned_site_info.binning_parameters.the_bin_start_times - 1;
     preStim = unique([binnedData.binned_site_info.alignment_event_time{:}]);
-
-    points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
-    points_for_lines = [0, 2800];
     
     the_bin_start_times_shift = binStarts - preStim;
     bins_to_label = interp1(the_bin_start_times_shift, 1:length(the_bin_start_times_shift), points_to_label);
@@ -133,9 +136,8 @@ for m_i = 1:length(nameArray)
         
     binLabelInfo.the_bin_start_times_shift = the_bin_start_times_shift;
     binLabelInfo.bins_to_label = bins_to_label;
-    binLabelInfo.points_to_label = points_to_label;
+
     binLabelInfo.x_for_lines = x_for_lines;
-    binLabelInfo.points_for_lines = points_for_lines;
     binCount = size(binned_data{1}, 2);
         
     for unit_Type_i = 1:length(unitTypes)

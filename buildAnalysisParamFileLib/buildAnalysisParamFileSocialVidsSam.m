@@ -18,12 +18,12 @@ switch machine
     ephysVolume = slashSwap('D:\EphysData\Data');
     ephysBinVolume = 'C:\EphysDataBin';
     stimulusLogVolume = ephysVolume;
+    outputVolume = slashSwap('D:\DataAnalysis');
     phyDir = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\Spike Sorting\npy-matlab';
     spikesDir = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\Spike Sorting\spikes';
-    outputVolume = slashSwap('D:\DataAnalysis');
-    stimParamsFilename = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
-    stimDir = slashSwap('C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
-    neuroGLMPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
+    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
+    neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
   case {'turing.rockefeller.edu','hopper.rockefeller.edu'}
     ephysVolume = '/Freiwald/lab_files/raw_data/EPHYS/Farid_ESINRec/Data2018';
     stimulusLogVolume = ephysVolume;
@@ -391,9 +391,11 @@ subEventAnalysisParams.spikeTimes = calcSwitch.spikeTimes;
 subEventAnalysisParams.genPlots = 1;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
-                                         'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
+                                         'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks',...
+                                         'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
-                                             [0 200]; [0 100]; [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
+                                             [0 200]; [0 100]; [0 200]; [0 100]; [-50 150];...
+                                             [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
 subEventAnalysisParams.preSaccOffset = 200;                               % Use non parametric test.
 subEventAnalysisParams.nonParametric = 1;                               % Use non parametric test.
 

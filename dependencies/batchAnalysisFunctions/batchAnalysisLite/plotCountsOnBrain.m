@@ -2,7 +2,7 @@ function plotCountsOnBrain(selTable, params)
 % a function which plots a counts grid onto an image of the brain, with
 % labeled axes.
 
-[selIndGridMat, labelArray] = selInd2GridMat(selTable);
+[selIndGridMat, labelArray] = selInd2GridMat(selTable, params);
 
 % For every label presented, Create an image with the axes relabeled
 % according to the proper dimensions.
@@ -15,14 +15,17 @@ unitType = labelArray{4};
 positionC = find(strcmp(MLlabel, 'C'));
 position8 = find(strcmp(APlabel, '8'));
 
-if all(contains(selTable.dateSubj, 'Sam'))
+if strcmp(params.monkeyTag, 'Sam')
   MLcoords = [4 5 6];
   APcoords = [25.5 26.5 27.5 28.5 29.5];
   [X, Y] = meshgrid(1:length(APcoords), 1:length(MLcoords));
-else
+elseif strcmp(params.monkeyTag, 'Mo')
   MLcoords = [4 5 6];
   APcoords = [25.5 26.5 27.5 28.5];
   [X, Y] = meshgrid(1:length(APcoords), 1:length(MLcoords));
+else
+  warning('No plots for Combo yet');
+  return
 end
 
 cmap = colormap();
@@ -47,7 +50,8 @@ for unit_i = 1:length(unitType)
       
       % Scale to color line, and create dummy objects to create the desired
       % colorbar.
-      figure();
+      figTitle = sprintf('%s - %s', eventName, unitType{unit_i});
+      figure('Name', figTitle);
       dummyImageHandle = imagesc(1:max(eventData));
       dummyImageHandle.Parent.Visible = 'off';
       colorbarH = colorbar();
@@ -79,9 +83,8 @@ for unit_i = 1:length(unitType)
       axesH.Color = [0.5 0.5 0.5];
       axesH.FontSize = 11;
       
-      figTitle = sprintf('%s - %s', eventName, unitType{unit_i});
       title(figTitle);
-      saveFigure(fullfile(params.outputDir, 'plotsOnBrains'), figTitle, [], params.figStruct, [])
+      saveFigure(fullfile(params.outputDir, unitType{unit_i}, 'plotsOnBrains'), figTitle, [], params.figStruct, [])
       
     end
     

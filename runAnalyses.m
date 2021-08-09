@@ -451,15 +451,6 @@ save(analysisOutFilename, 'selTable', 'anovaTable', 'anovaBinParams', '-append')
 [saccadeMatArray, saccadeMatLabel] = saccadePerEvent(eyeBehStatsByStim, taskData, trialIDsByEvent, psthParams, saccadeStackParams);
 save(analysisOutFilename, 'saccadeMatArray', 'saccadeMatLabel', '-append');
 
-% Save a few of these for rapid testing.
-% if strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '001')
-%   save('subEventAnalysisTesting_naturalSocial.mat')
-% elseif strcmp(dateSubject, '20201117Mo') && strcmp(runNum, '002')
-%   save('subEventAnalysisTesting_headTurnCon.mat')
-% elseif strcmp(dateSubject, '20201115Mo') && strcmp(runNum, '002')
-%   save('subEventAnalysisTesting_headTurnIso.mat')
-% end
-
 %% Plotting and further analyses
 
 if plotSwitch.imagePsth

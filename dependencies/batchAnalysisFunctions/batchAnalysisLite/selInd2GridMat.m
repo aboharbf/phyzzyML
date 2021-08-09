@@ -1,4 +1,4 @@
-function [selIndGridMat, selIndGridMatLabels] = selInd2GridMat(selTable)
+function [selIndGridMat, selIndGridMatLabels] = selInd2GridMat(selTable, params)
 % a function which converts a selTable, with columns labeled selInd, and
 % turns it into a matrix.
 % Input:
@@ -41,13 +41,9 @@ for grid_i = 1:length(gridHoles)
   bInd = find(strcmp(gridHoles{grid_i}(2:end), gridHoleB));
   
   % Cycle through units
-  for unit_i = 1:2
+  for unit_i = 1:length(params.unitList)
     
-    if unit_i == 1
-      unitIndex = contains(selTable.unitType, 'MUA');
-    else
-      unitIndex = ~contains(selTable.unitType, 'MUA');
-    end
+    unitIndex = contains(selTable.unitType, params.unitTags{unit_i});
     
     % Cycle through Events
     for event_i = 1:length(labelArray)
@@ -57,4 +53,4 @@ for grid_i = 1:length(gridHoles)
   end
 end
 
-selIndGridMatLabels = {gridHoleA, gridHoleB, labelArray, {'MUA', 'U&US'}};
+selIndGridMatLabels = {gridHoleA, gridHoleB, labelArray, params.unitList};

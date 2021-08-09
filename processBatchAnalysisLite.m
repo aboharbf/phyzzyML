@@ -64,7 +64,13 @@ else
   analyzedListTmp = {analyzedList.folder}';
   paramList = {analysisParamList.folder}';
   
-  disp(setdiff(paramList, analyzedListTmp));
+  % Show unanalyzed runs
+  unanalyzedRuns = setdiff(paramList, analyzedListTmp);
+  if ~isempty(unanalyzedRuns)
+    fprintf('Found %d Unanalyzed runs.\n', length(unanalyzedRuns));
+    disp(unanalyzedRuns);
+%     error('All Runs must be analyzed');
+  end
   fprintf('Found %d processed runs.\n', length(analyzedList));
   
   sessionList = cell(size(analyzedListPathList));

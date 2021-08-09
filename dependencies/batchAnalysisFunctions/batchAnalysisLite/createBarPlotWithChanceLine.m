@@ -1,13 +1,28 @@
-function figH = createBarPlotWithChanceLine(barLabels, dataMat, alpha, unitCount, figTitle, legendEntries)
+function figH = createBarPlotWithChanceLine(varargin)
+
+if nargin == 6
+  [barLabels, dataMat, alpha, unitCount, figTitle, legendEntries] = deal(varargin{:});
+elseif nargin == 7
+  [barLabels, dataMat, alpha, unitCount, figTitle, legendEntries, params] = deal(varargin{:});
+end
+
+% params contain colors - use the labels to select colors
+if exist('params', 'var')
+  [test, colorInd] = ismember(params.labels, legendEntries);
+  colorMat = params.colors(test, :);
+  colorInd = colorInd(~colorInd == 0);
+  colorMat = colorMat(colorInd,:);
+else
+  colorMat = [];
+end
 
 figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [.3 .3 .65 .77]);
-
 X = categorical(barLabels);
 X = reordercats(X,barLabels);
 barh = bar(X, dataMat, 1);
 ylimSize = ylim();
 
-if any(size(dataMat) == 1)
+if any(size(dataMat,1) == 1)
   barh.BarWidth = 0.5;
   legLoc = 'northeastoutside';
 elseif length(legendEntries) > 4
@@ -17,7 +32,9 @@ else
 end
 
 for bar_i = 1:length(barh)
-  if all(barh(bar_i).FaceColor == [0 0 1])
+  if ~isempty(colorMat)
+    barh(bar_i).FaceColor = colorMat(bar_i,:);
+  elseif all(barh(bar_i).FaceColor == [0 0 1])
     barh(bar_i).FaceColor = [0 0.25 1];
   end
   

@@ -19,7 +19,7 @@ binnedDataPath = fullfile(rasterDir, sprintf('binned_data_%dW_%dS.mat', binWidth
 
 if exist(binnedDataPath, 'file') && ~overwrite
   fprintf('Data in %s already binned. Returning. \n', rasterDir)
-%   return
+  return
 else
   fprintf('Binning data in %s... \n', rasterDir)
 end

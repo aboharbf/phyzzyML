@@ -1,4 +1,4 @@
-function exampleCellFinder(selTable)
+function exampleCellFinder(selTable, params)
 % A function which looks through the selTable, finds units defined as
 % selective for a particular instance, and creates a list in sorted order.
 
@@ -13,33 +13,21 @@ for ii = 1:length(cohensDVars)
   selIndVar = selTable.(selIndVars{ii});
   cohensDVar = selTable.(cohensDVars{ii});
   
-  % Grab the corresponding differences (cohensD) by unit
-  for unitType_i = 1:2
-    
-    % ID unit index
-    if unitType_i == 1
-      unitInd = contains(selTable.unitType, 'MUA');
-      tag = 'MUA';
-    else
-      unitInd = ~contains(selTable.unitType, 'MUA');
-      tag = 'U&US';
-    end
-    
-    sigDiffs = cohensDVar(selIndVar & unitInd);
-    sigDiffSites = siteTag(selIndVar & unitInd);
-    
-    % Sort them based on difference size
-    [sigDiffsSorted, B] = sort(sigDiffs, 'descend');
-    sigDiffSitesSorted = sigDiffSites(B);
-    
-    % Print
-    if isempty(sigDiffs)
-    fprintf('==== %s Selective for %s - is empty ==== \n', tag, varName{ii})
-    else
-    fprintf('==== %s Selective for %s ==== \n', tag, varName{ii})
+  % Grab the corresponding differences (cohensD)
+  sigDiffs = cohensDVar(selIndVar);
+  sigDiffSites = siteTag(selIndVar);
+  
+  % Sort them based on difference size
+  [sigDiffsSorted, B] = sort(sigDiffs, 'descend');
+  sigDiffSitesSorted = sigDiffSites(B);
+  
+  % Print
+  if isempty(sigDiffs)
+    fprintf('==== %s Selective for %s - is empty ==== \n', params.unitTag, varName{ii})
+  else
+    fprintf('==== %s Selective for %s ==== \n', params.unitTag, varName{ii})
     for jj = 1:min(length(sigDiffSitesSorted), 10)
       fprintf('%s - Site %s \n', num2str(sigDiffsSorted(jj), 3), sigDiffSitesSorted{jj})
-    end
     end
   end
   

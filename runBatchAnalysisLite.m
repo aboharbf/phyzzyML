@@ -39,7 +39,7 @@ end
 if plotSwitch.dimRed
   % Process data into a more readible format for different dimensionality
   % reduction functions
-  dimRedPrep(spikePathBank, batchAnalysisParams)
+  % dimRedPrep(spikePathBank, batchAnalysisParams)
   
   % Perform a PCA and visualize results
   pcaAndPlot(batchAnalysisParams)

@@ -2,17 +2,13 @@ function selectivityCurveSelNew(spikePathBank, batchAnalysisParams)
 % a function which pulls encoding curves from the selectivity table for
 % each paradigm.
 
-stretchAllSame = false;
-
 % Collect unit selectivity
 [anovaTablePerRun, epochSWparamsPerRun] = spikePathLoad(spikePathBank, {'anovaTable', 'epochSWparams'}, batchAnalysisParams.spikePathLoadParams);
 selTablePerRun = spikePathBank.selTable;
 
 paradigmList = unique(spikePathBank.paradigmName);
-unitLabel = {'MUA', 'Units'};
-unitTypePlot = {'MUA', 'U+US'};
-testsPerformed = {'categoriesTest', 'bradCatTest'};
-BaseArrayTests = {{'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}, {'socialInteraction', 'goalDirected', 'idle', 'objects'}};
+unitLabel = {'MUA', digitsPattern};
+unitTypePlot = {'MUA', 'Units'};
 
 % Bins for the x-axis
 binStep = 25;
@@ -21,10 +17,6 @@ stimSize = 2800 + 500;
 the_bin_start_times = 0:binStep:stimSize-binSize;
 points_to_label = [0  1000 2000 2800];
 points_for_lines = [0 2800];
-stretchThres = batchAnalysisParams.selParam.stretchThreshold;
-
-bins_to_label = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_to_label);
-x_for_lines = interp1(the_bin_start_times, 1:length(the_bin_start_times), points_for_lines);
 
 for par_i = 1:length(paradigmList)
   
@@ -63,27 +55,18 @@ for par_i = 1:length(paradigmList)
     prefOjbInd = selTableVars(contains(selTableVars, 'sigObj'));
     
     dataArray = {pValLabels; varLabels; prefSelLabels};
-    dataLabels = {'-log10(p) Encoding Strength', 'Variance Explained', 'Preferred Stimuli'};
-    stretchIndMat = cell(2, length(dataArray{1}));
     
     % Cycle through analyses, combining results and visualizing them
     objCount = length(selTableParadigmPerRun.(prefOjbInd{1}){1});
     barGraphData = nan(length(sigStretchInd), objCount);
-    totalStretchCounts = 0;
     
     % Find epoch labels
     tmp = cellfun(@(x) strsplit(x, '_'), sigStretchInd, 'UniformOutput', false);
     epochNames = cellfun(@(x) x(3), tmp);
     
-    for unit_i = 1:2
-            
-      if unit_i == 1
-        unit_index = contains(selTableParadigmPerRun.unitType, 'MUA');
-        unitTag = 'MUA';
-      else
-        unit_index = ~unit_index;  % Switch MUA to U&US
-        unitTag = 'U&US';
-      end
+    for unit_i = 1:length(unitLabel)
+      
+      unit_index = contains(selTableParadigmPerRun.unitType, unitLabel{unit_i});
       
       % Store data per epoch
       vennDiagramVectors = nan(sum(unit_index), length(epochNames));
@@ -108,12 +91,12 @@ for par_i = 1:length(paradigmList)
       unitCount = sum(unit_index);
 
       % Plotting
-      figTitle = sprintf('%s selectivity during %s test (%d/%d Unique)', unitTag, testsPerformed{test_i}, atleastOne, unitCount);
+      figTitle = sprintf('%s selectivity during %s test (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, atleastOne, unitCount);
       createBarPlotWithChanceLine(epochNames, barGraphData, 0, unitCount, figTitle, testObjs);
 %       saveFigure(fullfile(outputDir, 'BarGraph'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
       
       % Plot the Venn diagram
-      figTitle = sprintf('%s selectivity for %s (%d/%d Unique)', unitTag, testsPerformed{test_i}, atleastOne, unitCount);
+      figTitle = sprintf('%s selectivity for %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, atleastOne, unitCount);
       vennXExpanded(vennDiagramVectors(:, 2:4), figTitle, epochNames(2:4))
       saveFigure(fullfile(outputDir, 'VennDiagram'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
       

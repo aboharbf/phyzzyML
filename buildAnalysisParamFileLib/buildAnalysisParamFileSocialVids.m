@@ -145,7 +145,7 @@ channels2Read = 1:32;
 % parameters preprocessSpikes and preprocessLFP, see functions for details
 ephysParams.needLFP = 1;
 ephysParams.needSpikes = 1;
-autoChannelDetect = 0;
+autoChannelDetect = 1;
 ephysParams.spikeChannels = channels2Read; %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
 ephysParams.lfpChannels = channels2Read;
 ephysParams.channelNames = arrayfun(@(x) {sprintf('Ch%d', x)}, channels2Read);
@@ -275,7 +275,7 @@ stimSyncParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysis
 eyeCalParams.needEyeCal = 1;
 eyeCalParams.method = 'monkeyLogic'; %'zeroEachFixation', 'monkeyLogic'
 eyeCalParams.monkeyLogicShift = 1;
-eyeCalParams.makePlots = 1;
+eyeCalParams.makePlots = 0;
 eyeCalParams.eyeXChannelInd = 1;
 eyeCalParams.eyeYChannelInd = 2;
 eyeCalParams.eyeDChannelInd = 3;
@@ -712,23 +712,4 @@ function swappedString = slashSwap(pathString)
 %Swaps direction of slashes to match Unix/Phyzzy, from Windows Path.
   stringParts = split(pathString, '\');
   swappedString = char(join(stringParts, '/'));
-end
-
-function [spike, LFP, names] = autoDetectChannels(parsedFolderName)
-  if exist(parsedFolderName,'dir') == 7
-    channelFiles = dir([parsedFolderName '/*.NC5']);
-    channelNames = {channelFiles.name};
-    channelsTmp = [];
-    channelNameTmp = {};
-    for chan_ind = 1:length(channelNames)
-      startInd = regexp(channelNames{chan_ind}, 'Ch') + 2;
-      stopInd = regexp(channelNames{chan_ind},'.NC5') - 1;
-      chanNum = channelNames{chan_ind}(startInd:stopInd);
-      channelNameTmp{chan_ind} = ['Ch' chanNum];
-      channelsTmp(chan_ind) = str2double(channelNames{chan_ind}(startInd:stopInd));
-    end
-    [spike, LFP] = deal(channelsTmp); %note: spikeChannels and lfpChannels must be the same length, in the same order, if analyzing both
-    names = channelNameTmp;
-  else
-  end
 end

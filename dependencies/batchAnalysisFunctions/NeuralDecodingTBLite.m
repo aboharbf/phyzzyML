@@ -122,6 +122,7 @@ for paradigm_i = 1:length(paradigmList)
       % Step 4 - Generate a cross validator, define some parameters on newly generated object
       cross_val_resample = params.AnalysesDefault.cross_validator_num_resample;
       runShuff = [false(params.AnalysesDefault.real_shuffle_count, 1); true(params.AnalysesDefault.null_shuffle_count,1)]';
+      crossTempDec = analysisStruct.crossTempDecode;
       
        % Cycle through the runs
       parfor shuff_ind = 1:length(runShuff)
@@ -141,7 +142,7 @@ for paradigm_i = 1:length(paradigmList)
         
         the_cross_validator = standard_resample_CV(tmpds, the_classifier, the_feature_preprocessors);
         the_cross_validator.num_resample_runs = cross_val_resample;
-        the_cross_validator.test_only_at_training_times = ~crossTempDecoding; % For speeding up testing.
+        the_cross_validator.test_only_at_training_times = ~crossTempDec; % For speeding up testing.
         
         % Only stop once results have converged.
         if runShuff(shuff_ind)
@@ -192,7 +193,7 @@ for paradigm_i = 1:length(paradigmList)
     plot_per_label_accuracy(decoding_results, analysisStruct, params);
     
     % TCT Matrix, Figure 2
-    if crossTempDecoding
+    if analysisStruct.crossTempDecode
       generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
     end
     

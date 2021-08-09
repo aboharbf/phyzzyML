@@ -3,6 +3,9 @@ function k_aid_generate_analyses(binnedFileName, paradigmName, analysisDir)
 paradigmOptions = {'NaturalSocial', 'headTurnCon'};
 paradigmNameTag = {'NS', 'HTC'};
 
+% Function which may be of use
+% ff2n(16)
+
 par_i = strcmp(paradigmOptions, paradigmName);
 
 if ~any(par_i)
@@ -50,13 +53,16 @@ coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
 [coreAnalysisStructs.the_training_label_names] = deal([]);
 [coreAnalysisStructs.the_test_label_names] = deal([]);
 [coreAnalysisStructs.pseudoGenString] = deal('');
+[coreAnalysisStructs.crossTempDecode] = deal(true);
 
 if strcmp(paradigmName, 'NaturalSocial')
 % PseudoGen related - create a version which does and does not generalize
 % across instances of stimuli
 coreAnalysisStructsPG = coreAnalysisStructs;
 [coreAnalysisStructsPG.pseudoGenString] = deal('stimuli');
+[coreAnalysisStructsPG.crossTempDecode] = deal(false);
 [coreAnalysisStructs.pseudoGenString] = deal('');
+[coreAnalysisStructs.crossTempDecode] = deal(true);
 coreAnalysisStructs = [coreAnalysisStructs coreAnalysisStructsPG];
 
 % New - Add for Stimuli, make sure pseudoGenString is empty
@@ -76,9 +82,11 @@ coreAnalysisStructs = [coreAnalysisStructs coreAnalysisStructsPG];
   [stimSetStructs.the_training_label_names] = deal([]);
   [stimSetStructs.the_test_label_names] = deal([]);
   [stimSetStructs.pseudoGenString] = deal('');
+  [stimSetStructs.crossTempDecode] = deal(true);
   
   coreAnalysisStructs = [coreAnalysisStructs stimSetStructs];
 end
+
 
 % Generate every possible cross between training and testing data, where
 % for every stimulus category, you are training on stimCount - 1, then
@@ -125,7 +133,8 @@ end
 decoders = {'max_correlation_coefficient_CL'};
 decoderTags = {'MCC'};
 preProcArray = {'zscore_normalize_FP'};
-unitSets = {'MUA', 'U&US', 'U'};
+% unitSets = {'MUA', 'U&US', 'U'};
+unitSets = {'MUA', 'U'};
 
 % analysisTags are used to name the file, and put into the title of the
 % figure.
@@ -138,7 +147,8 @@ unitSets = {'MUA', 'U&US', 'U'};
 %   'stimEarlySel', 'stimLateSel', 'stimRewardSel'...
 %   };
 
-analyisTag = {'AllUnits'};
+analyisTagDir = {'AllUnits'};
+analyisTagPlot = {'All'};
   
 % Matching set of variables to change, names must match what is defined in
 % the raster file.
@@ -195,9 +205,9 @@ for unit_set_i = 1:length(unitSets)
     case 'MUA'
       sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 1);
       unitTag = 'MUA';
-    case 'U&US'
-      sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), [2 3]);
-      unitTag = 'UnUS';
+%     case 'U&US'
+%       sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), [2 3]);
+%       unitTag = 'UnUS';
     case 'U'
       sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 2);
       unitTag = 'U';
@@ -226,7 +236,7 @@ for unit_set_i = 1:length(unitSets)
     
     for decoder_i = 1:length(decoders)
       for preProc_i = 1:length(preProcArray)
-        for analysis_i = 1:length(analyisTag)
+        for analysis_i = 1:length(analyisTagDir)
           % Copy the template
           analysisStruct = analysisTemplateStruct;
           analysisStruct.classifier = decoders{decoder_i};
@@ -267,13 +277,13 @@ for unit_set_i = 1:length(unitSets)
           [analysisStruct.num_cv_splits, analysisStruct.k_repeats_needed] = deal(new_k);
           
           % Generate the Title
-          unitSubSecTag = sprintf('(%s)', analyisTag{analysis_i});
+          unitSubSecTag = sprintf('(%s)', analyisTagPlot{analysis_i});
           repsTag = sprintf('(%d Reps %d %s)', new_k, length(find(sites2Keep)), unitTag);
           analysisStruct.plotTitle = strjoin({analysisStruct.coreTitle unitSubSecTag repsTag}, ' ');
           analysisStruct.plotTitle = strrep(analysisStruct.plotTitle, '_', ' ');
           
           % Create the filename.
-          saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmNameTag, analysisStruct.labelFile, analyisTag{analysis_i}, unitTag, decoderTags{decoder_i});
+          saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmNameTag, analysisStruct.labelFile, analyisTagDir{analysis_i}, unitTag, decoderTags{decoder_i});
           
           % If there is a pseudoGen label, add that to the name
           if ~isempty(analysisStruct.pseudoGenString)

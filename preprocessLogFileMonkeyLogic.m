@@ -548,6 +548,7 @@ assert(length(taskEventFixDurBlk) == length(taskEventIDs), 'Problem w/ fixation 
 %% Resort the stimuli in order
 
 if any(contains(translationTable, 'monkey'))
+  
   chaseInd = find(contains(translationTable, 'Chas'));
   fightInd = find(contains(translationTable, 'Fight'));
   mountInd = find(contains(translationTable, 'Moun'));
@@ -558,11 +559,10 @@ if any(contains(translationTable, 'monkey'))
   sceneInd = find(contains(translationTable, 'landscape'));
   
   newSortInd = [chaseInd; fightInd; mountInd; gromInd; gdInd; idInd; objInd; sceneInd];
+  translationTable = translationTable(newSortInd);
+  tmpFrameMotionData = tmpFrameMotionData(newSortInd);
   
 end
-
-translationTable = translationTable(newSortInd);
-tmpFrameMotionData = tmpFrameMotionData(newSortInd);
 
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
