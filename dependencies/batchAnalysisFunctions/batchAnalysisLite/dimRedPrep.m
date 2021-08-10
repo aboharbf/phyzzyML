@@ -5,8 +5,8 @@ normalizeTraces = true;     % A switch which normalizes a trace, following the m
 smoothTraces = true;        % A switch that smooths a trace.
 HzThreshold = true;         % A switch which removes units with low firing rate
 HzThresNum = 1;             % The threshold used.
-binSize = 100;
-binStep = 100;
+binSize = 400;
+binStep = binSize;
 
 points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
 points_for_lines = [0, 2800];

@@ -20,7 +20,7 @@ if strcmp(params.monkeyTag, 'Sam')
   APcoords = [25.5 26.5 27.5 28.5 29.5];
   [X, Y] = meshgrid(1:length(APcoords), 1:length(MLcoords));
 elseif strcmp(params.monkeyTag, 'Mo')
-  MLcoords = [4 5 6];
+  MLcoords = [3 4 5 6];
   APcoords = [25.5 26.5 27.5 28.5];
   [X, Y] = meshgrid(1:length(APcoords), 1:length(MLcoords));
 else

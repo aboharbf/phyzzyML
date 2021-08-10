@@ -31,27 +31,6 @@ if ~contains('selTable', spikePathBank.Properties.VariableNames)
   save(spikePathFile, 'spikePathBank', '-append')
 end
 
-% Prepare things to run in DataHigh
-if calcSwitch.dataHigh
-  dataHighPrep(spikePathBank, batchAnalysisParams)
-end
-
-if plotSwitch.dimRed
-  % Process data into a more readible format for different dimensionality
-  % reduction functions
-  % dimRedPrep(spikePathBank, batchAnalysisParams)
-  
-  % Perform a PCA and visualize results
-  pcaAndPlot(batchAnalysisParams)
-  
-  % Perform a dPCA and visualize results
-%   dpcaAndPlot(batchAnalysisParams)
-  
-  % Perform PSID
-%   psidAndPlot(batchAnalysisParams)
-  
-end
-
 %% Counting
 % crossParadigmCheck(spikePathBank, batchAnalysisParams)
 
@@ -66,6 +45,29 @@ end
 if plotSwitch.selectivityCounts
 %   selectivityCurveCount(spikePathBank, batchAnalysisParams)
   selectivityCurveCountBinned(spikePathBank, batchAnalysisParams)
+end
+
+%% dimensionality reduction
+
+if plotSwitch.dimRed
+  % Process data into a more readible format for different dimensionality
+  % reduction functions
+  dimRedPrep(spikePathBank, batchAnalysisParams)
+  
+  % Perform a PCA and visualize results
+  pcaAndPlot(batchAnalysisParams)
+  
+  % Perform a dPCA and visualize results
+%   dpcaAndPlot(batchAnalysisParams)
+  
+  % Perform PSID
+%   psidAndPlot(batchAnalysisParams)
+  
+end
+
+% Prepare things to run in DataHigh
+if calcSwitch.dataHigh
+  dataHighPrep(spikePathBank, batchAnalysisParams)
 end
 
 %% Analyses

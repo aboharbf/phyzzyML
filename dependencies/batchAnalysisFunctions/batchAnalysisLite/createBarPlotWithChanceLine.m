@@ -22,7 +22,7 @@ X = reordercats(X,barLabels);
 barh = bar(X, dataMat, 1);
 ylimSize = ylim();
 
-if any(size(dataMat,1) == 1)
+if any(size(dataMat, 1) == 1)
   barh.BarWidth = 0.5;
   legLoc = 'northeastoutside';
 elseif length(legendEntries) > 4

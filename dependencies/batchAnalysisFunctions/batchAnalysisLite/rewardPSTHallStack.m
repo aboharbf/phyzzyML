@@ -107,8 +107,8 @@ for par_i = 1:length(paradigmList)
           unitIndex = contains(selTable.unitType, 'MUA') & selIndex & ~emptyInd;
           unitTag = 'MUA';
         else
-          unitIndex = ~contains(selTable.unitType, 'MUA') & selIndex & ~emptyInd;
-          unitTag = 'U&US';
+          unitIndex = contains(selTable.unitType, digitsPattern) & selIndex & ~emptyInd;
+          unitTag = 'U';
         end
         
         % Grab only relevant activity.

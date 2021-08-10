@@ -5,8 +5,9 @@ function pcaAndPlot(params)
 % Identify files of interest
 dimRedParams = dir(fullfile(params.dimRedParams.preprocDir, '*.mat'));
 dimRedParams = fullfile({dimRedParams.folder}, {dimRedParams.name})';
-pcCount = 12;
+pcCountTotal = 12;
 pcTransition2Label = [0 2800 3000];
+recordSpinningVid = true;              
 
 % Only certain files
 dimRedParams = dimRedParams(contains(dimRedParams, 'SNT'));
@@ -19,6 +20,14 @@ testName = extractBefore(fileNames, '_');
 titles = strrep(fileNames, '_', ' ');
 colors = 'rbgkcmyk';
 markerSize = 30;
+pcVar = nan(12, length(dimRedParams));
+
+dimRedParams = dimRedParams(contains(dimRedParams, 'categories') & contains(dimRedParams, 'Combo'));
+
+dimRedLabel = {'categories_Combo_NaturalSocial_MUA_SNT',  'categories_Combo_NaturalSocial_Units_SNT', ...
+               'categories_Combo_headTurnCon_MUA_SNT', 'categories_Combo_headTurnCon_Units_SNT'};
+dimRedPCs = {[3 4 9]; [3 4 5];...
+             [4 5 6]; [5 6 8];};
 
 for data_i = 1:length(dimRedParams)
   
@@ -114,34 +123,47 @@ for data_i = 1:length(dimRedParams)
   possiblePositions(bigPlotInds) = false;
   hold on
     
+  % 
+  PCind = cellfun(@(x) contains(dimRedParams{data_i}, x), dimRedLabel);
+  pc2Plot = dimRedPCs{PCind};
+  
   for i = 1:length(labels)
-    scatter3(score(start(i):stops(i), 1), score(start(i):stops(i), 2), score(start(i):stops(i), 3), markerSize, colors(i));
+    scatter3(score(start(i):stops(i), pc2Plot(1)), score(start(i):stops(i), pc2Plot(2)), score(start(i):stops(i), pc2Plot(3)), markerSize, colors(i));
   end
   
-  xlabel('1st Principal Component'); ylabel('2nd Principal Component'); zlabel('3rd Principal Component')
+  xlabel(sprintf('Principal Component %d', pc2Plot(1))); 
+  ylabel(sprintf('Principal Component %d', pc2Plot(2))); 
+  zlabel(sprintf('Principal Component %d', pc2Plot(3))); 
   title(figTitle);
   legend(labels);
   grid;
   
   % Find the points between that mark transitions
   bins_to_label = interp1(binLabelInfo.the_bin_start_times_shift, 1:length(binLabelInfo.the_bin_start_times_shift), pcTransition2Label);
-  tmpColorMat = [0 0 0.6; 0.8 0 0; 0 0.6 0]; % Segment colors;
-  colorAxis = [repmat(tmpColorMat(1,:), length(1:bins_to_label(1)-1), 1); ...
-    repmat(tmpColorMat(2,:), length(bins_to_label(1):bins_to_label(2)), 1); ...
-    repmat(tmpColorMat(3,:), length(bins_to_label(2):bins_to_label(3)), 1)];
-
+  tmpColorMat = [0 0 0.6; 0.8 0 0; 0 0.6 0; 0 0.4 0]; % Segment colors;
+  bins_to_label = [1, bins_to_label, stops(1)];
+  
+  colorAxis = [];
+  for ii = 1:length(bins_to_label)-1
+    colorAxis = [colorAxis; repmat(tmpColorMat(ii,:), length(bins_to_label(ii):bins_to_label(ii+1)-1), 1)];
+%     colorAxis = [; ...
+%       repmat(tmpColorMat(2,:), length(bins_to_label(1):bins_to_label(2)), 1); ...
+%       repmat(tmpColorMat(3,:), length(bins_to_label(2):stops(1)), 1)];
+  end
+  colorAxis = [colorAxis; colorAxis(end,:)];
+  
   for i = 1:length(labels)
     % find the next slot
     subplotInd = find(possiblePositions,1);
     possiblePositions(subplotInd) = false;
-    
+
     % Create the plot
     axHands(i+1) = subplot(3, 4, subplotInd);
-    scatter3(score(start(i):stops(i), 1), score(start(i):stops(i),2), score(start(i):stops(i),3), markerSize, colorAxis)
-    text(score(start(i),1), score(start(i),2), 0, 'Start', 'HorizontalAlignment', 'left', 'FontSize', 10);
-    text(score(start(i) + bins_to_label(1) ,1), score(start(i) + bins_to_label(1) ,2), score(start(i) + bins_to_label(1) ,3), 'Stim Onset', 'HorizontalAlignment', 'left', 'FontSize', 10);
-    text(score(start(i) + bins_to_label(2) ,1), score(start(i) + bins_to_label(2) ,2), score(start(i) + bins_to_label(2) ,3), 'Stim End', 'HorizontalAlignment', 'left', 'FontSize', 10);
-    text(score(start(i) + bins_to_label(3) ,1), score(start(i) + bins_to_label(3) ,2), score(start(i) + bins_to_label(3) ,3), 'Reward', 'HorizontalAlignment', 'left', 'FontSize', 10);
+    scatter3(score(start(i):stops(i), pc2Plot(1)), score(start(i):stops(i),pc2Plot(2)), score(start(i):stops(i),pc2Plot(3)), markerSize, colorAxis)
+    text(score(start(i)                    ,pc2Plot(1)), score(start(i)                    ,pc2Plot(2)), score(start(i)                    ,pc2Plot(3)), 'Start', 'HorizontalAlignment', 'left', 'FontSize', 10);
+    text(score(start(i) + bins_to_label(2) ,pc2Plot(1)), score(start(i) + bins_to_label(2) ,pc2Plot(2)), score(start(i) + bins_to_label(2) ,pc2Plot(3)), 'Stim Onset', 'HorizontalAlignment', 'left', 'FontSize', 10);
+    text(score(start(i) + bins_to_label(3) ,pc2Plot(1)), score(start(i) + bins_to_label(3) ,pc2Plot(2)), score(start(i) + bins_to_label(3) ,pc2Plot(3)), 'Stim End', 'HorizontalAlignment', 'left', 'FontSize', 10);
+    text(score(start(i) + bins_to_label(4) ,pc2Plot(1)), score(start(i) + bins_to_label(4) ,pc2Plot(2)), score(start(i) + bins_to_label(4) ,pc2Plot(3)), 'Reward', 'HorizontalAlignment', 'left', 'FontSize', 10);
     title(labels{i});
         
   end
@@ -150,38 +172,43 @@ for data_i = 1:length(dimRedParams)
   saveFigure(outputDir, ['1. ' figTitle], [], params.figStruct, [])
 
   % Create video rotating about Axes
-  vidObj = VideoWriter(fullfile(outputDir, strcat(figTitle, '.avi')));
-  vidObj.FrameRate = vidObj.FrameRate/2;
-  open(vidObj);
-  
-  % Set initial position
-  campos([98.8655  -41.5652   30.3368]);
-  view([51.6794 16.4829]);
-  
-  % Rotation to add
-  rotArray = zeros(120,2);
-  rotArray(1:120,1) = 3;
-
-  for frame_i = 1:120
-    % Rotate slightly
-    camorbit(rotArray(frame_i,1), rotArray(frame_i,2))
+  if recordSpinningVid
+    vidObj = VideoWriter(fullfile(outputDir, strcat(figTitle, '.avi')));
+    vidObj.FrameRate = vidObj.FrameRate/2;
+    open(vidObj);
     
-    % Get frame, and save
-    frame = getframe(gcf);
-    writeVideo(vidObj, frame);
+    % Set initial position
+    campos([98.8655  -41.5652   30.3368]);
+    view([51.6794 16.4829]);
+    
+    % Rotation to add
+    rotArray = zeros(120,2);
+    rotArray(1:120,1) = 3;
+    
+    for frame_i = 1:120
+      % Rotate slightly
+      camorbit(rotArray(frame_i,1), rotArray(frame_i,2))
+      
+      % Get frame, and save
+      frame = getframe(gcf);
+      writeVideo(vidObj, frame);
+    end
+    close(vidObj)
   end
-  close(vidObj)
-    
+  
   %     axHands(1).CameraPosition = [-1 0 180];
   %     axHands(1).CameraUpVector = [0 1 0];
   %     saveFigure(outputDir, ['1a. ' figTitle], [], params.figStruct, [])
   
   % Plot per PC.
-  figTitle = sprintf('Paradigm %s - Trajectories in Population %s - top %d PCs, %d explained', paradigmLabel, titles{data_i}, pcCount, sum(explained(1:pcCount)));
+  figTitle = sprintf('Paradigm %s - Trajectories in Population %s - top %d PCs, %s var', paradigmLabel, titles{data_i}, pcCountTotal, num2str(round(sum(explained(1:pcCountTotal)), 2)));
   figH2 = figure('name', figTitle, 'units', 'normalized', 'position', [0 0 0.74 0.97]);
   sgtitle(figTitle);
-  for PC = 1:pcCount
-    subplot(ceil(pcCount/3),3, PC);
+  subplotHands = gobjects(pcCountTotal, 1);
+  ylimPlots = [round(min(score(:)), 2), ceil(max(score(:)))];
+  
+  for PC = 1:pcCountTotal
+    subplotHands(PC) = subplot(ceil(pcCountTotal/3),3, PC);
     hold on
     for i = 1:length(labels)
       PrincipleAxis = score(start(i):stops(i), PC);
@@ -191,18 +218,23 @@ for data_i = 1:length(dimRedParams)
     % Label the plot
     xticks(binLabelInfo.bins_to_label)
     xticklabels(binLabelInfo.points_to_label)
-    yLims = ylim();
-    ylim(yLims)
+    ylim([ylimPlots])
+    
     for line_i = 1:length(binLabelInfo.x_for_lines)
-      plot([binLabelInfo.x_for_lines(line_i), binLabelInfo.x_for_lines(line_i)], [yLims(1), yLims(2)], 'color', 'k', 'lineWidth', 3)
+      plot([binLabelInfo.x_for_lines(line_i), binLabelInfo.x_for_lines(line_i)], [ylimPlots(2), ylimPlots(1)], 'color', 'k', 'lineWidth', 3)
     end
     
     xlabel('Time'); ylabel('a.u.');
-    title(sprintf('PC %d', PC))
+    title(sprintf('PC %d - %s%%', PC, num2str(round(explained(PC), 2))))
     hold on
   end
+  
+  linkprop(subplotHands, {'XLim', 'YLim', 'ZLim', 'CameraPosition', 'CameraUpVector'});
+
   
   saveFigure(outputDir, ['2. ' figTitle], [], params.figStruct, [])
   
 end
+
+
 end

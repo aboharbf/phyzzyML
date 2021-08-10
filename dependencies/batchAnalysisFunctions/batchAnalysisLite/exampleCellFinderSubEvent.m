@@ -1,4 +1,4 @@
-function exampleCellFinder(selTable, params)
+function exampleCellFinderSubEvent(selTable, params)
 % A function which looks through the selTable, finds units defined as
 % selective for a particular instance, and creates a list in sorted order.
 

@@ -45,15 +45,17 @@ figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 
 %% Switches
 calcSwitch.excludeRepeats = 0;
-calcSwitch.dataHigh = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
+
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
-plotSwitch.dimRed = 0;                 
+plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+
+plotSwitch.dimRed = 1;                 
+calcSwitch.dataHigh = 0;
 
 plotSwitch.saccadeAnalysis = 0;
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.rewardPSTH = 0;            % Analysis of reward psthes specifically.

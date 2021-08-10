@@ -46,7 +46,12 @@ for subSelType_i = 1:length(eventArrays)
   
   % Remove individual selectivity columns, keep the combo for Epoch
   % cross over selectivity
-  event2KeepIndex = ~(contains(subEventSelVars, 'all') | ~contains(subEventSelVars, 'headTurn'))';
+  %   event2KeepIndex = ~(contains(subEventSelVars, 'all') | ~contains(subEventSelVars, 'headTurn'))';
+  if subSelType_i == 1
+    event2KeepIndex = (contains(subEventPlotNames, 'headTurn') & ~contains(subEventPlotNames, 'all'));
+  else
+    event2KeepIndex = (contains(subEventPlotNames, 'saccade') & contains(subEventPlotNames, 'NonStim'));
+  end
   subEventPlotNamesVenn = subEventPlotNames(event2KeepIndex)';
   subSelInfo = subSelInfo(:,event2KeepIndex);
   epochSelIndPlotVars = extractBetween(epochSelIndVars, 'epochSel_', '_');
