@@ -1,4 +1,4 @@
-function k_aid_generate_analyses(binnedFileName, paradigmName, analysisDir)
+function k_aid_generate_analyses(binnedFileName, paradigmName, analysisDir, pFolder, analysisChangeParams, params)
 % a function which generates analyses.
 paradigmOptions = {'NaturalSocial', 'headTurnCon'};
 paradigmNameTag = {'NS', 'HTC'};
@@ -7,6 +7,9 @@ paradigmNameTag = {'NS', 'HTC'};
 % ff2n(16)
 
 par_i = strcmp(paradigmOptions, paradigmName);
+subsampleCount = 1;
+unitsPerSubSample = 50:50:1000;
+subSampleRuns = true;
 
 if ~any(par_i)
   error('paradigm in not specified. Please check list or update k_aid_generate_analyses')
@@ -87,6 +90,9 @@ coreAnalysisStructs = [coreAnalysisStructs coreAnalysisStructsPG];
   coreAnalysisStructs = [coreAnalysisStructs stimSetStructs];
 end
 
+% Add the specific binned file to use
+[coreAnalysisStructs.binnedFile] = deal(binnedFileName);
+[coreAnalysisStructs.paradigmName] = deal(paradigmName);
 
 % Generate every possible cross between training and testing data, where
 % for every stimulus category, you are training on stimCount - 1, then
@@ -134,7 +140,8 @@ decoders = {'max_correlation_coefficient_CL'};
 decoderTags = {'MCC'};
 preProcArray = {'zscore_normalize_FP'};
 % unitSets = {'MUA', 'U&US', 'U'};
-unitSets = {'MUA', 'U'};
+% unitSets = {'MUA', 'U'};
+unitSets = {'U'};
 
 % analysisTags are used to name the file, and put into the title of the
 % figure.
@@ -205,24 +212,13 @@ for unit_set_i = 1:length(unitSets)
     case 'MUA'
       sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 1);
       unitTag = 'MUA';
-%     case 'U&US'
-%       sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), [2 3]);
-%       unitTag = 'UnUS';
     case 'U'
       sites2KeepTemplate(unitTypeInd, :) = ismember(binnedSiteInfoMatrix(unitTypeInd,:), 2);
       unitTag = 'U';
   end
   
   for core_i = 1:length(coreAnalysisStructs)
-    
-%     % Copy over the label, label names.
-%     analysisTemplateStruct = struct();
-%     analysisTemplateStruct.labelFile = coreAnalysisStructs(core_i).labelFile;
-%     analysisTemplateStruct.label = coreAnalysisStructs(core_i).label;
-%     analysisTemplateStruct.label_names_to_use = coreAnalysisStructs(core_i).label_names_to_use;
-%     analysisTemplateStruct.the_training_label_names = coreAnalysisStructs(core_i).the_training_label_names;
-%     analysisTemplateStruct.the_test_label_names = coreAnalysisStructs(core_i).the_test_label_names;
-    
+        
     analysisTemplateStruct = coreAnalysisStructs(core_i);
         
     analysisTemplateStruct.save_extra_preprocessing_info = 0;
@@ -285,14 +281,87 @@ for unit_set_i = 1:length(unitSets)
           % Create the filename.
           saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmNameTag, analysisStruct.labelFile, analyisTagDir{analysis_i}, unitTag, decoderTags{decoder_i});
           
+          % Modfiy things based on preprocessing, to create the directories
+          % appropriately
+          if ~isempty(analysisStruct.preProc)
+            analysisSubType = [analysisStruct.classifier(1:3) '_' analysisStruct.preProc{1}(1:3)];
+          else
+            analysisSubType = analysisStruct.classifier(1:3);
+          end
+          
+          if strcmp(analysisStruct.classifier, 'poisson_naive_bayes_CL')
+            analysisStruct.load_data_as_spike_counts = true;
+          else
+            analysisStruct.load_data_as_spike_counts = false;
+          end
+          
+          analysisStruct.plotOutDir = fullfile(pFolder, analysisSubType, strrep(analysisStruct.coreTitle, ' ', '_'));
+          
           % If there is a pseudoGen label, add that to the name
           if ~isempty(analysisStruct.pseudoGenString)
             saveFileName = sprintf('%s_%s', saveFileName, analysisStruct.pseudoGenString);
             analysisStruct.plotTitle = sprintf('%s (pseudoGen - %s)', analysisStruct.plotTitle, analysisStruct.pseudoGenString);
           end
+
+          % Decide how to do cv_splits. either k-1 or 25/75
+          if analysisChangeParams.expandLabelPerSplit
+            analysisStruct.num_cv_splits = analysisStruct.num_cv_splits/4;
+            analysisStruct.num_times_to_repeat_each_label_per_cv_split = 4;
+          else
+            analysisStruct.num_times_to_repeat_each_label_per_cv_split = 1;
+          end
           
-          % Save structure
-          save(fullfile(analysisDir, saveFileName), 'analysisStruct');
+          analysisStruct.cross_val_resample = params.cross_validator_num_resample;
+          
+          % Point to the correct directories
+          analysisStruct.save_file_dir = fullfile(analysisStruct.plotOutDir, sprintf('results_%s', saveFileName));
+          analysisStruct.shuff_file_dir = fullfile(analysisStruct.save_file_dir, 'shuff_dir');
+          analysisStruct.shuffle_ds = false;
+          
+          % Can't be done in parafor loops
+          analysisStruct.the_classifier = eval(analysisStruct.classifier);
+          the_feature_preprocessors = cell(size(analysisStruct.preProc));
+          for pp_i = 1:length(analysisStruct.preProc)
+            the_feature_preprocessors{pp_i} = eval(analysisStruct.preProc{pp_i});
+          end
+          analysisStruct.the_feature_preprocessors = the_feature_preprocessors;
+          
+          % Create a shuffle distribution for all the comparisons
+          % downstream
+          shuffCount = params.null_shuffle_count;
+          for shuff_i = 1:shuffCount
+            analysisStruct.decoding_results_file = fullfile(analysisStruct.shuff_file_dir, sprintf('results_decoding_%d', shuff_i));
+            save(fullfile(analysisDir, sprintf('%s_results_shuffle_%d', saveFileName, shuff_i)), 'analysisStruct');
+          end
+
+          % Generate sub-samples.
+          if subSampleRuns
+            origOrder = analysisStruct.sites;
+            for sub_i = 1:subsampleCount
+              for unit_count_i = 1:length(unitsPerSubSample)
+                
+                if unitsPerSubSample(unit_count_i) <= length(origOrder)
+                  % Find out subsample to take
+                  reSampInd = sort(randperm(length(origOrder), unitsPerSubSample(unit_count_i)));
+                  analysisStruct.sites = origOrder(reSampInd);
+                  
+                  % save structure
+                  saveFileNameSS = sprintf('%s_S%d_%dU', saveFileName, sub_i, unitsPerSubSample(unit_count_i));
+                  analysisStruct.subInd = sub_i;
+                  analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileNameSS, '.mat'));
+                  save(fullfile(analysisDir, saveFileNameSS), 'analysisStruct');
+                end
+                
+              end
+            end
+            
+          else
+            
+            % Save structure
+            analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileName, '.mat'));
+            save(fullfile(analysisDir, saveFileName), 'analysisStruct');
+            
+          end
           
         end
       end

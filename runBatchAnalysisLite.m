@@ -78,7 +78,7 @@ end
 
 if plotSwitch.neuralDecodingTB
   batchAnalysisParams.NDTParams.spikePathLoadParams = batchAnalysisParams.spikePathLoadParams;
-  NeuralDecodingTBLite(spikePathBank, batchAnalysisParams.NDTParams);
+  NeuralDecodingTB(spikePathBank, batchAnalysisParams.NDTParams);
 end
 
 if ~any(strcmp(batchAnalysisParams.spikePathLoadParams.files, 'batchAnalyzedData.mat'))

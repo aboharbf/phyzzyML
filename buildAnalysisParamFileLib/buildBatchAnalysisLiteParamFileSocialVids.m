@@ -51,11 +51,11 @@ plotSwitch.selCount = 0;              % Create counts across paradigms for sensi
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
 
-plotSwitch.dimRed = 1;                 
+plotSwitch.dimRed = 0;                 
 calcSwitch.dataHigh = 0;
 
 plotSwitch.saccadeAnalysis = 0;
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.rewardPSTH = 0;            % Analysis of reward psthes specifically.

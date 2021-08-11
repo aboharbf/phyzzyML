@@ -15,29 +15,9 @@ function analysisStructAll = NDTB_prepareAnalysisStruct(analysisDir, pFolder, pa
     tmp = load(analysesFiles{ii});
     analysisStruct = tmp.analysisStruct;
     
-    % Depedning on switches set (at the top of NeuralDecodingTBLite, change
-    % the analysis.
-    if params.swap2libsvm
-      analysisStruct.classifier = 'libsvm_CL';
-    end
-    
-    if params.dontZScoreFeatures
-      analysisStruct.preProc = [];
-    end
-    
-    if params.reportFeaturepVal
-      % Adding k to all for the sake of seeing p values for features.
-      analysisStruct.preProc = [analysisStruct.preProc, {'select_or_exclude_top_k_features_FP'}];
-      analysisStruct.num_features_to_exclude = 0;
-      analysisStruct.num_features_to_use = length(analysisStruct.sites);
-    end
-    
     if params.expandLabelPerSplit
       analysisStruct.num_cv_splits = floor(analysisStruct.num_cv_splits/4);
     end
-    
-    % Define the plot name    
-    analysisStruct.load_data_as_spike_counts = strcmp(analysisStruct.classifier, 'poisson_naive_bayes_CL');
     
     % Define the folder where the outputs for this analysis will be saved.
     if ~isempty(analysisStruct.preProc)
