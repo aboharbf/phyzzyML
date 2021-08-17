@@ -1,4 +1,4 @@
-function [eyeDataStruct, eyeBehStatsByStim, eyeInByEventSmooth] = eyeStatsAnalysis(analogInByEvent, psthParams, eyeStatsParams, taskData, eyeDataStruct, figStruct)
+function [eyeDataStruct, eyeInByEventSmooth] = eyeStatsAnalysis(analogInByEvent, psthParams, eyeStatsParams, taskData, eyeDataStruct, figStruct)
 % Function uses ClusterFix to generate a saccade map.
 
 % Outputs
@@ -23,7 +23,8 @@ preSaccPeriod = 200;
 % A few switches.
 filterSaccades = 1;         % Performs a filter on saccades to exclude microsaccades, defined with respect to duration
 saccadeDurThres = 35;       % Additional saccade filtering outside of clusterFix, removes saccades which don't last this long or more.
-saccadeDistThrs = 1.5;      % As above, removes saccades with mean distances of less than this. 
+saccadeDistThrs = 1;        % As above, removes saccades with mean distances of less than this. 
+blinkDistThres = 50;        % How far from the start or end is a saccade's start required to be?
 plotPaths = 0;              % Code below which visualizes things trial by trial.
 
 % visualized trial by trial trace parameters
@@ -95,16 +96,16 @@ for stim_i = 1:length(eyeInByEventTrial)
 end
 
 % Filter saccades, make output image
-% Convert the output of ClusterFix to an image which can be used behind
+% Convert the output of ClusterFix to an image which can be used behind 
 % Rasters.
 [eyeBehImgByStim] = deal(cell(length(fixStats),1));
 for stim_i = 1:length(fixStats)
   stimEye = fixStats{stim_i};
   [eyeBehImg] = deal(ones(length(stimEye), (stimEndInd-stimStartInd)+1));
   for trial_i = 1:length(stimEye)
+    
+    % Extract Fixations and mark their times
     if ~isempty(stimEye{trial_i}.fixations)
-      
-      % Extract Fixations and mark their times
       fixationTimes = stimEye{trial_i}.fixationtimes;
       for fix_i = 1:size(fixationTimes,2)
         eyeBehImg(trial_i, fixationTimes(1, fix_i):fixationTimes(2, fix_i)) = deal(eventInds(strcmp(eventNames, 'Fix')));
@@ -121,13 +122,23 @@ for stim_i = 1:length(fixStats)
       if filterSaccades
         % Filter based on duration (filterThres)
         sacDurTmp = saccadeTimes(2,:) - saccadeTimes(1,:);
-        sacKeepInd = sacDurTmp <= saccadeDurThres;
+        sacKeepInd = sacDurTmp >= saccadeDurThres;
         
         % Filter based on distance
-        sacKeepInd2 = saccadeMaxDists < saccadeDistThrs;
+        sacKeepInd2 = saccadeMaxDists > saccadeDistThrs;
+        
+        % Filter based on proximity to a blink window
+        blinkTimesTrial = blinkTimes{stim_i}{trial_i};
+        if ~isempty(blinkTimesTrial)
+          saccStart2BlinkStartDist = abs(saccadeTimes(1,:) - blinkTimesTrial(1,:)');
+          saccStart2BlinkEndDist = abs(saccadeTimes(1,:) - blinkTimesTrial(2,:)');
+          sacKeepInd3 = ~any(saccStart2BlinkStartDist < blinkDistThres, 1) & ~any(saccStart2BlinkEndDist < blinkDistThres, 1);
+        else
+          sacKeepInd3 = true(size(sacKeepInd2));
+        end
         
         % Combine
-        sacKeepInd = ~logical(sacKeepInd + sacKeepInd2);
+        sacKeepInd = sacKeepInd & sacKeepInd2 & sacKeepInd3; %& sacKeepInd3;
         
         % Remove saccades and overwrite clusterFix output.
         [saccadeTimes, fixStats{stim_i}{trial_i}.saccadetimes] = deal(saccadeTimes(:, sacKeepInd));
@@ -155,10 +166,8 @@ for stim_i = 1:length(fixStats)
       for blink_i = 1:size(blinksTrial,2)
         eyeBehImg(trial_i, blinksTrial(1, blink_i):blinksTrial(2, blink_i)) = deal(eventInds(strcmp(eventNames, 'Blink')));
       end
-    else
-      %disp('No saccades detected')
+      
     end
-
   end
   eyeBehImgByStim{stim_i} = eyeBehImg;
 end
@@ -308,5 +317,6 @@ for stim_i = 1:length(eyeBehStatsByStim)
   end
 end
 
+eyeDataStruct.eyeBehStatsByStim = eyeBehStatsByStim;
 
 end

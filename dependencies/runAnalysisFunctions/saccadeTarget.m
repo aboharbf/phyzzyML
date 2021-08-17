@@ -1,4 +1,4 @@
-function eyeBehStatsByStim = saccadeTarget(eyeDataStruct, eyeBehStatsByStim)
+function eyeDataStruct = saccadeTarget(eyeDataStruct)
 % For each saccade, label what the target of it is.
 % Inputs:
 % - eyeDataStruct.saccadeByStim from eyeStatsAnalysis.
@@ -13,6 +13,8 @@ function eyeBehStatsByStim = saccadeTarget(eyeDataStruct, eyeBehStatsByStim)
 % in the saccade as being in the middle, and if it is followed by a  jump
 % back, may look very small in distance. I've added the max distance jump
 % info to the output of eyeStatsAnalysis to get around this.
+
+eyeBehStatsByStim = eyeDataStruct.eyeBehStatsByStim;
 
 for stim_i = 1:length(eyeBehStatsByStim)
   
@@ -53,6 +55,9 @@ for stim_i = 1:length(eyeBehStatsByStim)
   end
   
 end
+
+eyeDataStruct.eyeBehStatsByStim = eyeBehStatsByStim;
+
 
 
 end

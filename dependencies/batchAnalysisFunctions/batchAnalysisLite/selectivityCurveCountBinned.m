@@ -91,7 +91,7 @@ for par_i = 1:length(paradigmList)
       % Plot as Bar graph.
       figTitle = sprintf('%s Significant %s counts per Category, Sliding Window Test (%d/%d unique)', testName{1}, unitTypePlot{unitType_i}, sum(atleastOne), unitCount);
       figH = createBarPlotWithChanceLine(epochSequence, objectArrays', 0, unitCount, figTitle, uniqueObjects, barplotParams);
-      figH.Position = [.3    0.185    0.62    0.5];
+      figH.Position = [.3 0.185 0.62 0.5];
       saveFigure(outputDir, sprintf('1.%s - %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
       
     end

@@ -13,8 +13,6 @@ mainOutDir = selParams.outputDir;
 selParams.unitList = unitList;
 selParams.unitTags = unitTags;
 
-selParams.figStruct.closeFig = 1;
-
 for m_i = 3%1:length(monkeyList)
   for par_i = 1:length(paradigmList)
     
@@ -52,14 +50,14 @@ for m_i = 3%1:length(monkeyList)
       
       % Find cells with predefined selectivities for the sake of illustrating
       % effects.
-%       exampleCellFinderSubEvent(selTableParadigmUnit, selParams);
-%       exampleCellFinderObject(selTableParadigmUnit, selParams)
+      exampleCellFinderSubEvent(selTableParadigmUnit, selParams);
+      exampleCellFinderObject(selTableParadigmUnit, selParams)
       
       % jointTuningPlot(selTableParadigm, paradigmList{par_i}, selParams)
       
       % Make a bar plot and distribution describing epoch preferences (Activity
       % above baseline during an epoch).
-%       epochPreferenceBarGraphsAndVennDiagram(selTableParadigmUnit, selParams)
+      epochPreferenceBarGraphsAndVennDiagram(selTableParadigmUnit, selParams)
       
       % Make bar plots per Epoch Selectivity - comparing an rates within an
       % epoch across categories. Barplots or Venn Diagram.
@@ -67,7 +65,7 @@ for m_i = 3%1:length(monkeyList)
       % selectivityPerEpochBarGraphsAndVennDiagram(selTableParadigmUnit, paradigmList{par_i}, selParams)
       
       % Make bar plots for fixed events (Reward delivery, Fixation)
-%       selectivityPerEventBarGraphs(selTableParadigmUnit, selParams)
+      selectivityPerEventBarGraphs(selTableParadigmUnit, selParams)
       
       % Make bar plots counting eye related activity selectivity
       selectivityPerEyeEvent(selTableParadigmUnit, selParams)

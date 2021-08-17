@@ -51,7 +51,7 @@ switch plotType
     colorBarh = colorbar(psthAxes);
     ylabel(colorBarh,'Firing Rate [Hz]','FontSize',14);
     if isfield(psthParams, 'colormap')
-      colormap(psthParams.colormap);
+      colormap(psthAxes, psthParams.colormap);
     end
     ylimits = ylim(psthAxes);
     yRange  = ylimits(2) - ylimits(1);

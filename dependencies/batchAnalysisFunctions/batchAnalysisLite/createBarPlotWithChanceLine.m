@@ -22,7 +22,7 @@ X = reordercats(X,barLabels);
 barh = bar(X, dataMat, 1);
 ylimSize = ylim();
 
-if any(size(dataMat, 1) == 1)
+if length(barh) == 1
   barh.BarWidth = 0.5;
   legLoc = 'northeastoutside';
 elseif length(legendEntries) > 4
@@ -42,11 +42,11 @@ for bar_i = 1:length(barh)
   ytips1 = barh(bar_i).YEndPoints;
   
   if bar_i ~= 1
-    diffY = abs(ytipsLast - ytips1);
-    if any(diffY < 1) && size(dataMat,1) >= 3
-      changeInd = diffY < 1;
-      ytips1(changeInd) = ytips1(changeInd) + ((ylimSize(2) * 0.05) );
-    end
+%     diffY = abs(ytipsLast - ytips1);
+%     if any(diffY < 1) && size(dataMat,1) >= 3
+%       changeInd = diffY < 1;
+%       ytips1(changeInd) = ytips1(changeInd) + ((ylimSize(2) * 0.05) );
+%     end
   end
    
   unitTag = string(barh(bar_i).YData);

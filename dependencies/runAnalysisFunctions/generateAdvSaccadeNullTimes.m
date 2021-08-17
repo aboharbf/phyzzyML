@@ -1,6 +1,8 @@
-function [stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, eventIDs, psthParams)
+function [stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, psthParams)
 % Goal of this function is to be fed in saccade times and to produce null
-% time scrambles which meet the following criteria
+% time scrambles.
+% Input 
+% - eyeBehStatsByStim
 
 preSaccWin = 300;
 postSaccWin = 100;
@@ -45,6 +47,7 @@ for stim_i = 1:length(stimSaccadeArrays)
         if any(nonSaccTrials)
           % Add those spots to the non-saccade set
           stimSaccadeNullArrays{stim_i}(nonSaccTrials, saccBins(sacc_i)) = 1;
+          
         else
           % Go through the other stimuli, until you find one where the same
           % window is unoccupied.

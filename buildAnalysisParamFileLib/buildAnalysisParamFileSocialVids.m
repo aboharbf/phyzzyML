@@ -7,7 +7,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 % naturalSocial Test - 20201117Mo 001
 
 runNum = '001';
-dateSubject = '20201117Mo';
+dateSubject = '20201123Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -58,6 +58,7 @@ plotSwitch.imageEyeMap = 0;
 plotSwitch.eyeCorrelogram = 0;              % Eye Gram
 
 plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
+plotSwitch.saccadeRasterPSTH = 1;
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
@@ -65,8 +66,8 @@ plotSwitch.spikePupilCorr = 0;              % see the correlation between single
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
-plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
-plotSwitch.categoryPsth = 1;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
+plotSwitch.imagePsth = 0;                   % a PSTH for every stimulus in the file.
+plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
 plotSwitch.analysisGroupsPsth = 0;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
 plotSwitch.prefImRasterColorCoded = 0;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.
@@ -396,6 +397,15 @@ subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bod
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
                                              [0 200]; [0 100]; [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
 subEventAnalysisParams.nonParametric = 1;                                 % Use non parametric test.
+
+saccadeRasterParams.psthParams = psthParams;
+saccadeRasterParams.preAlign = 400;
+saccadeRasterParams.postAlign = 400;
+saccadeRasterParams.psthParams.psthPre = 300;
+saccadeRasterParams.psthParams.psthImDur = 300;
+saccadeRasterParams.psthParams.psthPost = 0;  
+saccadeRasterParams.spikeTimes = 0;
+saccadeRasterParams.psthParams.movingWin(1) = 240;
 
 % Variables for creating saccade rasters and PSTHes.
 saccadeStackParams.preEventTime = 300;

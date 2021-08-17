@@ -93,12 +93,14 @@ for par_i = 1:length(paradigmList)
       % Plotting
       figTitle = sprintf('%s selectivity during %s test (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, atleastOne, unitCount);
       createBarPlotWithChanceLine(epochNames, barGraphData, 0, unitCount, figTitle, testObjs);
-%       saveFigure(fullfile(outputDir, 'BarGraph'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
+      saveFigure(fullfile(outputDir, 'BarGraph'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
       
-      % Plot the Venn diagram
-      figTitle = sprintf('%s selectivity for %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, atleastOne, unitCount);
-      vennXExpanded(vennDiagramVectors(:, 2:4), figTitle, epochNames(2:4))
-      saveFigure(fullfile(outputDir, 'VennDiagram'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
+%       % Plot the Venn diagram
+        % Change - Now only focusing on Stimulus period as a single unified
+        % whole.
+%       figTitle = sprintf('%s selectivity for %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, atleastOne, unitCount);
+%       vennXExpanded(vennDiagramVectors(:, 2:4), figTitle, epochNames(2:4))
+%       saveFigure(fullfile(outputDir, 'VennDiagram'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
       
     end
     

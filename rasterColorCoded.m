@@ -1,4 +1,4 @@
-function [ ] = rasterColorCoded(figHandle, spikesByItem, pictureLabels, psthParams, ISI, channel_i, unit_i, eyeDataStruct, colorSwitch)
+function [ ] = rasterColorCoded(inputHandle, spikesByItem, pictureLabels, psthParams, ISI, channel_i, unit_i, eyeDataStruct, colorSwitch, spikePattern)
 %RASTER makes a raster plot in the current figure of the specified unit and
 %channel data. Uses information from the attendedObjData structure to color
 %code the spikes based on what object the subject was looking at. 
@@ -7,9 +7,15 @@ function [ ] = rasterColorCoded(figHandle, spikesByItem, pictureLabels, psthPara
 % Shaded region for Saccades, 4 = shaded region for pupil dil, no saccades.
 
 % Color Spikes vs Color Shaded Region
-lineSpikes = 1;   % 1 = spikes as Lines, 0 = spikes as img.
 %Set the figure handle as the current handle
-set(0, 'CurrentFigure', figHandle)
+
+switch class(inputHandle)
+  case 'matlab.ui.Figure'
+    set(0, 'CurrentFigure', inputHandle)
+    rasterAxes = axes();
+  case 'matlab.graphics.axis.Axes'
+    rasterAxes = inputHandle;
+end
 
 fieldsUnpack = fields(eyeDataStruct);
 for ii = 1:length(fieldsUnpack)
@@ -20,7 +26,6 @@ end
 preAlign = psthParams.psthPre;
 postAlign = psthParams.psthPost;
 imDur = psthParams.psthImDur;
-rasterAxes = axes();
 
 xlim([-preAlign,imDur+postAlign]);
 hold on;
@@ -28,20 +33,27 @@ axis ij
 
 %Reshape attendedObjData to be correctly indexed.
 if exist('attendedObjData', 'var')
-  attendObjInd = zeros(length(pictureLabels),1);
-  for obj_ind = 1:length(pictureLabels)
-    attendObjInd(obj_ind) = find(strcmp(attendedObjData.eventIDs, pictureLabels{obj_ind}));
+  try
+    
+    attendObjInd = zeros(length(pictureLabels),1);
+    for obj_ind = 1:length(pictureLabels)
+      attendObjInd(obj_ind) = find(strcmp(attendedObjData.eventIDs, pictureLabels{obj_ind}));
+    end
+    
+    attendedObjData.eventIDs = attendedObjData.eventIDs(attendObjInd);
+    attendedObjData.attendedObjVect = attendedObjData.attendedObjVect(attendObjInd);
+    attendedObjData.frameStartInd = attendedObjData.frameStartInd(attendObjInd);
+    attendedObjData.frameEndInd = attendedObjData.frameEndInd(attendObjInd);
+    attendedObjData.tracePlotData = attendedObjData.tracePlotData(attendObjInd);
+    
+    %attendedObjData.colorCode{end+1} = [0, 0, 0]; %Black for non-stim spikes.
+    uniqueColorTrials = zeros(length(attendedObjData.colorCode),1);
+    uniqueColorInds = zeros(length(attendedObjData.colorCode),3);
+    
+  catch
+    attendObjInd = 1:length(pictureLabels);
   end
   
-  attendedObjData.eventIDs = attendedObjData.eventIDs(attendObjInd);
-  attendedObjData.attendedObjVect = attendedObjData.attendedObjVect(attendObjInd);
-  attendedObjData.frameStartInd = attendedObjData.frameStartInd(attendObjInd);
-  attendedObjData.frameEndInd = attendedObjData.frameEndInd(attendObjInd);
-  attendedObjData.tracePlotData = attendedObjData.tracePlotData(attendObjInd);
-  
-  %attendedObjData.colorCode{end+1} = [0, 0, 0]; %Black for non-stim spikes.
-  uniqueColorTrials = zeros(length(attendedObjData.colorCode),1);
-  uniqueColorInds = zeros(length(attendedObjData.colorCode),3);
 end
 
 if colorSwitch == 1
@@ -80,7 +92,7 @@ try
     im.XData = [0+imOffset psthParams.psthImDur-imOffset];
     im.AlphaData = 0.5;
     im.YData = [im.YData(1)-0.5 im.YData(2)-0.5];
-    figHandle.UserData.shadedAreaHandle = im;
+    inputHandle.UserData.shadedAreaHandle = im;
   elseif colorSwitch == 3 ||  colorSwitch == 4
     if colorSwitch == 3
       saccadeData = vertcat(saccadeByStim{attendObjInd});
@@ -93,7 +105,7 @@ try
     im.XData = [-preAlign,imDur+postAlign];
     im.YData = [im.YData(1)-0.5 im.YData(2)-0.5];
     im.AlphaData = 0.5;
-    figHandle.UserData.shadedAreaHandle = im;
+    inputHandle.UserData.shadedAreaHandle = im;
   end
 catch
   warning('colorSwitch failed')
@@ -104,61 +116,99 @@ yLevel = -0.5; % accumulated trial index, sets height in raster
 legendHandles = [];
 % spikeHandles = [];
 trialLabels = [];
-if lineSpikes
-  % Traditional representation of spikes as lines.
-  for item_i = 1:length(spikesByItem)
-    yLevelStart = yLevel;
-    trialLabels = [trialLabels 1:length(spikesByItem{item_i}{channel_i}{unit_i})];
-    for trial_i = 1:length(spikesByItem{item_i}{channel_i}{unit_i})
-      yLevel = yLevel + 1;
-      trialSpikes = spikesByItem{item_i}{channel_i}{unit_i}(trial_i);
-      for spike_i = 1:length(trialSpikes.times)
+switch spikePattern
+  case 1
+    % Traditional representation of spikes as lines.
+    for item_i = 1:length(spikesByItem)
+      yLevelStart = yLevel;
+      trialLabels = [trialLabels 1:length(spikesByItem{item_i}{channel_i}{unit_i})];
+      for trial_i = 1:length(spikesByItem{item_i}{channel_i}{unit_i})
+        yLevel = yLevel + 1;
+        trialSpikes = spikesByItem{item_i}{channel_i}{unit_i}(trial_i);
+        for spike_i = 1:length(trialSpikes.times)
+          if colorSwitch == 1
+            trialColors = spikeColor{item_i}{trial_i}.color;
+            plot([trialSpikes.times(spike_i) trialSpikes.times(spike_i)],[yLevel-0.4 yLevel+0.4],'color', trialColors(spike_i,:));
+          else
+            plot([trialSpikes.times(spike_i) trialSpikes.times(spike_i)],[yLevel-0.4 yLevel+0.4],'color', 'black');
+          end
+        end
+      end
+      %Plot Stim start, stim end, and Bottom dividing bar
+      h = plot([0 0],[yLevelStart+0.5 yLevel+0.5],'color', 'black', 'LineWidth', 2); % Stimulus Onset
+      plot([imDur imDur],[yLevelStart+0.5 yLevel+0.5],'color', 'black', 'LineWidth', 2); % Stimulus Offset
+      if item_i ~= length(spikesByItem)
+        plot([xlim()],[yLevel+0.5 yLevel+0.5],'color','black', 'LineWidth', 2, 'LineStyle', '--'); %Stimuli dividing line
+      end
+      legendHandles = vertcat(legendHandles,h);
+    end
+    
+  case 2
+    % Spikes represented as single image. - Seems to not work atm.
+    spikeImg = [];
+    traceTime = preAlign + postAlign + imDur;
+    spikeImgIndOffset = preAlign * 10;
+    spiDi = 1;
+    yLevel = -0.5; % accumulated trial index, sets height in raster
+    
+    for item_i = 1:length(spikesByItem)
+      trialCount = length(spikesByItem{item_i}{channel_i}{unit_i});
+      tmp = ones(trialCount, traceTime*10, 3);  %Grid with Trial rows and 1/10th ms columns
+      yLevelStart = yLevel;
+      for trial_i = 1:trialCount
+        yLevel = yLevel + 1;
+        trialSpikes = spikesByItem{item_i}{channel_i}{unit_i}(trial_i);
+        for spike_i = 1:length(trialSpikes.times)
+          spikeImgInd = round(trialSpikes.times(spike_i) * 10) + spikeImgIndOffset;
+          if spikeImgInd > 0 && spikeImgInd < (traceTime * 10)
+            tmp(trial_i, spikeImgInd-spiDi:spikeImgInd+spiDi, :) = deal(0);
+          end
+        end
+      end
+      spikeImg = [spikeImg; tmp];
+    end
+    spikeImgH = image(spikeImg);
+    spikeImgH.AlphaData = ~squeeze(spikeImg(:,:,1));
+    spikeImgH.XData = [-preAlign postAlign + imDur];
+    ylim([0,size(spikeImg,1)+0.5]);
+    
+  case 3
+    [spikeX, spikeY, spikeC] = deal([]);
+    % Traditional representation of spikes as lines.
+    for item_i = 1:length(spikesByItem)
+      yLevelStart = yLevel;
+      trialLabels = [trialLabels 1:length(spikesByItem{item_i}{channel_i}{unit_i})];
+      for trial_i = 1:length(spikesByItem{item_i}{channel_i}{unit_i})
+        yLevel = yLevel + 1;
+        trialSpikes = spikesByItem{item_i}{channel_i}{unit_i}(trial_i);
+        spikeX = [spikeX; trialSpikes.times];
+        spikeY = [spikeY; repmat(yLevel, [length(trialSpikes.times), 1])];
         if colorSwitch == 1
-          trialColors = spikeColor{item_i}{trial_i}.color;
-          plot([trialSpikes.times(spike_i) trialSpikes.times(spike_i)],[yLevel-0.4 yLevel+0.4],'color', trialColors(spike_i,:));
+          spikeC = [spikeC; repmat(spikeColor{item_i}{trial_i}.color, [length(trialSpikes.times), 1])];
         else
-          plot([trialSpikes.times(spike_i) trialSpikes.times(spike_i)],[yLevel-0.4 yLevel+0.4],'color', 'black');
+          spikeC = [spikeC; repmat([0 0 0], [length(trialSpikes.times), 1])];
         end
       end
-    end
-    %Plot Stim start, stim end, and Bottom dividing bar
-    h = plot([0 0],[yLevelStart+0.5 yLevel+0.5],'color', 'black', 'LineWidth', 2); % Stimulus Onset
-    plot([imDur imDur],[yLevelStart+0.5 yLevel+0.5],'color', 'black', 'LineWidth', 2); % Stimulus Offset
-    if item_i ~= length(spikesByItem)
-      plot([xlim()],[yLevel+0.5 yLevel+0.5],'color','black', 'LineWidth', 2, 'LineStyle', '--'); %Stimuli dividing line
-    end
-    legendHandles = vertcat(legendHandles,h);
-  end
-else
-  % Spikes represented as single image. - Seems to not work atm.
-  spikeImg = [];
-  traceTime = preAlign + postAlign + imDur;
-  spikeImgIndOffset = preAlign * 10;
-  spiDi = 1;
-  yLevel = -0.5; % accumulated trial index, sets height in raster
-  for item_i = 1:length(spikesByItem)
-    trialCount = length(spikesByItem{item_i}{channel_i}{unit_i});
-    tmp = ones(trialCount, traceTime*10, 3);  %Grid with Trial rows and 1/10th ms columns
-    yLevelStart = yLevel;
-    for trial_i = 1:trialCount
-      yLevel = yLevel + 1;
-      trialSpikes = spikesByItem{item_i}{channel_i}{unit_i}(trial_i);
-      for spike_i = 1:length(trialSpikes.times)
-        spikeImgInd = round(trialSpikes.times(spike_i) * 10) + spikeImgIndOffset;
-        if spikeImgInd > 0 && spikeImgInd < (traceTime * 10)
-          tmp(trial_i, spikeImgInd-spiDi:spikeImgInd+spiDi, :) = deal(0);
-        end
+      
+      %Plot Stim start, stim end, and Bottom dividing bar
+      h = plot([0 0],[yLevelStart+0.5 yLevel+0.5],'color', 'black', 'LineWidth', 2); % Stimulus Onset
+      plot([imDur imDur],[yLevelStart+0.5 yLevel+0.5],'color', 'black', 'LineWidth', 2); % Stimulus Offset
+      if item_i ~= length(spikesByItem)
+        plot([xlim()],[yLevel+0.5 yLevel+0.5],'color','black', 'LineWidth', 2, 'LineStyle', '--'); %Stimuli dividing line
       end
+      legendHandles = vertcat(legendHandles,h);
+      
     end
-    spikeImg = [spikeImg; tmp];
-  end
-  spikeImgH = image(spikeImg);
-  spikeImgH.AlphaData = ~squeeze(spikeImg(:,:,1));
-  spikeImgH.XData = [-preAlign postAlign + imDur];
-  ylim([0,size(spikeImg,1)+0.5]);
+    
+    x = scatter(rasterAxes, spikeX, spikeY, 8, spikeC, 'filled', '|', 'MarkerEdgeColor', 'black');
 
+    
 end
-title(figHandle.Name)
+
+if isa(inputHandle, 'matlab.ui.Figure')
+  title(inputHandle.Name)
+end
+
 xlimits = xlim();
 ylim([0,yLevel+0.5]);
 if xlimits(2) < imDur + ISI

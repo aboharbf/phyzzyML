@@ -1,4 +1,4 @@
-function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventParams, selTable, psthParams, figStruct)
+function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, eventIDs, onsetsByEventStim, subEventParams, selTable, psthParams, figStruct)
 % subEventAnalysis
 % Description - looks through spikesByEvent, calculates PSTH for activity
 % aligned to a specific event as well as a null distribution from the
@@ -17,7 +17,6 @@ saccadeSplit = false;           % Split subEvent in the stimulus depending on wh
 % trials that take place during the run, matching them to the stimuli as
 % present in the taskData.eventIDs field.
 frameMotionData = taskData.frameMotionData;
-eventIDs = subEventParams.eventIDs;
 taskEventIDs = taskData.taskEventIDs;
 % specSubEvent = subEventParams.specSubEvent;
 specSubEvent = 0;
@@ -162,9 +161,9 @@ end
 % the 'onsetsByEvent' cue.
 if ~isempty(eyeBehStatsByStim)
   trialsPerStim = cellfun('length', eyeBehStatsByStim);
-  stimuliStartTimes = subEventParams.onsetsByEvent;     % Find all the start times for the stimulus
+  stimuliStartTimes = onsetsByEventStim;     % Find all the start times for the stimulus
   
-  [stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, eventIDs, psthParams);
+  [stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, psthParams);
   
   [blinkTimes, saccadeTimes, saccadeNonStimTimes, saccadeNullTimes, saccadeNonStimNullTimes] = deal([]);                          % Initialize vectors
   for stim_i = 1:length(eyeBehStatsByStim)

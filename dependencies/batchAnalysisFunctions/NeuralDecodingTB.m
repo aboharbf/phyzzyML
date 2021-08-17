@@ -58,8 +58,9 @@ for paradigm_i = 1:length(paradigmList)
   analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
-  parfor analysis_i = 1:length(analysesStructPaths)
+  for analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
+    tic
     tmp = load(analysesStructPaths{analysis_i});
     analysisStruct = tmp.analysisStruct;
     

@@ -55,6 +55,7 @@ analogInChannelUnits = analogInParams.channelUnits;
 
 psthPre = psthParams.psthPre;
 psthPost = psthParams.psthPost;
+psthImDur = psthParams.psthImDur;
 smoothingWidth = psthParams.smoothingWidth;
 psthErrorType = psthParams.errorType;
 psthErrorRangeZ = psthParams.errorRangeZ;
@@ -345,12 +346,11 @@ end
 
 if plotSwitch.eyeStatsAnalysis
 %   error('Update to accomodate changes in origin during run')
-  [eyeDataStruct, eyeBehStatsByStim, eyeInByEvent] = eyeStatsAnalysis(analogInByEvent, psthParams, eyeStatsParams, taskData, eyeDataStruct, figStruct);
-  save(analysisOutFilename, 'eyeBehStatsByStim', 'eyeInByEvent', '-append');
+  [eyeDataStruct, eyeInByEvent] = eyeStatsAnalysis(analogInByEvent, psthParams, eyeStatsParams, taskData, eyeDataStruct);
+  save(analysisOutFilename, 'eyeInByEvent', '-append');
 else
   % Reshapes analogInByEvent into eye signal. not smoothed
   eyeInByEvent = cellfun(@(n) squeeze(n(:,1:2,:,lfpPaddedBy+1:length(n)-(lfpPaddedBy+1))), analogInByEvent, 'UniformOutput', false);
-  eyeBehStatsByStim = [];
   save(analysisOutFilename, 'eyeInByEvent', '-append');
 end
 
@@ -361,12 +361,12 @@ if plotSwitch.attendedObject
 
   % Assign each Saccade labeled a target.
   if plotSwitch.eyeStatsAnalysis
-    eyeBehStatsByStim = saccadeTarget(eyeDataStruct, eyeBehStatsByStim);
+    eyeDataStruct = saccadeTarget(eyeDataStruct);
   end
   
 end
 
-save(analysisOutFilename, 'eyeBehStatsByStim', 'eyeDataStruct','-append');
+save(analysisOutFilename, 'eyeDataStruct','-append');
 
 if plotSwitch.eyeCorrelogram 
   eyeCorrelogram(eyeInByEvent, psthParams, eventLabels, figStruct)
@@ -420,20 +420,27 @@ end
 [selTable, anovaTable] = deal(initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth));
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
+
 if plotSwitch.subEventAnalysis
-  subEventAnalysisParams.onsetsByEvent = onsetsByEvent;
-  subEventAnalysisParams.eventIDs = eventIDs;
-    
-  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, subEventAnalysisParams, selTable, psthParams, figStruct);
+  [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeDataStruct.eyeBehStatsByStim, spikesByChannel, taskData, eventIDs, onsetsByEvent, subEventAnalysisParams, selTable, psthParams, figStruct);
   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
 end
 
+if plotSwitch.saccadeRasterPSTH
+  saccadeRasterPSTH(eyeDataStruct, spikesByChannel, taskData, onsetsByEvent, saccadeRasterParams, selTable, psthParams, figStruct);
+  %   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
+end
+
 epochTargParams.groupLabelsByImage = groupLabelsByImage;
-selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochTargParams, selTable);
+if isfield(eyeDataStruct, 'eyeBehStatsByStim')
+  selTable = saccadePerUnit(spikesByEventBinned, eyeDataStruct.eyeBehStatsByStim, psthParams, eventIDs, taskData.paradigm, epochTargParams, selTable);
+end
 
 % Determine which units are selective for saccades (direction), either
 % during the stimulus, at the fixation period, or at the stimulus onset.
-selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, selTable);
+if isfield(eyeDataStruct, 'eyeBehStatsByStim')
+  selTable = saccadeDirSel(spikesByEventBinned, eyeDataStruct.eyeBehStatsByStim, psthParams, taskData, selTable);
+end
 
 % Compares epochs against baseline and each other.
 selTable = epochCompareStats(spikesByEvent, spikesByEventFixAlign, selTable, epochTargParams);
@@ -441,15 +448,18 @@ selTable = epochCompareStats(spikesByEvent, spikesByEventFixAlign, selTable, epo
 % Tests between epochs of the conditions between different targets.
 selTable = epochTargetStats(spikesByEvent, spikesByEventFixAlign, selTable, eventIDs, taskData.paradigm, epochTargParams);
 
-if ~strcmp(taskData.paradigm, 'familiarFace')
+if ~strcmp(taskData.paradigm, 'familiarFace') && isfield(eyeDataStruct, 'eyeBehStatsByStim')
   [anovaTable, anovaBinParams] = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochSWparams);
+  save(analysisOutFilename, 'anovaBinParams', '-append');
 end
 
-save(analysisOutFilename, 'selTable', 'anovaTable', 'anovaBinParams', '-append');
+save(analysisOutFilename, 'selTable', 'anovaTable', '-append');
 
 % Saccade Counts/Matrices.
-[saccadeMatArray, saccadeMatLabel] = saccadePerEvent(eyeBehStatsByStim, taskData, trialIDsByEvent, psthParams, saccadeStackParams);
-save(analysisOutFilename, 'saccadeMatArray', 'saccadeMatLabel', '-append');
+if isfield(eyeDataStruct, 'eyeBehStatsByStim')
+  [saccadeMatArray, saccadeMatLabel] = saccadePerEvent(eyeDataStruct.eyeBehStatsByStim, taskData, trialIDsByEvent, psthParams, saccadeStackParams);
+  save(analysisOutFilename, 'saccadeMatArray', 'saccadeMatLabel', '-append');
+end
 
 %% Plotting and further analyses
 
@@ -693,7 +703,7 @@ for epoch_i = 1:length(firingRatesByImageByEpoch)
           clear figData
           figData.z = spikesByEvent(imageSortOrderInd(1:topStimToPlot));
           figData.x = -psthPre:psthImDur+psthPost;
-          rasterColorCoded(fh, spikesByEvent(imageSortOrderInd(1:topStimToPlot)), sortedEventIDs(1:topStimToPlot), psthParams, stimTiming.ISI, channel_i, unit_i, eyeDataStruct,  plotSwitch.prefImRasterColorCoded);
+          rasterColorCoded(fh, spikesByEvent(imageSortOrderInd(1:topStimToPlot)), sortedEventIDs(1:topStimToPlot), psthParams, stimTiming.ISI, channel_i, unit_i, eyeDataStruct, plotSwitch.prefImRasterColorCoded, 1);
           title(sprintf('Preferred Images, %s %s',channelNames{channel_i},channelUnitNames{channel_i}{unit_i}));
           saveFigure(outDir, sprintf('prefImRaster_%s_%s_%s_Run%s',colorTag, chanUnitTag,epochTag,runNum), figData, figStruct, figStruct.figTag );
         end

@@ -1,4 +1,4 @@
-function selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, selTable)
+function selTable = saccadeDirPSTH(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, selTable)
 % A function which uses the circStats toolbox to implement saccade
 % selectivity.
 
@@ -97,6 +97,7 @@ trialTimeOffset = fixDotDuration(trialIndsAll);
 comparisonType = {'fixOnset', 'stimOnset', 'stim', 'all'};
 
 for comparison_i = 1:length(comparisonType)
+  
   % Filter out saccades which don't happen during the correct period. 
   switch comparisonType{comparison_i}
     case 'fixOnset'
@@ -173,37 +174,13 @@ for comparison_i = 1:length(comparisonType)
         [scrambMu(scramb_i), ~, ~] = circ_mean(scrambDir, saccadeSpikes);
         scrambR(scramb_i) = circ_r(scrambDir, saccadeSpikes, binSpacing);
       end
-      
-      % plots
-      if 0
-        figure()
-        % Plot the Mu for the mean of the direction.
-        subplot(1,2,1)
-        h = histogram(scrambMu);
-        hold on
-        title(sprintf('true Mu = %s', num2str(trueMu, 2)));
-        ylim(h.Parent.YLim);
-        plot([trueMu trueMu], ylim(), 'linewidth', 3, 'color', 'r');
+            
         
-        subplot(1,2,2)
-        h = histogram(scrambR);
-        hold on
-        title(sprintf('true R = %s', num2str(trueR, 2)));
-        ylim(h.Parent.YLim);
-        plot([trueR trueR], ylim(), 'linewidth', 3, 'color', 'r');
-      end
-      
-      % Preform a t test, store
-      [~, pVal, ~, ~] = ttest2(scrambR, trueR);
-      unitSelVec(unitTabInd) = pVal;
-      
-      % Increment
-      unitTabInd = unitTabInd + 1;
+     
       
     end
   end
   
-  % store in the selTable
-  selTable.(sprintf('saccDir_%s_pVal', comparisonType{comparison_i})) = unitSelVec;
-  
 end
+
+[psthByItem, psthErrByItem] = calcStimPSTH(spikesByItem, psthEmptyByItem, spikeTimes, psthParams, spikeAlignParams)
