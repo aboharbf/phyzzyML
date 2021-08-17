@@ -357,9 +357,9 @@ end
 if plotSwitch.attendedObject
   % See whats being attended
 %   error('Update to accomodate changes in origin during run')
-  eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct);
+  eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct, stimDir);
 
-  % Assign each Saccade labeled a target.
+  % Assign each Saccade labeled a target. Requires calcEyeObjectTrace.
   if plotSwitch.eyeStatsAnalysis
     eyeDataStruct = saccadeTarget(eyeDataStruct);
   end

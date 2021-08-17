@@ -1,4 +1,4 @@
-function eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct)
+function eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psthParams, eventIDs, taskData, eyeDataStruct, stimDir)
 % Functions goal is to return a vector, of the same structure as
 % "eyeInByEvent", replacing the {event}(1*Channels*Trials*Millseconds)
 % structure with a {event}{trial}{frame*1}, where ever item is the
@@ -34,7 +34,8 @@ else
   paradigm = 3;
 end
 
-IDMapDir = 'C:\Videos\headTurnIDVideos\**\';
+
+idVidDir = fullfile(stimDir, 'idVideos');
 objArray = {'Face1', 'HandR1', 'Body1'};
 
 for stim_i = 1:length(eventIDs)
@@ -71,8 +72,8 @@ for stim_i = 1:length(eventIDs)
     % Initialize the output cell array.
     attendedObjVect{stim_i} = cell(size(eyeInByEventDS, 2), size(eyeInByEventDS, 3));
     
-    switch paradigm
-      case 3
+    switch taskData.paradigm
+      case 'naturalSocial'
         % For natural videos.
         if ~isempty(stimFrameMotionData.objNames) % Landscapes/Scrambles
           
@@ -113,14 +114,14 @@ for stim_i = 1:length(eventIDs)
         else
           attendedObjVect{stim_i}(:) = {'bkg'}; %Landscapes/Scrambles
         end
-      case {1, 2}
+      case {'headTurnCon', 'headTurnIso'}
         % For the headTurn paradigm, load the video
         if paradigm == 1
           %headTurnCon videos each have their own video (unless there are
           %no agents, in which case there are no labels.
           
           % find and load the ID video for the stimuli
-          idVid = dir(fullfile(IDMapDir, [extractBefore(eventIDs{stim_i}, '.avi') '*']));
+          idVid = dir(fullfile(idVidDir, [extractBefore(eventIDs{stim_i}, '.avi') '*']));
           
           % If the idVid is empty, and the eventID contains the code for
           % scenes and objects, just skip this object.
@@ -142,7 +143,7 @@ for stim_i = 1:length(eventIDs)
           idVidName = [extractBefore(eventIDs{stim_i}, '.avi') '_ID*'];
           idVidName(24) = num2str(1);
 
-          idVid = dir(fullfile(IDMapDir, idVidName));
+          idVid = dir(fullfile(idVidDir, idVidName));
                     
         end
         
