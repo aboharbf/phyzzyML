@@ -24,10 +24,13 @@ switch machine
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
     stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code');
     neuroGLMPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\neuroGLM';
-  case {'turing.rockefeller.edu','hopper.rockefeller.edu'}
-    ephysVolume = '/Freiwald/lab_files/raw_data/EPHYS/Farid_ESINRec/Data2018';
+  case {'turing.rockefeller.edu','hopper.rockefeller.edu','vera.rockefeller.edu'}
+    ephysVolume = '/Freiwald/faboharb/EphysAnalysis/EphysData';
     stimulusLogVolume = ephysVolume;
-    outputVolume = '/Freiwald/faboharb/analysis/Analyzed';
+    stimParamsFilename = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat';   %#ok
+    outputVolume = '/Freiwald/faboharb/EphysAnalysis/Analyzed';
+    stimParamsFilename = '/Freiwald/faboharb/EphysAnalysis/phyzzyML/stimParamFileLib/StimParamFileSocialVids_Full.mat';
+    stimDir = '/Freiwald/faboharb/EphysAnalysis/stimDir';
   case 'DataAnalysisPC'
     ephysVolume = slashSwap('\\BlackrockPC\nsp\Data');
     stimulusLogVolume = slashSwap('\\CONTROLLERPC\Monkeylogic Experiments');
@@ -182,11 +185,11 @@ butter1Hz200Hz_v2 = [tmp1,tmp2];        %#ok
 clear('tmp1','tmp2')
 ephysParams.filter = butter1Hz200Hz_v1; % if filtering desired, ephysFilter is a digitalFilter
 ephysParams.plotFilterResult = 0; 
-ephysParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
+ephysParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume, dateSubject,analysisLabel,runNum);
 ephysParams.saveFig = figStruct.saveFig;
-ephysParams.phyParams.phyPath = phyDir;
-ephysParams.phyParams.spikesDir = spikesDir;
-ephysParams.phyParams.ephysBinVolume = ephysBinVolume;
+% ephysParams.phyParams.phyPath = phyDir;
+% ephysParams.phyParams.spikesDir = spikesDir;
+% ephysParams.phyParams.ephysBinVolume = ephysBinVolume;
 
 % parameters preprocessAnalogIn, see function for details
 analogInParams.needAnalogIn = 1;
@@ -515,11 +518,11 @@ epochSWparams.headTurnIso.includeEyes = [false false false false];
 epochSWparams.targNames = {'socInt', 'headTurn', 'fullModel', 'turnToward'};       % The names which end up in the table row names.
 epochSWparams.targ = {'socialInteraction', 'headTurn', 'fullModel', 'turnToward'}; % The group members to be targeted for comparison against the rest.
 
-neuroGLMParams.neuroGLMPath = neuroGLMPath;
-neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 
-neuroGLMParams.psthImDur = psthParams.psthImDur;  % only need to set this for variable length stim runs; else, comes from log file
-neuroGLMParams.psthPost = psthParams.psthPost;
-neuroGLMParams.visualizeDesignMat = 1;        % Visualizes a random set of 5 trials from the design matrix.
+% neuroGLMParams.neuroGLMPath = neuroGLMPath;
+% neuroGLMParams.psthPre = psthParams.psthPre; % if e.g. +200, then start psth 200ms before trial onset; 
+% neuroGLMParams.psthImDur = psthParams.psthImDur;  % only need to set this for variable length stim runs; else, comes from log file
+% neuroGLMParams.psthPost = psthParams.psthPost;
+% neuroGLMParams.visualizeDesignMat = 1;        % Visualizes a random set of 5 trials from the design matrix.
 
 %% Plotting Params
 assert(length(frEpochsCell) == length(epochLabels), 'Epoch time bins and epochLabel lengths must match')

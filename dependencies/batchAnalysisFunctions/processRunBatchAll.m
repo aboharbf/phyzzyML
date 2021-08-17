@@ -1,6 +1,8 @@
 function processRunBatchAll()
 % Function which analyzes all data from Mo and Sam.
 
+addpath('/Freiwald/faboharb/EphysAnalysis/EphysData/GridPics/')
+
 tic
 [errorStack, errorStackMsg, files2Check] = processRunBatch('buildAnalysisParamFileSocialVids', {'naturalSocial', 'headTurnCon'}, 'Mo');
 MoFin = datetime;
