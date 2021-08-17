@@ -28,6 +28,11 @@ switch machine
     dataLog = 'H:\EphysData\Data\analysisParamTable.xlsx';                        % Only used to find recording log, used to overwrite params.
     eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
+  case 'vera.rockefeller.edu'
+    outputVolumeBatch = '/Freiwald/faboharb/EphysAnalysis/Analyzed';                                            % The output folder for analyses performed.
+    dataLog = '/Freiwald/faboharb/EphysAnalysis/EphysData/analysisParamTable.xlsx';                        % Only used to find recording log, used to overwrite params.
+    eventDataPath = '/Freiwald/faboharb/EphysAnalysis/stimDir/Stimuli and Code/SocialCategories/eventData.mat';
+    subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
   otherwise
     error('Matching machine not found')
 end

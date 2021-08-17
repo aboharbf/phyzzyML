@@ -19,6 +19,18 @@ switch machine
     recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
     NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
     NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
+  case 'vera.rockefeller.edu'
+    analysisDirectory = '/Freiwald/faboharb/EphysAnalysis/Analyzed';
+    outputDir = '/Freiwald/faboharb/EphysAnalysis/Analyzed/batchAnalysis';
+    stimParamsFilename = '/Freiwald/faboharb/EphysAnalysis/phyzzyML/stimParamFileLib/StimParamFileSocialVids_Full.mat';   %#ok
+    stimDir = '/Freiwald/faboharb/EphysAnalysis/stimDir/Stimuli and Code/';
+    subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
+    batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
+    eventDataPath = fullfile(stimDir, 'SocialCategories', 'eventData.mat');
+    frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
+    recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
+    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
   case 'homeDesktopWork'
     analysisDirectory = 'H:\Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];

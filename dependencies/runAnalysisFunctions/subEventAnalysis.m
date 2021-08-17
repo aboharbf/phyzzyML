@@ -517,7 +517,7 @@ if ~isempty(onsetsByEvent)
 end
 
 tableVarNames = strcat("subSel_", subEventNames)';
-
+tableVarNames = strrep(tableVarNames, '-', '_');
 % In cases where adequate examples don't exist (seems like blinks) then NaN
 % is in the selTable, make them 1.
 selArray(isnan(selArray)) = 1;
