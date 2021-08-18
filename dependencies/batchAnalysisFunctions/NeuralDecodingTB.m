@@ -67,9 +67,7 @@ for paradigm_i = 1:length(paradigmList)
   analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
-  logCellArray = cell(size(analysesStructPaths));
-  analysesStructPaths = analysesStructPaths(contains(analysesStructPaths, 'shuffle'));
-  
+  logCellArray = cell(size(analysesStructPaths));  
   parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
     tic
