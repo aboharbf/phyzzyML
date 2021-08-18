@@ -21,7 +21,7 @@ switch machine
     NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
   case 'vera.rockefeller.edu'
     analysisDirectory = '/Freiwald/faboharb/EphysAnalysis/Analyzed';
-    outputDir = '/Freiwald/faboharb/EphysAnalysis/Analyzed/batchAnalysis';
+    outputDir = '/Freiwald/faboharb/EphysAnalysis/batchAnalysis';
     stimParamsFilename = '/Freiwald/faboharb/EphysAnalysis/phyzzyML/stimParamFileLib/StimParamFileSocialVids_Full.mat';   %#ok
     stimDir = '/Freiwald/faboharb/EphysAnalysis/stimDir/';
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
