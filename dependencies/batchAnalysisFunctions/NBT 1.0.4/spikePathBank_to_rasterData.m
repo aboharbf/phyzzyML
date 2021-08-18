@@ -119,8 +119,7 @@ for run_i = 1:length(runList)
 
   % Determine the slice of activity to be used. Make sure the correct
   % psthPre is stored for later use.
-  startTime = params.fixShorten + padSize; % Start data extraction after the pad, and shorten fix data by some amount.
-  runData.start = psthParams{run_i}.psthPre - params.fixShorten; % Alignment time is the psthPre (full fix time) minus whatever is taken off.
+  startTime = padSize; % Start data extraction after the pad, and shorten fix data by some amount.
   endTime = vecLength - padSize - 1;
   dataLength = length(startTime:endTime);
   
@@ -180,7 +179,8 @@ for run_i = 1:length(runList)
   
   % raster_site_info
   raster_site_info.session_ID = runList{run_i};
-  raster_site_info.alignment_event_time = runData.start;
+  raster_site_info.alignment_event_time = psthParams{run_i}.psthPre;
+  raster_site_info.alignment_event_end_time = psthParams{run_i}.psthPre + psthParams{run_i}.psthImDur;
   
   % Construct raster_data and save file per unit.
   selTableRows = selTable(strcmp(selTable.dateSubj, runList{run_i}(2:end-3)) & strcmp(selTable.runNum, runList{run_i}(end-2:end)), :);

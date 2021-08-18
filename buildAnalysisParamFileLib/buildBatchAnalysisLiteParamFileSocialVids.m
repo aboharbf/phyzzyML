@@ -321,8 +321,10 @@ NDTParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
 NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 
 % Params for binning of rasters for analyses.
-NDTParams.binWidth = 150;
-NDTParams.stepSize = 50;
+NDTParams.binWidth = 200;
+NDTParams.stepSize = 100;
+NDTParams.binFileStart = 300;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
+NDTParams.binFileEnd = 300;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
 
 NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
 NDTParams.AnalysesDefault.null_shuffle_count = 7;            % The number of times to randomly shuffle the data to generate a null distribution.
@@ -331,21 +333,17 @@ NDTParams.AnalysesDefault.cross_validator_num_resample = 50;  % Number of times 
 
 NDTParams.figStruct = figStruct;
 NDTParams.plotParams = figStruct;
-NDTParams.NaturalSocial.plotParams.points_to_label = [-200, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.NaturalSocial.plotParams.points_to_label = [0, 500, 1000, 1500, 2000, 2500, 2950];
 NDTParams.NaturalSocial.plotParams.points_for_lines = [0, 2800];
-NDTParams.NaturalSocial.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
-NDTParams.headTurnCon.plotParams.points_to_label = [-200, 0, 500, 1000, 1500, 2000, 2500, 3000];
+NDTParams.headTurnCon.plotParams.points_to_label = [0, 500, 1000, 1500, 2000, 2500, 2950];
 NDTParams.headTurnCon.plotParams.points_for_lines = [0, 2800];
-NDTParams.headTurnCon.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.FamiliarFace.plotParams.points_to_label = [-200, 0, 250, 500, 750, 1000, 1250];
 NDTParams.FamiliarFace.plotParams.points_for_lines = [0, 1000];
-NDTParams.FamiliarFace.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.headTurnIso.plotParams.points_to_label = [-200, 0, 250, 500, 750, 1000, 1250];
 NDTParams.headTurnIso.plotParams.points_for_lines = [0, 1000];
-NDTParams.headTurnIso.plotParams.shift = 400; % prePSTH in the code elsewhere.
 
 NDTParams.p_val_threshold = 0.05;
 NDTParams.plot_per_label_acc.binLabel = 'End';                             % Determines the labeling of the x label.

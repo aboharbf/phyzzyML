@@ -37,13 +37,22 @@ for paradigm_i = 1:length(paradigmList)
     spikePathBank_to_rasterData(spikePathBankParadigm, pRasterDir, paradigmParams);
   end
   
+  % Find a raster file as an example
+  rasterFileEx = dir(fullfile(pRasterDir, '*.mat'));
+  rasterFileEx = fullfile(rasterFileEx(1).folder, rasterFileEx(1).name);
+  tmp = load(rasterFileEx);
+  stimStartTime = tmp.raster_site_info.alignment_event_time;
+  stimEndTime = tmp.raster_site_info.alignment_event_end_time;
+  binningStart = stimStartTime - params.binFileStart;
+  binningEnd = stimEndTime + params.binFileEnd;
+  
   % Check if the raster data is present, if not, make it
   binnedDirName = fullfile(pRasterDir, 'rasterData_binned');
   rasterDataPath = fullfile(pRasterDir, 'S20*');
-  binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled.mat', binnedDirName, params.binWidth, params.stepSize);
-  
+  binnedFileNameOut = sprintf('%s_%dms_bins_%dms_sampled_%dstart_time_%dend_time.mat', binnedDirName, params.binWidth, params.stepSize, binningStart, binningEnd);
+    
   if ~exist(binnedFileNameOut, 'file')
-    binnedFileName = create_binned_data_from_raster_data(rasterDataPath, binnedDirName, params.binWidth, params.stepSize);
+    binnedFileName = create_binned_data_from_raster_data(rasterDataPath, binnedDirName, params.binWidth, params.stepSize, binningStart, binningEnd);
   else
     binnedFileName = binnedFileNameOut;
   end
@@ -59,6 +68,8 @@ for paradigm_i = 1:length(paradigmList)
   analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
   logCellArray = cell(size(analysesStructPaths));
+  analysesStructPaths = analysesStructPaths(contains(analysesStructPaths, 'shuffle'));
+  
   parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
     tic
@@ -67,7 +78,7 @@ for paradigm_i = 1:length(paradigmList)
     
     % Check if the analysis was already performed.
     if exist(analysisStruct.decoding_results_file, 'file')
-      logCellArray{analysis_i} = sprintf('Done Ind %d', analysis_i);
+      logCellArray{analysis_i} = sprintf('Already Done Ind %d', analysis_i);
       continue
     end
     
@@ -132,40 +143,47 @@ for paradigm_i = 1:length(paradigmList)
 %     save(analysisStruct.decoding_results_file, 'decoding_results')
   
     fprintf('Run complete after %s minutes \n', num2str(round(toc/60, 1)));
-    
+    logCellArray{analysis_i} = sprintf('Done Ind %d', analysis_i);
+      
   end
 
-  % Step 7 - Significance testing
-  % Significance testing
-%   saved_results_struct_name = 'decoding_results';
-%   true_decoder_name = fullfile(save_file_dir, 'decoding_results_run1');
-%   
-%   pval_obj = pvalue_object(true_decoder_name, strcat(analysisStruct.shuff_file_dir, filesep));
-%   pval_obj.collapse_all_times_when_estimating_pvals = 1;
-%   pval_obj.saved_results_structure_name = saved_results_struct_name;
-%   
-%   % Plot Significance testing
-%   [p_values, null_dist, ~] = pval_obj.create_pvalues_from_nulldist_files;
-%   params.sig_bins = p_values < params.p_val_threshold;
-%   params.decoding_threshold = prctile(null_dist, 100 - (params.p_val_threshold * 100), 'all');
-%   
-%   % Load the normal decoding results
-%   save_file_name = dir(fullfile(save_file_dir, 'decoding_results*'));
-%   save_file_name = fullfile({save_file_name.folder}, {save_file_name.name})';
-%   tmp_decoding = load(save_file_name{1});
-%   decoding_results = tmp_decoding.decoding_results;
-%   
-%   % Step 8 - Plotting
-%   % Assign params for correct plotting.
-%   params.plotParams = params.(pName).plotParams;
-%   
-%   % Per Label Accuracy Trace, Figure 1
-%   plot_per_label_accuracy(decoding_results, analysisStruct, params);
-%   
-%   % TCT Matrix, Figure 2
-%   if analysisStruct.crossTempDecode
-%     generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
-%   end
+  % Remove scrambles
+  analysesStructPaths = analysesStructPaths(~contains(analysesStructPaths, 'shuffle'));
+  
+  for analysis_i = 1:length(analysesStructPaths)
+    
+    tmp = load(analysesStructPaths{analysis_i});
+    analysisStruct = tmp.analysisStruct;
+    
+    % Step 7 - Significance testing
+    % Significance testing
+    saved_results_struct_name = 'decoding_results';
+    
+    pval_obj = pvalue_object(analysisStruct.decoding_results_file, strcat(analysisStruct.shuff_file_dir, filesep));
+    pval_obj.collapse_all_times_when_estimating_pvals = 1;
+    pval_obj.saved_results_structure_name = saved_results_struct_name;
+    
+    % Plot Significance testing
+    [p_values, null_dist, ~] = pval_obj.create_pvalues_from_nulldist_files;
+    params.sig_bins = p_values < params.p_val_threshold;
+    params.decoding_threshold = prctile(null_dist, 100 - (params.p_val_threshold * 100), 'all');
+    
+    % Load the normal decoding results
+    tmp_decoding = load(analysisStruct.decoding_results_file);
+    decoding_results = tmp_decoding.decoding_results;
+    
+    % Step 8 - Plotting
+    % Assign params for correct plotting.
+    params.plotParams = params.(pName).plotParams;
+    
+    % Per Label Accuracy Trace, Figure 1
+    plot_per_label_accuracy(decoding_results, analysisStruct, params);
+    
+    % TCT Matrix, Figure 2
+    if analysisStruct.crossTempDecode
+      generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
+    end
+  end
   
 end
 

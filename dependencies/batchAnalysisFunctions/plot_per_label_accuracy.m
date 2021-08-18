@@ -46,6 +46,11 @@ bins_to_label = interp1(the_bin_labels, binArray, points_to_label);
 x_for_lines = interp1(the_bin_labels, binArray, points_for_lines);
 xMin = round(interp1(the_bin_labels, binArray, points_to_label(1) - 50));
 
+points_to_label = points_to_label(~isnan(bins_to_label));
+bins_to_label = bins_to_label(~isnan(bins_to_label));
+
+assert(~any(isnan([bins_to_label x_for_lines xMin])), 'NaNs on plotting variables');
+
 % Find Labels
 labels = decoding_results.DS_PARAMETERS.label_names_to_use;
 

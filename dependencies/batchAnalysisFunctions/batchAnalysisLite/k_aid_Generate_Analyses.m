@@ -7,9 +7,9 @@ paradigmNameTag = {'NS', 'HTC'};
 % ff2n(16)
 
 par_i = strcmp(paradigmOptions, paradigmName);
-subsampleCount = 1;
+subSampleRuns = false;             % A switch which enables the generation of a random subsampling of units for each analysis, in increments and numbers defined below.
 unitsPerSubSample = 50:50:1000;
-subSampleRuns = true;
+subsampleCount = 1;
 
 if ~any(par_i)
   error('paradigm in not specified. Please check list or update k_aid_generate_analyses')
@@ -330,7 +330,8 @@ for unit_set_i = 1:length(unitSets)
           % downstream
           shuffCount = params.null_shuffle_count;
           for shuff_i = 1:shuffCount
-            analysisStruct.decoding_results_file = fullfile(analysisStruct.shuff_file_dir, sprintf('results_decoding_%d', shuff_i));
+            analysisStruct.decoding_results_file = fullfile(analysisStruct.shuff_file_dir, sprintf('results_decoding_%d.mat', shuff_i));
+            analysisStruct.shuffle_ds = true;
             save(fullfile(analysisDir, sprintf('%s_results_shuffle_%d', saveFileName, shuff_i)), 'analysisStruct');
           end
 
