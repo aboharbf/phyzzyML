@@ -334,6 +334,7 @@ for unit_set_i = 1:length(unitSets)
             analysisStruct.shuffle_ds = true;
             save(fullfile(analysisDir, sprintf('%s_results_shuffle_%d', saveFileName, shuff_i)), 'analysisStruct');
           end
+          analysisStruct.shuffle_ds = false;
 
           % Generate sub-samples.
           if subSampleRuns
