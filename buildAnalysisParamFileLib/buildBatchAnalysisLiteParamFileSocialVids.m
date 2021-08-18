@@ -23,7 +23,7 @@ switch machine
     analysisDirectory = '/Freiwald/faboharb/EphysAnalysis/Analyzed';
     outputDir = '/Freiwald/faboharb/EphysAnalysis/Analyzed/batchAnalysis';
     stimParamsFilename = '/Freiwald/faboharb/EphysAnalysis/phyzzyML/stimParamFileLib/StimParamFileSocialVids_Full.mat';   %#ok
-    stimDir = '/Freiwald/faboharb/EphysAnalysis/stimDir/Stimuli and Code/';
+    stimDir = '/Freiwald/faboharb/EphysAnalysis/stimDir/';
     subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
     batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
     eventDataPath = fullfile(stimDir, 'SocialCategories', 'eventData.mat');
