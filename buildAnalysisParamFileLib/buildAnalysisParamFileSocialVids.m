@@ -61,7 +61,7 @@ plotSwitch.imageEyeMap = 0;
 plotSwitch.eyeCorrelogram = 0;              % Eye Gram
 
 plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
-plotSwitch.saccadeRasterPSTH = 1;
+plotSwitch.saccadeRasterPSTH = 0;
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).

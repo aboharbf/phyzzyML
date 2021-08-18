@@ -1,4 +1,4 @@
-function NeuralDecodingTB_server(spikePathBank, params)
+function NeuralDecodingTB(spikePathBank, params)
 % Function which implements the Neural Decoding Toolbox (1.0.4). Takes in
 % the spikeDataBank, generates the appropriate structure for the toolbox if
 % not already generated, and runs the analysis specified in the NBTDParams.
