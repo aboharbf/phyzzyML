@@ -28,9 +28,9 @@ switch machine
     batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
     eventDataPath = fullfile(stimDir, 'SocialCategories', 'eventData.mat');
     frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
-    recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
-    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
-    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
+    recordingLogxls = '/Freiwald/faboharb/EphysAnalysis/EphysData/RecordingsMoUpdated.xlsx';
+    NDTPath = '/Freiwald/faboharb/EphysAnalysis/NeuralDecodingToolbox';
+    NDTAnalysesPath = '/Freiwald/faboharb/EphysAnalysis/phyzzyML/buildAnalysisParamFileLib/NDT_analyses';
   case 'homeDesktopWork'
     analysisDirectory = 'H:\Analyzed';
     outputDir = [analysisDirectory '/batchAnalysis'];

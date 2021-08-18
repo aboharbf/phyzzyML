@@ -58,6 +58,7 @@ for paradigm_i = 1:length(paradigmList)
   analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
+  logCellArray = cell(size(analysesStructPaths));
   parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
     tic
@@ -66,6 +67,7 @@ for paradigm_i = 1:length(paradigmList)
     
     % Check if the analysis was already performed.
     if exist(analysisStruct.decoding_results_file, 'file')
+      logCellArray{analysis_i} = sprintf('Done Ind %d', analysis_i);
       continue
     end
     
