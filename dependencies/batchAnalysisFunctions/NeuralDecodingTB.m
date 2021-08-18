@@ -58,7 +58,7 @@ for paradigm_i = 1:length(paradigmList)
   analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
-  for analysis_i = 1:length(analysesStructPaths)
+  parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
     tic
     tmp = load(analysesStructPaths{analysis_i});
@@ -132,7 +132,7 @@ for paradigm_i = 1:length(paradigmList)
     fprintf('Run complete after %s minutes \n', num2str(round(toc/60, 1)));
     
   end
-  
+
   % Step 7 - Significance testing
   % Significance testing
 %   saved_results_struct_name = 'decoding_results';

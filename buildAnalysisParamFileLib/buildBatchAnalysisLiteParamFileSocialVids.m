@@ -66,8 +66,8 @@ plotSwitch.selectivityCounts = 0;     % Counts of units selective for each resul
 plotSwitch.dimRed = 0;                 
 calcSwitch.dataHigh = 0;
 
-plotSwitch.saccadeAnalysis = 1;
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.saccadeAnalysis = 0;
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.rewardPSTH = 0;            % Analysis of reward psthes specifically.

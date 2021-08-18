@@ -305,7 +305,7 @@ for unit_set_i = 1:length(unitSets)
 
           % Decide how to do cv_splits. either k-1 or 25/75
           if analysisChangeParams.expandLabelPerSplit
-            analysisStruct.num_cv_splits = analysisStruct.num_cv_splits/4;
+            analysisStruct.num_cv_splits = floor(analysisStruct.num_cv_splits/4);
             analysisStruct.num_times_to_repeat_each_label_per_cv_split = 4;
           else
             analysisStruct.num_times_to_repeat_each_label_per_cv_split = 1;
