@@ -170,18 +170,17 @@ for paradigm_i = 1:length(paradigmList)
     
     % Load the normal decoding results
     tmp_decoding = load(analysisStruct.decoding_results_file);
-    decoding_results = tmp_decoding.decoding_results;
     
     % Step 8 - Plotting
     % Assign params for correct plotting.
     params.plotParams = params.(pName).plotParams;
     
     % Per Label Accuracy Trace, Figure 1
-    plot_per_label_accuracy(decoding_results, analysisStruct, params);
+    plot_per_label_accuracy(tmp_decoding.decoding_results, analysisStruct, params);
     
     % TCT Matrix, Figure 2
     if analysisStruct.crossTempDecode
-      generate_TCT_plot(analysisStruct, save_file_name{1}, saved_results_struct_name, params)
+      generate_TCT_plot(analysisStruct, analysisStruct.decoding_results_file, saved_results_struct_name, params)
     end
   end
   
