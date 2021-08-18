@@ -1,4 +1,4 @@
-function [newPacketData, newPacketTimes] = replacePacketData(monkeyLogicData, TrialRecord, oldPacketData, oldPacketTimes)
+function [newPacketData, newPacketTimes] = replacePacketData(monkeyLogicData, logfile, oldPacketData, oldPacketTimes)
 % A function intended to replace the packetData and packetTimes in the
 % event that they don't line up with MonkeyLogic.
 
@@ -24,7 +24,7 @@ end
 
 trialStartTimesMkl = absCodeTimes(allTrialCodes == 9);
 
-[~, fileName, ~] = fileparts(TrialRecord.DataFile);
+[~, fileName, ~] = fileparts(logfile);
 if contains(fileName, {'0621', '0622', '0623', '0624', '0625', '0627'})
   % 9's are preserved, rest of code is off.
   trialStartTimesBkl = oldPacketTimes(oldPacketData == 9);

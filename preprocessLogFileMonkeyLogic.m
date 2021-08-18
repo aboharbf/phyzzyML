@@ -183,7 +183,7 @@ assert(~isempty(packetData), 'The Blackrock Digital inputs are empty. Digital in
 if any(packetData == 8) || any(packetData == 22) || any(packetData == 39)
   warning('Every trial doesnt have a condition number - this may be due to changes in when the marker is sent. Seeing if we can use MKL data to recreate')
   % This code will now take the monkeyLogic signals as ground truth
-  [packetData, packetTimes] = replacePacketData(data, TrialRecord, packetData, packetTimes);
+  [packetData, packetTimes] = replacePacketData(data, logfile, packetData, packetTimes);
 end
 
 %Code to get rid of any markers prior to the first trial beginning, or after the final trial end.
