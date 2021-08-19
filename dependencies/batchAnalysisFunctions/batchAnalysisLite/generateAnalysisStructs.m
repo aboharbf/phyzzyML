@@ -1,4 +1,4 @@
-function generateAnalysisStructs(binnedFileName, paradigmName, analysisDir, pFolder, analysisChangeParams, params)
+function analysisStructArray = generateAnalysisStructs(binnedFileName, paradigmName, analysisDir, pFolder, analysisChangeParams, params)
 % a function which generates analyses.
 paradigmOptions = {'NaturalSocial', 'headTurnCon'};
 paradigmNameTag = {'NS', 'HTC'};
@@ -7,9 +7,9 @@ paradigmNameTag = {'NS', 'HTC'};
 % ff2n(16)
 
 par_i = strcmp(paradigmOptions, paradigmName);
-subSampleRuns = false;             % A switch which enables the generation of a random subsampling of units for each analysis, in increments and numbers defined below.
-unitsPerSubSample = 50:50:1000;
-subsampleCount = 1;
+subSampleRuns = true;             % A switch which enables the generation of a random subsampling of units for each analysis, in increments and numbers defined below.
+unitsPerSubSample = 100:100:1000;
+subsampleCount = 10;
 
 if ~any(par_i)
   error('paradigm in not specified. Please check list or update k_aid_generate_analyses')
@@ -52,7 +52,8 @@ broadCatSocStruct.label_names_to_use = {'objects', 'idle', 'goalDirected', 'soci
 broadCatSocStruct.coreTitle = 'Broad Categories';
 
 % coreAnalysisStructs = [categoriesStruct socCategoriesStruct nonSocCategoriesStruct socVNonSocStruct broadCatSocStruct];
-coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
+% coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
+coreAnalysisStructs = [categoriesStruct broadCatSocStruct];
 [coreAnalysisStructs.the_training_label_names] = deal([]);
 [coreAnalysisStructs.the_test_label_names] = deal([]);
 [coreAnalysisStructs.pseudoGenString] = deal('');
@@ -200,6 +201,7 @@ for field_i = 1:length(varFields)
   
 end
 
+analysisCount = 1;
 for unit_set_i = 1:length(unitSets)
   % Set the base state of the binnedSiteInfoMatrix
   
@@ -332,7 +334,10 @@ for unit_set_i = 1:length(unitSets)
           for shuff_i = 1:shuffCount
             analysisStruct.decoding_results_file = fullfile(analysisStruct.shuff_file_dir, sprintf('results_decoding_%d.mat', shuff_i));
             analysisStruct.shuffle_ds = true;
-            save(fullfile(analysisDir, sprintf('%s_results_shuffle_%d', saveFileName, shuff_i)), 'analysisStruct');
+            fileOutName = fullfile(analysisDir, sprintf('%s_results_shuffle_%d', saveFileName, shuff_i));
+            save(fileOutName, 'analysisStruct');
+            analysisStructArray{analysisCount} = fileOutName;
+            analysisCount = analysisCount + 1;
           end
           analysisStruct.shuffle_ds = false;
 
@@ -352,6 +357,8 @@ for unit_set_i = 1:length(unitSets)
                   analysisStruct.subInd = sub_i;
                   analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileNameSS, '.mat'));
                   save(fullfile(analysisDir, saveFileNameSS), 'analysisStruct');
+                  analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileNameSS);
+                  analysisCount = analysisCount + 1;
                 end
                 
               end
@@ -362,7 +369,8 @@ for unit_set_i = 1:length(unitSets)
             % Save structure
             analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileName, '.mat'));
             save(fullfile(analysisDir, saveFileName), 'analysisStruct');
-            
+            analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileName);
+            analysisCount = analysisCount + 1;
           end
           
         end

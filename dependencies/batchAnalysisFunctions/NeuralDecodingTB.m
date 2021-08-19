@@ -60,12 +60,11 @@ for paradigm_i = 1:length(paradigmList)
   % Once these raster files have been generated, use this script to
   % generate analyses.
   analysisDir = fullfile(params.NDTAnalysesPath, pName);
-  generateAnalysisStructs(binnedFileName, pName, analysisDir, pFolder, analysisChangeParams, params.AnalysesDefault)
+  analysesStructPaths = generateAnalysisStructs(binnedFileName, pName, analysisDir, pFolder, analysisChangeParams, params.AnalysesDefault)';
   
   % collect the generated analyses and turn them into the struct format.
-%   analysesStructs = NDTB_prepareAnalysisStruct(analysisDir, pFolder, analysisChangeParams);
-  analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
-  analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
+  % analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
+  % analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
   logCellArray = cell(size(analysesStructPaths));  
   parfor analysis_i = 1:length(analysesStructPaths)

@@ -323,8 +323,8 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 % Params for binning of rasters for analyses.
 NDTParams.binWidth = 200;
 NDTParams.stepSize = 100;
-NDTParams.binFileStart = 300;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
-NDTParams.binFileEnd = 300;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
+NDTParams.binFileStart = 400;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
+NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
 
 NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
 NDTParams.AnalysesDefault.null_shuffle_count = 7;            % The number of times to randomly shuffle the data to generate a null distribution.
