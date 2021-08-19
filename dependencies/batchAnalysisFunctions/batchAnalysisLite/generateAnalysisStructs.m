@@ -355,6 +355,7 @@ for unit_set_i = 1:length(unitSets)
                   % save structure
                   saveFileNameSS = sprintf('%s_S%d_%dU', saveFileName, sub_i, unitsPerSubSample(unit_count_i));
                   analysisStruct.subInd = sub_i;
+                  analysisStruct.coreAnalysis = saveFileName;
                   analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileNameSS, '.mat'));
                   save(fullfile(analysisDir, saveFileNameSS), 'analysisStruct');
                   analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileNameSS);
@@ -368,6 +369,7 @@ for unit_set_i = 1:length(unitSets)
             
             % Save structure
             analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileName, '.mat'));
+            analysisStruct.coreAnalysis = saveFileName;
             save(fullfile(analysisDir, saveFileName), 'analysisStruct');
             analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileName);
             analysisCount = analysisCount + 1;
