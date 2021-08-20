@@ -50,7 +50,7 @@ preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
-figStruct.closeFig = 1;     % close the figure once it is saved
+figStruct.closeFig = 0;     % close the figure once it is saved
 figStruct.exportFig = 1;    % export figure using export_fig.
 figStruct.saveFigData = 1;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.

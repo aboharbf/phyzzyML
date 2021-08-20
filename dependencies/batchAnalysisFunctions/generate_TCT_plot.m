@@ -1,25 +1,34 @@
-function generate_TCT_plot(analysisStruct, save_file_name, saved_results_name, params)
+function generate_TCT_plot(analysisStruct, saved_results_name, params)
 % Code which generates TCT matrix using neural decoding toolbox, and
 % modifies axes to better delinates important times in trial.
 
+if length(analysisStruct) ~= 1
+  % Load all the analyses and decoding results
+  
+  % Generate a dummy version to feed into the following function.
+  
+  
+end
+
+% use core code to generate TCT matrix
+plot_obj = plot_standard_results_TCT_object(analysisStruct.decoding_results_file);
+plot_obj.saved_results_structure_name = saved_results_name;
+plot_obj.display_TCT_movie = 0;
+plot_obj.TCT_figure_number = length(findobj('type','figure')) + 1; % Open a new figure.
+plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information is coded by a dynamic population code
+
+% Figure titles
 params.figTitle = sprintf('Cross Temporal Decoding of %s', analysisStruct.plotTitle);
 if params.addTCTSigShading
   sigStr = sprintf(', %s%% threshold', num2str(100 - (params.p_val_threshold * 100)));
   params.figTitle = horzcat([params.figTitle, sigStr]);
 end
 
-% use core code to generate TCT matrix
-plot_obj = plot_standard_results_TCT_object(save_file_name);
-plot_obj.saved_results_structure_name = saved_results_name;
-plot_obj.display_TCT_movie = 0;
-plot_obj.TCT_figure_number = length(findobj('type','figure')) + 1; % Open a new figure.
-plot_obj.plot_results;  % plot the TCT matrix and a movie showing if information is coded by a dynamic population code
-
 % Generate a title
 title(params.figTitle);
 
 % Generate vectors for new X and Y axes
-tmp = load(save_file_name);
+tmp = load(analysisStruct.decoding_results_file);
 binningParams = tmp.decoding_results.DS_PARAMETERS.binned_site_info.binning_parameters;
 
 points_to_label = params.plotParams.points_to_label;

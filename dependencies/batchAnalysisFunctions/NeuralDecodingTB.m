@@ -66,6 +66,7 @@ for paradigm_i = 1:length(paradigmList)
   % analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   % analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
+  if 0 
   logCellArray = cell(size(analysesStructPaths));  
   parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
@@ -143,13 +144,14 @@ for paradigm_i = 1:length(paradigmList)
     logCellArray{analysis_i} = sprintf('Done Ind %d', analysis_i);
       
   end
-
-  % Remove scrambles
-  analysesStructPaths = analysesStructPaths(~contains(analysesStructPaths, 'shuffle'));
+  end
+  % Remove scrambles, and grab a single file from each 'core type'
+  analysesStructPathsUnique = analysesStructPaths(~contains(analysesStructPaths, 'shuffle'));
+  analysesStructPathsUnique = analysesStructPathsUnique(contains(analysesStructPathsUnique, 'S1_1000U'));
   
-  for analysis_i = 1:length(analysesStructPaths)
+  for analysis_i = 1:length(analysesStructPathsUnique)
     
-    tmp = load(analysesStructPaths{analysis_i});
+    tmp = load(analysesStructPathsUnique{analysis_i});
     analysisStruct = tmp.analysisStruct;
     
     % Step 7 - Significance testing
@@ -164,21 +166,31 @@ for paradigm_i = 1:length(paradigmList)
     [p_values, null_dist, ~] = pval_obj.create_pvalues_from_nulldist_files;
     params.sig_bins = p_values < params.p_val_threshold;
     params.decoding_threshold = prctile(null_dist, 100 - (params.p_val_threshold * 100), 'all');
-    
-    % Load the normal decoding results
-    tmp_decoding = load(analysisStruct.decoding_results_file);
-    
+
     % Step 8 - Plotting
     % Assign params for correct plotting.
     params.plotParams = params.(pName).plotParams;
     
-    % Per Label Accuracy Trace, Figure 1
-    plot_per_label_accuracy(tmp_decoding.decoding_results, analysisStruct, params);
+    % Check to see if there are other iterations of the same file - if so,
+    % pass all of them to the subsequent file for the sake of getting group
+    % means.
+    [~, B, ~] = fileparts(analysesStructPathsUnique{analysis_i});
+    coreName = strsplit(B, '_S');
+    analysisTag = strcat(coreName{1}, '_S');
+    analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag) & contains(analysesStructPaths, strcat(num2str(analysisStruct.unitCount), 'U')));
     
+    % Per Label Accuracy Trace, Figure 1
+    plot_per_label_accuracy(analysisBatch, analysisStruct, params);
+
+    % Units per line
+    analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag));
+    plot_per_label_accuracy_curve(analysisBatch, analysisStruct, params);
+
     % TCT Matrix, Figure 2
-    if analysisStruct.crossTempDecode
-      generate_TCT_plot(analysisStruct, analysisStruct.decoding_results_file, saved_results_struct_name, params)
-    end
+%     if analysisStruct.crossTempDecode
+%       generate_TCT_plot(analysisBatch, saved_results_struct_name, params)
+%     end
+    
   end
   
 end

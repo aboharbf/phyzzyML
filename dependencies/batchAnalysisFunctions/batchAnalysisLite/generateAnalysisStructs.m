@@ -4,11 +4,11 @@ paradigmOptions = {'NaturalSocial', 'headTurnCon'};
 paradigmNameTag = {'NS', 'HTC'};
 
 % Function which may be of use
-% ff2n(16)
+% ff2n(8)
 
 par_i = strcmp(paradigmOptions, paradigmName);
 subSampleRuns = true;             % A switch which enables the generation of a random subsampling of units for each analysis, in increments and numbers defined below.
-unitsPerSubSample = 100:100:1000;
+unitsPerSubSample = [25:25:500 600:100:1000];
 subsampleCount = 10;
 
 if ~any(par_i)
@@ -275,10 +275,7 @@ for unit_set_i = 1:length(unitSets)
           [analysisStruct.num_cv_splits, analysisStruct.k_repeats_needed] = deal(new_k);
           
           % Generate the Title
-          unitSubSecTag = sprintf('(%s)', analyisTagPlot{analysis_i});
-          repsTag = sprintf('(%d Reps %d %s)', new_k, length(find(sites2Keep)), unitTag);
-          analysisStruct.plotTitle = strjoin({analysisStruct.coreTitle unitSubSecTag repsTag}, ' ');
-          analysisStruct.plotTitle = strrep(analysisStruct.plotTitle, '_', ' ');
+          unitSubSecTag = sprintf(' (%s)', analyisTagPlot{analysis_i});
           
           % Create the filename.
           saveFileName = sprintf('%s_%s_%s_%s_%s', paradigmNameTag, analysisStruct.labelFile, analyisTagDir{analysis_i}, unitTag, decoderTags{decoder_i});
@@ -302,8 +299,11 @@ for unit_set_i = 1:length(unitSets)
           % If there is a pseudoGen label, add that to the name
           if ~isempty(analysisStruct.pseudoGenString)
             saveFileName = sprintf('%s_%s', saveFileName, analysisStruct.pseudoGenString);
-            analysisStruct.plotTitle = sprintf('%s (pseudoGen - %s)', analysisStruct.plotTitle, analysisStruct.pseudoGenString);
+            pseudoGenTag = sprintf('(pseudoGen - %s)', analysisStruct.pseudoGenString);
+          else
+            pseudoGenTag = '';
           end
+          
 
           % Decide how to do cv_splits. either k-1 or 25/75
           if analysisChangeParams.expandLabelPerSplit
@@ -334,6 +334,10 @@ for unit_set_i = 1:length(unitSets)
           for shuff_i = 1:shuffCount
             analysisStruct.decoding_results_file = fullfile(analysisStruct.shuff_file_dir, sprintf('results_decoding_%d.mat', shuff_i));
             analysisStruct.shuffle_ds = true;
+            
+            repsTag = sprintf('(%d Reps %d %s) ', new_k, length(analysisStruct.sites), unitTag);
+            analysisStruct.plotTitle = strcat(analysisStruct.coreTitle, unitSubSecTag, repsTag, pseudoGenTag);
+            
             fileOutName = fullfile(analysisDir, sprintf('%s_results_shuffle_%d', saveFileName, shuff_i));
             save(fileOutName, 'analysisStruct');
             analysisStructArray{analysisCount} = fileOutName;
@@ -341,6 +345,9 @@ for unit_set_i = 1:length(unitSets)
           end
           analysisStruct.shuffle_ds = false;
 
+          % Useful fields for later
+          analysisStruct.coreAnalysis = saveFileName;
+          
           % Generate sub-samples.
           if subSampleRuns
             origOrder = analysisStruct.sites;
@@ -352,10 +359,14 @@ for unit_set_i = 1:length(unitSets)
                   reSampInd = sort(randperm(length(origOrder), unitsPerSubSample(unit_count_i)));
                   analysisStruct.sites = origOrder(reSampInd);
                   
+                  % Set the titles
+                  repsTag = sprintf('(%d Reps %d %s)', new_k, unitsPerSubSample(unit_count_i), unitTag);
+                  analysisStruct.plotTitle = strcat(analysisStruct.coreTitle, unitSubSecTag, repsTag, pseudoGenTag);
+                  
                   % save structure
                   saveFileNameSS = sprintf('%s_S%d_%dU', saveFileName, sub_i, unitsPerSubSample(unit_count_i));
+                  analysisStruct.unitCount = unitsPerSubSample(unit_count_i);
                   analysisStruct.subInd = sub_i;
-                  analysisStruct.coreAnalysis = saveFileName;
                   analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileNameSS, '.mat'));
                   save(fullfile(analysisDir, saveFileNameSS), 'analysisStruct');
                   analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileNameSS);
@@ -369,7 +380,7 @@ for unit_set_i = 1:length(unitSets)
             
             % Save structure
             analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileName, '.mat'));
-            analysisStruct.coreAnalysis = saveFileName;
+            analysisStruct.unitCount = length(analysisStruct.sites);
             save(fullfile(analysisDir, saveFileName), 'analysisStruct');
             analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileName);
             analysisCount = analysisCount + 1;
