@@ -6,9 +6,9 @@ function   jointTuningPlot(selTable, paradigm, params)
 outDir = fullfile(params.outputDir, 'jointTuningPlot');
 
 columnsInTable = {'subSel_fixation_selInd', 'subSel_rewardCombo_selInd', 'subSel_saccades_selInd', ...
-    'subSel_headTurn_all_selInd', 'saccDir_all_selInd'};
+    'subSel_headTurn_all_selInd', 'saccDir_all_selInd', 'epochSel_categories_any_selInd'};
 tableLabels = {'Fix Dot', 'Reward', 'Saccades', ...
-    'headTurning', 'Saccade, Directional'};
+    'headTurning', 'Saccade, Directional', 'Category Selective'};
 
 % Combine across the appropriate ones (mostly the saccade ones)
 % comboparams.comboEvents = {'subSel_headTurn_all_selInd'};
@@ -22,7 +22,6 @@ selTableVars = selTable{:, columnsInTable};
 
 % Set which combinations will be displayed in Venn Diagrams
 vennCombos = {[1 2 3], [3 4 5], [1 4 2]};
-
 
 % Plot the Image version
 figTitle = sprintf('Joint Selectivity Array - %s - %d %s', params.monkeyTag, size(selTable, 1), params.unitTag);

@@ -2,19 +2,34 @@ function pcaAndPlot(params)
 % Function which looks in the appropriate directory for pcaData, and plots
 % it.
 
+% Points to label in trajectory
+tmpColorMat = [0 0 0.7; 0.8 0 0]; % Segment colors;
+string2Plot = {'Stim Onset', 'Stim End', 'Reward'};
+pointsForLabels = [0 2800 3000];
+
 % Identify files of interest
 dimRedParams = dir(fullfile(params.dimRedParams.preprocDir, '*.mat'));
 dimRedParams = fullfile({dimRedParams.folder}, {dimRedParams.name})';
 pcCountTotal = 12;
 recordSpinningVid = true;              
-removeRewardPeriod = false;
+removeRewardPeriod = true;
 pcaDataPlots = false;
 
+activityProcessTag = 'SNT'; % Use this to pick out analyses of interest
+
 % Only certain files
-dimRedParams = dimRedParams(contains(dimRedParams, 'SNT'));
+dimRedParams = dimRedParams(contains(dimRedParams, strcat('_', activityProcessTag)));
 
 % Define variables
-outputDir = fullfile(params.dimRedParams.outputDir, 'PCA');
+if removeRewardPeriod
+  outputDir = fullfile(params.dimRedParams.outputDir, 'PCA_noReward');
+else
+  outputDir = fullfile(params.dimRedParams.outputDir, 'PCA');
+end
+
+if ~exist(outputDir, 'dir')
+  mkdir(outputDir)
+end
 
 fileNames = extractBetween(dimRedParams, 'dimRedData_', '.mat');
 testName = extractBefore(fileNames, '_');
@@ -27,11 +42,12 @@ markerSize = 30;
 pcVar = nan(12, length(dimRedParams));
 
 
-dimRedLabel = {'categories_Combo_NaturalSocial_MUA_SNT',  'categories_Combo_NaturalSocial_Units_SNT', ...
-               'categories_Combo_headTurnCon_MUA_SNT', 'categories_Combo_headTurnCon_Units_SNT'};
-dimRedPCs = {[3 4 9]; [3 4 5];...
-             [4 5 6]; [5 6 8];};
-           
+% dimRedLabel = {'categories_Combo_NaturalSocial_MUA_SNT',  'categories_Combo_NaturalSocial_Units_SNT', ...
+%   'categories_Combo_headTurnCon_MUA_SNT', 'categories_Combo_headTurnCon_Units_SNT'};
+dimRedLabel = {'categories_Combo_NaturalSocial_Units', 'categories_Combo_headTurnCon_Units'};
+dimRedLabel = strcat(dimRedLabel, '_', activityProcessTag);
+dimRedPCs = {[3 4 5]; [3 4 5]};
+
 dimRedFiltInd = contains(dimRedParams, '400') & contains(dimRedParams, 'categories') & contains(dimRedParams, 'Combo');
 dimRedParams = dimRedParams(dimRedFiltInd);
 titles = titles(dimRedFiltInd);
@@ -42,11 +58,22 @@ for data_i = 1:length(dimRedParams)
   load(dimRedParams{data_i})
   
   if removeRewardPeriod
-    assert(binCount == 12, 'remove reward designed to work w/ Bin count 12')
-    binnedDataArray = cellfun(@(x) x(:, 2:11), binnedDataArray, 'UniformOutput', false);
-    binCount = 10;
+    % Function removes the reward period, stopping the data at 2800   
+    keepInd = binLabelInfo.the_bin_start_times_shift <= 2800;
+    binLabelInfo.the_bin_start_times_shift = binLabelInfo.the_bin_start_times_shift(keepInd);
+    
+    lastBin = find(keepInd, 1, 'last');
+    label_keep = binLabelInfo.bins_to_label <= lastBin;
+    binLabelInfo.bins_to_label = binLabelInfo.bins_to_label(label_keep);
+    binLabelInfo.points_to_label = binLabelInfo.points_to_label(label_keep);  
+    
+%     binLabelInfo.bins_to_label = [binLabelInfo.bins_to_label binLabelInfo.x_for_lines(end)];
+%     binLabelInfo.points_to_label = [binLabelInfo.points_to_label binLabelInfo.points_for_lines(end)];
+    
+    binnedDataArray = cellfun(@(x) x(:, keepInd), binnedDataArray, 'UniformOutput', false);
+    binCount = sum(keepInd);
     pcTransition2Label = [0 2800];
-    binLabelInfo.the_bin_start_times_shift = binLabelInfo.the_bin_start_times_shift(2:11);
+       
   end
   
   binnedDataStack = horzcat(binnedDataArray{:});
@@ -148,43 +175,12 @@ for data_i = 1:length(dimRedParams)
     scatter3(scoreToPlot(i,:,1), scoreToPlot(i, :, 2), scoreToPlot(i, :, 3), markerSize, colors(i, :));
   end
   
-  xlabel(sprintf('Principal Component %d', pc2Plot(1))); 
-  ylabel(sprintf('Principal Component %d', pc2Plot(2))); 
-  zlabel(sprintf('Principal Component %d', pc2Plot(3))); 
-  title(figTitle);
-  legend(labels);
-  grid;
-  
+  xlabel(sprintf('PC %d', pc2Plot(1))); ylabel(sprintf('PC %d', pc2Plot(2))); zlabel(sprintf('PC %d', pc2Plot(3))); 
+  title(figTitle); legend(labels); grid;
+    
   % Find the points between that mark transitions
-  pcTransition2Label = [binLabelInfo.the_bin_start_times_shift(1), [0 2800 3000], binLabelInfo.the_bin_start_times_shift(end)];     % Label the start
-  bins_to_label = round(interp1(binLabelInfo.the_bin_start_times_shift, 1:length(binLabelInfo.the_bin_start_times_shift), pcTransition2Label));
-  tmpColorMat = [0 0 0.6; 0.8 0 0; 0 0.6 0; 0 0.4 0]; % Segment colors;
-  string2Plot = {'Start', 'Stim Onset', 'Stim End', 'Reward', 'End'};
-  
-  if bins_to_label(end) == bins_to_label(end-1)
-    bins_to_label = bins_to_label(1:end-1);
-    pcTransition2Label = pcTransition2Label(1:end-1);
-    string2Plot = string2Plot(1:end-1);
-    tmpColorMat = tmpColorMat(1:end-1, :);
-  end
-  
-  if bins_to_label(2) == bins_to_label(1)
-    bins_to_label = bins_to_label(2:end);
-    pcTransition2Label = pcTransition2Label(2:end);
-    string2Plot = string2Plot(2:end);
-    tmpColorMat = tmpColorMat(2:end, :);
-  end
-  
-  colorAxis = [];
-  pointPerColr = diff(bins_to_label);
-  pointPerColr(1) = pointPerColr(1) + 1;
-  for col_i = 1:length(pointPerColr)
-    colorAxis = [colorAxis; repmat(tmpColorMat(col_i,:), pointPerColr(col_i), 1)];
-  end
-  
-  % Arrays for plotting
-%   string2Plot = {'Start', 'Stim Onset', 'Stim End', 'Reward'};
-  
+  [pointsForLabelsPlot, binsForLabels, binLabelsNew, colorAxis] = bin2Label(binLabelInfo, pointsForLabels, string2Plot, tmpColorMat);
+    
   for i = 1:length(labels)
     % find the next slot
     subplotInd = find(possiblePositions,1);
@@ -196,17 +192,16 @@ for data_i = 1:length(dimRedParams)
     
     % Add Labels
     for string_i =1:length(string2Plot)
-      text(scoreToPlot(i, bins_to_label(string_i), 1), scoreToPlot(i, bins_to_label(string_i), 2), scoreToPlot(i, bins_to_label(string_i), 3), string2Plot{string_i}, ...
+      text(scoreToPlot(i, pointsForLabelsPlot(string_i), 1), scoreToPlot(i, pointsForLabelsPlot(string_i), 2), scoreToPlot(i, pointsForLabelsPlot(string_i), 3), binLabelsNew{string_i}, ...
         'HorizontalAlignment', 'left', 'FontSize', 10);
     end
     title(labels{i});
     
   end
-    
+  
   linkprop(axHands, {'XLim', 'YLim', 'ZLim', 'CameraPosition', 'CameraUpVector'});
   
-    % Create video rotating about Axes
-
+  % Create video rotating about Axes
   if recordSpinningVid
     vidObj = VideoWriter(fullfile(outputDir, strcat(figTitle, '.avi')));
     vidObj.FrameRate = vidObj.FrameRate/2;
@@ -233,13 +228,7 @@ for data_i = 1:length(dimRedParams)
   
   saveFigure(outputDir, ['1. ' figTitle], [], params.figStruct, [])
 
-
-  
-  %     axHands(1).CameraPosition = [-1 0 180];
-  %     axHands(1).CameraUpVector = [0 1 0];
-  %     saveFigure(outputDir, ['1a. ' figTitle], [], params.figStruct, [])
-  
-  % Plot per PC.
+  % Plot each PC
   figTitle = sprintf('Paradigm %s - Trajectories in Population %s - top %d PCs, %s var', paradigmLabel, titles{data_i}, pcCountTotal, num2str(round(sum(explained(1:pcCountTotal)), 2)));
   figH2 = figure('name', figTitle, 'units', 'normalized', 'position', [0 0 0.74 0.97]);
   sgtitle(figTitle);
@@ -253,10 +242,11 @@ for data_i = 1:length(dimRedParams)
       plot(1:binCount, newScore(i, :, PC), 'color', colors(i, :), 'LineWidth', 2);
     end
     
-    % Label the plot
-    xticks(binLabelInfo.bins_to_label)
+    % Label the plot - Something isn't lining up here...
+    xticks(binLabelInfo.bins_to_label);
     xticklabels(binLabelInfo.points_to_label)
-    ylim([ylimPlots])
+    xlim([binLabelInfo.bins_to_label(1), size(newScore, 2)]);
+    ylim(ylimPlots)
     
     for line_i = 1:length(binLabelInfo.x_for_lines)
       plot([binLabelInfo.x_for_lines(line_i), binLabelInfo.x_for_lines(line_i)], [ylimPlots(2), ylimPlots(1)], 'color', 'k', 'lineWidth', 3)

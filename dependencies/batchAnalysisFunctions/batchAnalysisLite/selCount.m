@@ -39,7 +39,7 @@ for m_i = 3%1:length(monkeyList)
     % plotCountsOnBrain(selTableParadigm, selParams);
     
     % Cycle through cell types, create the plots
-    for unit_i = 1:length(unitList)
+    for unit_i = 2%1:length(unitList)
       
       % Set output directory
       selParams.outputDir = fullfile(mainOutDir, paradigmList{par_i}, monkeyList{m_i}, unitList{unit_i});
@@ -54,7 +54,7 @@ for m_i = 3%1:length(monkeyList)
       exampleCellFinderObject(selTableParadigmUnit, selParams)
       
       % jointTuningPlot(selTableParadigm, paradigmList{par_i}, selParams)
-      
+      jointTuningPlot_Specific(selTableParadigmUnit, paradigmList{par_i}, selParams)
       % Make a bar plot and distribution describing epoch preferences (Activity
       % above baseline during an epoch).
       epochPreferenceBarGraphsAndVennDiagram(selTableParadigmUnit, selParams)

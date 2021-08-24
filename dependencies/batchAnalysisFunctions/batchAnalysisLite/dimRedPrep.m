@@ -1,14 +1,15 @@
 function dimRedPrep(spikePathBank, params)
 
 % Switches
-normalizeTraces = true;     % A switch which normalizes a trace, following the mean being taken.
-smoothTraces = true;        % A switch that smooths a trace.
-HzThreshold = true;         % A switch which removes units with low firing rate
-HzThresNum = 1;             % The threshold used.
+switchStruct.normalizeTraces = true;     % A switch which normalizes a trace, following the mean being taken.
+switchStruct.smoothTraces = true;        % A switch that smooths a trace.
+switchStruct.smoothWindow = 100;        % A switch that smooths a trace.
+switchStruct.HzThreshold = true;         % A switch which removes units with low firing rate
+switchStruct.HzThresNum = 1;             % The threshold used.
 binSize = 400;
-binStep = binSize;
+binWidth = binSize;
 
-points_to_label = [-300, 0, 500, 1000, 1500, 2000, 2500, 3000];
+points_to_label = [-200, 0, 500, 1000, 1500, 2000, 2500, 3000];
 points_for_lines = [0, 2800];
 binLabelInfo.points_to_label = points_to_label;
 binLabelInfo.points_for_lines = points_for_lines;
@@ -32,8 +33,8 @@ rasterDataDir = fullfile(outputDir, 'rasterData');
 
 % Files to make
 % Units 
-unitTypes = {'M', 'U'};
-unitTypesLabel = {'MUA', 'Units'};
+unitTypes = {'U'};
+unitTypesLabel = {'Units'};
 
 % Labels to collect - the code grabs data belonging to each of these labels
 % and takes a mean to create a block per unit. 
@@ -65,65 +66,10 @@ for m_i = 1:length(nameArray)
       spikePathBank_to_rasterData(spikePathBankMP, rasterDataDirMP, paradigmParams);
     end
     
-    % Bin the data
-    binnedDataPath = pcaBin(rasterDataDirMP, binSize, binStep, false);
+    % Process and Bin the data
+    [binnedDataPath, preProcTag] = preprocessAndBin(rasterDataDirMP, binWidth, binWidth, switchStruct);
     binnedData = load(binnedDataPath);
-    minRate = round((binnedData.binned_site_info.binning_parameters.end_time/1000) * HzThresNum, 1);
     
-    % Process switches below on smoothing, normalizing, or thresholding.
-    tic
-    if smoothTraces || normalizeTraces || HzThreshold
-      preProcTagAll = 'SNT';
-      smoothKernal = gausswin(5);
-      smoothKernal = smoothKernal/sum(smoothKernal);
-      excludeInd = false(length(binnedData.binned_data),1);
-      binned_data = cell(size(binnedData.binned_data));
-      for ii = 1:length(binnedData.binned_data)
-        binData = binnedData.binned_data{ii};
-        
-        if HzThreshold
-          % Check that the unit meets the desired threshold
-          if mean(sum(binData,2)) < minRate
-            excludeInd(ii) = true;
-            continue
-          end
-        end
-        
-        % Normalize
-        if normalizeTraces
-          dataMean = mean(binData(:), 'omitnan');
-          dataSD = std(binData(:), 'omitnan');
-          binData = (binData - dataMean)/dataSD;
-        end
-        
-        if smoothTraces
-          for jj = 1:size(binData,1)
-            % Smoooth
-            binData(jj,:) = conv(binData(jj,:), smoothKernal, 'same');
-          end
-          
-          binned_data{ii} = binData;
-        end
-        
-        
-      end
-      
-      binned_data = binned_data(~excludeInd);
-      stimPerSite = binnedData.binned_labels.stimuli(~excludeInd);
-      unitTypeVec = binnedData.binned_site_info.UnitType(~excludeInd);
-      preProcTag = preProcTagAll([smoothTraces normalizeTraces HzThreshold]);
-
-    else
-      
-      % Grab Related labels, process accordingly
-      preProcTag = '';
-      binned_data = binnedData.binned_data;
-      stimPerSite = binnedData.binned_labels.stimuli;
-      unitTypeVec = binnedData.binned_site_info.UnitType;
-      
-    end
-    toc
-
     % Scramble labels - Done by hand.
     % unitInd = unitInd(randperm(length(unitInd)));
     
@@ -138,7 +84,10 @@ for m_i = 1:length(nameArray)
     binLabelInfo.bins_to_label = bins_to_label;
 
     binLabelInfo.x_for_lines = x_for_lines;
-    binCount = size(binned_data{1}, 2);
+    binCount = size(binnedData.binned_data{1}, 2);
+    unitTypeVec = binnedData.binned_site_info.UnitType;
+    stimPerSite = binnedData.binned_labels.stimuli;
+    binned_data = binnedData.binned_data;
         
     for unit_Type_i = 1:length(unitTypes)
       
@@ -151,7 +100,7 @@ for m_i = 1:length(nameArray)
       for group_i = 1:length(labels2Include)
         
         % Final destination file name - if it exists, skip this step
-        fileOutName = sprintf('dimRedData_%dW_%dS_%s_%s_%s_%s_%s.mat', binSize, binStep, labelSet{group_i}, nameArray{m_i}, paradigmLabel, unitTypesLabel{unit_Type_i}, preProcTag);
+        fileOutName = sprintf('dimRedData_%dW_%dS_%s_%s_%s_%s_%s.mat', binSize, binWidth, labelSet{group_i}, nameArray{m_i}, paradigmLabel, unitTypesLabel{unit_Type_i}, preProcTag);
         dataOutFile = fullfile(preprocDir, fileOutName);
         
         if exist(dataOutFile, 'file')
