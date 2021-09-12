@@ -30,14 +30,14 @@ if size(labels, 2) > 1
 end
 
 decoding_type = 'Zero';
-  switch decoding_type
-    case 'Zero'
-      decoding_data = [decodingResultsStructs.ZERO_ONE_LOSS_RESULTS];
-    case 'Normalized'
-      decoding_data = [decodingResultsStructs.NORMALIZED_RANK_RESULTS];
-    case 'ROC_AUC'
-      decoding_data = [decodingResultsStructs.ROC_AUC_RESULTS];
-  end
+switch decoding_type
+  case 'Zero'
+    decoding_data = [decodingResultsStructs.ZERO_ONE_LOSS_RESULTS];
+  case 'Normalized'
+    decoding_data = [decodingResultsStructs.NORMALIZED_RANK_RESULTS];
+  case 'ROC_AUC'
+    decoding_data = [decodingResultsStructs.ROC_AUC_RESULTS];
+end
 
 % Set up the other variables
 binArray = 1:length(binParams.the_bin_start_times);

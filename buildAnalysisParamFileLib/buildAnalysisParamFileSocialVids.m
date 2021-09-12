@@ -7,7 +7,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 % naturalSocial Test - 20201117Mo 001
 
 runNum = '001';
-dateSubject = '20201123Mo';
+dateSubject = '20201115Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -16,7 +16,7 @@ machine = machine(~isspace(machine));
 switch machine
   case 'Skytech_FA'
     ephysVolume = slashSwap('D:\EphysData\Data');
-    ephysBinVolume = 'C:\EphysDataBin';
+    ephysBinVolume = 'D:\EphysDataBin';
     stimulusLogVolume = ephysVolume;
     outputVolume = slashSwap('D:\DataAnalysis');
     phyDir = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\Spike Sorting\npy-matlab';

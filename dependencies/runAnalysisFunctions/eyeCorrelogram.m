@@ -1,11 +1,6 @@
 function eyeCorrelogram(eyeInByEvent, psthParams, eventLabels, figStruct)
 
 outDir = figStruct.figDir;
-saveFig = figStruct.saveFig;
-exportFig = figStruct.exportFig;
-saveFigData = figStruct.saveFigData;
-figTag = figStruct.figTag;
-
 stimStartInd = psthParams.psthPre;
 stimEndInd = stimStartInd + psthParams.psthImDur;
 
@@ -97,10 +92,9 @@ for event_i = 1:length(trialPerEvent)
   text(labelXInd,labelYInd+5,pwr,'FontSize',12)
 end
 
-if saveFig
-  figData = eyeMatCorr;
-  saveFigure(outDir, sprintf('EyeCorr_%s',figTag), figData, figStruct, figTag);
-end
+figData = eyeMatCorr;
+saveFigure(outDir, sprintf('EyeCorr_%s',figStruct.figTag), figData, figStruct, figStruct.figTag);
+
 
 %Simpiler map
 corrVec = nan(length(trialPerEvent));
@@ -139,8 +133,7 @@ for event_i = 1:length(trialPerEvent)
   text(labelXInd,labelYInd+3,pwr,'FontSize',12)
 end
 
-if saveFig
-  figData = corrVec;
-  saveFigure(outDir, sprintf('EyeCorrAvg_%s',figTag), figData, figStruct, figTag);
-end
+figData = corrVec;
+saveFigure(outDir, sprintf('EyeCorrAvg_%s',figStruct.figTag), figData, figStruct, figStruct.figTag);
+
 end

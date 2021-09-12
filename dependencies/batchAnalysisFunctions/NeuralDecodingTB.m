@@ -66,7 +66,7 @@ for paradigm_i = 1:length(paradigmList)
   % analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   % analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
-  if 0 
+  if 1
   logCellArray = cell(size(analysesStructPaths));  
   parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
@@ -178,16 +178,23 @@ for paradigm_i = 1:length(paradigmList)
     coreName = strsplit(B, '_S');
     analysisTag = strcat(coreName{1}, '_S');
     analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag) & contains(analysesStructPaths, strcat(num2str(analysisStruct.unitCount), 'U')));
+    tmp1 = load(analysisBatch{1});
+    tmp2 = load(tmp1.analysisStruct.decoding_results_file);
     
     % Per Label Accuracy Trace, Figure 1
-    plot_per_label_accuracy(analysisBatch, analysisStruct, params);
-
+    if length(tmp2.decoding_results.ZERO_ONE_LOSS_RESULTS.mean_decoding_results) == 1
+      report_mean_decoding_result_OneBin(analysisBatch, analysisStruct, params)
+      noCTD = true;
+    else
+      plot_per_label_accuracy(analysisBatch, analysisStruct, params);
+      noCTD = false;
+    end
     % Units per line
     analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag));
     plot_per_label_accuracy_curve(analysisBatch, analysisStruct, params);
 
     % TCT Matrix, Figure 2
-%     if analysisStruct.crossTempDecode
+%     if analysisStruct.crossTempDecode && ~noCTD
 %       generate_TCT_plot(analysisBatch, saved_results_struct_name, params)
 %     end
     

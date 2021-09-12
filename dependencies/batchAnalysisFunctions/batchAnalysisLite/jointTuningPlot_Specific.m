@@ -6,9 +6,28 @@ function   jointTuningPlot_Specific(selTable, paradigm, params)
 outDir = fullfile(params.outputDir, 'jointTuningPlot');
 
 columnsInTable = {{'subSel_rewardCombo_selInd', 'epochSel_categories_any_selInd', {'subSel_saccadesNonStim_selInd' 'subSel_pre-saccadesNonStim_selInd'}} ...
-  {'subSel_rewardCombo_selInd', 'epochSel_categories_any_selInd', {'subSel_saccades_selInd' 'subSel_pre-saccades_selInd'}}};
-tableLabels = {{'Reward', 'Category Selective', 'Pre + Post Saccade (NonStim)'} {'Reward', 'Category Selective', 'Pre + Post Saccade'}};
-figTitleString = {'Joint Selectivity Array (NonStim)', 'Joint Selectivity Array'};
+  {'subSel_rewardCombo_selInd', 'epochSel_categories_any_selInd',                 {'subSel_saccades_selInd' 'subSel_pre-saccades_selInd'}}...
+  {'subSel_rewardCombo_selInd', 'subSel_headTurn_all_selInd',                     {'subSel_saccadesNonStim_selInd' 'subSel_pre-saccadesNonStim_selInd'}} ...
+  {'subSel_rewardCombo_selInd', 'subSel_headTurn_all_selInd',                     {'subSel_saccades_selInd' 'subSel_pre-saccades_selInd'}}...
+  {'subSel_rewardCombo_selInd', 'subSel_stimSubEvent_all_selInd',                 {'subSel_saccadesNonStim_selInd' 'subSel_pre-saccadesNonStim_selInd'}} ...
+  {'subSel_rewardCombo_selInd', 'subSel_stimSubEvent_all_selInd',                 {'subSel_saccades_selInd' 'subSel_pre-saccades_selInd'}}...
+  {'epochSel_categories_any_selInd' 'subSel_headTurn_all_selInd'}...
+  {'epochSel_categories_any_selInd' 'subSel_stimSubEvent_all_selInd'}};
+    
+  
+tableLabels = {{'Reward', 'Category Selective', 'Pre + Post Saccade (NonStim)'}...
+                {'Reward', 'Category Selective', 'Pre + Post Saccade'},...
+                {'Reward', 'Head Turn Selective', 'Pre + Post Saccade (NonStim)'}...
+                {'Reward', 'Head Turn Selective', 'Pre + Post Saccade'}...
+                {'Reward', 'Stim SubEvent Selective', 'Pre + Post Saccade (NonStim)'}...
+                {'Reward', 'Stim SubEvent Selective', 'Pre + Post Saccade'}...
+                {'Category Selective', 'Head Turn Selective'}...
+                {'Category Selective', 'Stim SubEvent Selective'}};
+              
+figTitleString = {'Joint Selectivity Array A (NonStim)', 'Joint Selectivity Array A', ...
+                  'Joint Selectivity Array B (NonStim)', 'Joint Selectivity B Array', ...
+                  'Joint Selectivity Array C (NonStim)', 'Joint Selectivity C Array', ...
+                  'Joint Selectivity D Array (HT)', 'Joint Selectivity D Array (SubEv)'};
 
 % Combine across the appropriate ones (mostly the saccade ones)
 % comboparams.comboEvents = {'subSel_headTurn_all_selInd'};
@@ -32,21 +51,23 @@ for ii = 1:length(figTitleString)
   
   
   % Plot the Image version
-  figTitle = sprintf('%s - %s - %d %s', figTitleString{ii}, params.monkeyTag, size(selTable, 1), params.unitTag);
-  figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.0047 0.0370 0.4708 0.9444]);
-  imagesc(colData);
-  figH.Children.FontSize = 15;
-  title(figTitle)
-  
-  % Labels
-  varCounts = sum(colData);
-  xLabels = strcat(tableLabels{ii}', ' (' , string(varCounts'), ')');
-  xticks(1:length(tableLabels{ii}))
-  xticklabels(xLabels); xtickangle(45); xlabel('Event'); ylabel('Unit Number')
-  
-  % Save
-  saveFigure(outDir, sprintf('JS_Array %s - %s', paradigm, figTitle), [], params.figStruct, [])
-  
+  if 0
+    figTitle = sprintf('%s - %s - %d %s', figTitleString{ii}, params.monkeyTag, size(selTable, 1), params.unitTag);
+    figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.0047 0.0370 0.4708 0.9444]);
+    imagesc(colData);
+    figH.Children.FontSize = 15;
+    title(figTitle)
+    
+    % Labels
+    varCounts = sum(colData);
+    xLabels = strcat(tableLabels{ii}', ' (' , string(varCounts'), ')');
+    xticks(1:length(tableLabels{ii}))
+    xticklabels(xLabels); xtickangle(45); xlabel('Event'); ylabel('Unit Number')
+    
+    % Save
+    saveFigure(outDir, sprintf('JS_Array %s - %s', paradigm, figTitle), [], params.figStruct, [])
+  end
+
   % Generate the possible pairing, and create a venn diagram for each
   colNames = tableLabels{ii};
   figTitle = sprintf('%s %s - %s', figTitleString{ii}, paradigm, strjoin(colNames, ' '));

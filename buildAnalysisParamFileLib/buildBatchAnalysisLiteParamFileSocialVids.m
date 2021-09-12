@@ -59,15 +59,16 @@ figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 
-plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.eyeCorr = 1;               % All run eye correlogram
 
 plotSwitch.dimRed = 0;                 
 calcSwitch.dataHigh = 0;
 
 plotSwitch.saccadeAnalysis = 0;
-plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
 plotSwitch.rewardPSTH = 0;            % Analysis of reward psthes specifically.
@@ -116,13 +117,15 @@ selParam.outputDir =  fullfile(outputDir,'selCount');
 %   {'epochSel_categories_stimEarly_selInd', 'epochSel_categories_stimLate_selInd', 'epochSel_categories_reward_selInd'}...
 %   {'epochSel_broadCategories_stimEarly_selInd', 'epochSel_broadCategories_stimLate_selInd', 'epochSel_broadCategories_reward_selInd'}...
 % };
-selParam.comboEvents = {'subSel_headTurn_all_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
+selParam.comboEvents = {'subSel_headTurn_all_selInd', 'subSel_stimSubEvent_all_selInd', 'epochSel_socVNonSoc_any_selInd', 'epochSel_categories_any_selInd', 'epochSel_broadCategories_any_selInd'};
 selParam.comboSubEvents = {...
   {'subSel_headTurn_left_selInd', 'subSel_headTurn_right_selInd'}, ...
+  {'subSel_headTurn_left_selInd', 'subSel_headTurn_right_selInd', 'subSel_bodyTurn_selInd', 'subSel_eyeContact_selInd'}, ...
   {'epochSel_socVNonSoc_stimEarly_selInd', 'epochSel_socVNonSoc_stimLate_selInd', 'epochSel_socVNonSoc_reward_selInd'}, ...
   {'epochSel_categories_stimEarly_selInd', 'epochSel_categories_stimLate_selInd', 'epochSel_categories_reward_selInd'}...
   {'epochSel_broadCategories_stimEarly_selInd', 'epochSel_broadCategories_stimLate_selInd', 'epochSel_broadCategories_reward_selInd'}...
 };
+
 selParam.figStruct = figStruct;
 
 selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
@@ -298,7 +301,6 @@ NDTParams.spikeToRasterParams.subEventBatchStructPath = subEventBatchStructPath;
 NDTParams.NDTAnalysesPath = NDTAnalysesPath;
 
 % spikeDataBank to rasterData Parameters.
-NDTParams.spikeToRasterParams.fixShorten = 800; % Push the start of the data collected an additional X past the start (not including the ITI). No point in decoding full fixation.
 NDTParams.spikeToRasterParams.comboEvents = selParam.comboEvents;
 NDTParams.spikeToRasterParams.comboSubEvents = selParam.comboSubEvents;
 
@@ -321,10 +323,16 @@ NDTParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
 NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 
 % Params for binning of rasters for analyses.
-NDTParams.binWidth = 200;
-NDTParams.stepSize = 100;
-NDTParams.binFileStart = 400;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
-NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
+% NDTParams.binWidth = 200;
+% NDTParams.stepSize = 100;
+% NDTParams.binFileStart = 400;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
+% NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
+
+% Single Bin decoding
+NDTParams.binWidth = 2800;
+NDTParams.stepSize = 2800;
+NDTParams.binFileStart = 1;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
+NDTParams.binFileEnd = 1;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
 
 NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
 NDTParams.AnalysesDefault.null_shuffle_count = 7;            % The number of times to randomly shuffle the data to generate a null distribution.

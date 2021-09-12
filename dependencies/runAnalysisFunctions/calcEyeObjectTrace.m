@@ -38,151 +38,166 @@ end
 idVidDir = fullfile(stimDir, 'idVideos');
 objArray = {'Face1', 'HandR1', 'Body1'};
 
+eyeInByEventDSPerEvent = cell(size(eventIDs));
+stimFrameMotionData = struct;
 for stim_i = 1:length(eventIDs)
   % find the correct frameMotionData
-  frameMotionDataInd = strcmp(frameMotionDataNames, eventIDs(stim_i));
-  if any(frameMotionDataInd)
-    stimFrameMotionData = frameMotionData(frameMotionDataInd);
+  stimFrameMotionData = frameMotionData(strcmp(frameMotionDataNames, eventIDs(stim_i)));
+  
+  % Grab the eye signal for an event, and down sample it to the frame
+  % rate of the video, frames in video and frames in output don't match
+  % because videos can be longer than they were presented for.
+  frames  = round(stimFrameMotionData.fps)*stimPresSec;
+  dsInd = linspace(origInd(1), origInd(end) - 1000/stimFrameMotionData.fps, frames+1);
+  eyeInByEventDS = zeros(2, size(eyeInByEvent{stim_i}, 2), frames);
+  sampFreq = 1/stimFrameMotionData.fps*1e3;
+  
+  frameStartInd{stim_i} = round((0:frames-1)*sampFreq)+1; % Create an index of when each frame starts
+  frameEndInd{stim_i} = round((1:frames)*sampFreq);       % each index is the number of points averaged to make a frame.
+  
+  for trial_i = 1:size(eyeInByEvent{stim_i}, 2)
+    for eye_i = 1:2
+      tmp = interp1(origInd, squeeze(eyeInByEvent{stim_i}(eye_i, trial_i, :)), dsInd, 'linear');
+      eyeInByEventDS(eye_i, trial_i, :) = tmp(1:end-1);
+    end
+  end
+  
+  % move data to the dVa Origin, then shift to pixel space
+  pixelOrigin = [stimFrameMotionData.width/2 stimFrameMotionData.height/2];
+  for eye_ind = 1:size(eyeInByEventDS,1)
+    tmp = eyeInByEventDS(eye_ind, :, :) + dvaOrigin(eye_ind);
+    eyeInByEventDS(eye_ind, :, :) = tmp * (PixelsPerDegree(eye_ind)/scaleFactor) + pixelOrigin(eye_ind);
+  end
+  
+  eyeInByEventDSPerEvent{stim_i} = eyeInByEventDS;
+  stimFrameMotionDataSorted(stim_i) = stimFrameMotionData;
+end
+  
+for stim_i = 1:length(eventIDs)
+  
+  % If there is a match, grab that data and use it to downsample frames.
+  stimFrameMotionData = stimFrameMotionDataSorted(stim_i);
+  eyeInByEventDS = eyeInByEventDSPerEvent{stim_i};
+  
+  % Initialize the output cell array.
+  attendedObjVect{stim_i} = cell(size(eyeInByEventDS, 2), size(eyeInByEventDS, 3));
+  
+  if strcmp(taskData.paradigm, 'naturalSocial') && ~contains(eventIDs(stim_i), 'monkey')
     
-    % Grab the eye signal for an event, and down sample it to the frame
-    % rate of the video, frames in video and frames in output don't match
-    % because videos can be longer than they were presented for.
-    frames  = round(stimFrameMotionData.fps)*stimPresSec;
-    dsInd = linspace(origInd(1), origInd(end) - 1000/stimFrameMotionData.fps, frames+1);
-    eyeInByEventDS = zeros(2, size(eyeInByEvent{stim_i},2), frames);
-    sampFreq = 1/stimFrameMotionData.fps*1e3;
+    % For natural videos without monkeys (Objects, Scenes, Scrambles)
+    if ~isempty(stimFrameMotionData.objNames) % Landscapes/Scrambles
+      
+      % Make variables for each object. Not a clean way of doing this
+      objects = stimFrameMotionData.objNames;
+      for obj_i = 1:length(objects)
+        eval(sprintf('%s = stimFrameMotionData.objLoc{%d};', objects{obj_i}, obj_i));
+      end
+      
+      % Reshape the info to make it easy to compare
+      objRads = stimFrameMotionData.objRadii;
+      objLocStack = [stimFrameMotionData.objLoc{:}];
+      
+      for frame_i = 1:size(eyeInByEventDS, 3)
+        %for each frame, pull and reshape the apporpriate shape coords and
+        %compare to the eye signal across trials.
+        objLoc = reshape(objLocStack(frame_i,:)', 2,12);
+        eyeCoord = [eyeInByEventDS(1, :, frame_i); eyeInByEventDS(2, :, frame_i)];
+        for trial_i = 1:length(eyeCoord)
+          % Calculate distances
+          trialEye = eyeCoord(:,trial_i);
+          objDist = sqrt(sum((objLoc - trialEye).^2, 1));
+          objInd = objDist < objRads;
+          % Assign the correct object. None = bkg, 1 = object, 2 = closest.
+          if sum(objInd) == 0
+            attendedObjVect{stim_i}(trial_i, frame_i) = {'bkg'};
+          elseif sum(objInd) == 1
+            attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
+          elseif sum(objInd) > 1
+            [~,I] = min(objDist(objInd));
+            indArray = find(objInd);
+            objInd = indArray(I);
+            attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
+          end
+        end
+        
+      end
+    else
+      attendedObjVect{stim_i}(:) = {'bkg'}; %Landscapes/Scrambles
+    end
     
-    frameStartInd{stim_i} = round((0:frames-1)*sampFreq)+1; % Create an index of when each frame starts
-    frameEndInd{stim_i} = round((1:frames)*sampFreq);       % each index is the number of points averaged to make a frame.
+  else
     
-    for trial_i = 1:size(eyeInByEvent{stim_i},2)
-      for eye_i = 1:2
-        tmp = interp1(origInd, squeeze(eyeInByEvent{stim_i}(eye_i, trial_i, :)), dsInd, 'linear');
-        eyeInByEventDS(eye_i, trial_i, :) = tmp(1:end-1);
+    % For the headTurn paradigm, load the video
+    if strcmp(taskData.paradigm, 'headTurnCon') || strcmp(taskData.paradigm, 'naturalSocial')
+      %headTurnCon videos each have their own video (unless there are
+      %no agents, in which case there are no labels.
+      
+      % find and load the ID video for the stimuli
+      idVid = dir(fullfile(idVidDir, [extractBefore(eventIDs{stim_i}, '.avi') '*']));
+      
+      % If the idVid is empty, and the eventID contains the code for
+      % scenes and objects, just skip this object.
+      if isempty(idVid)
+        idString = extractAfter(eventIDs{stim_i}, '15');
+        intNum = str2num(idString(1));
+        
+        if intNum == 7 || intNum == 8
+          attendedObjVect{stim_i}(:, :) = deal({'bkg'});
+          continue
+        else
+          error('No ID Video found for %s', eventIDs{stim_i});
+        end
+        
+      end
+      
+    elseif strcmp(taskData.paradigm, 'headTurnIso')
+      %headTurnIso video ID generalize across skin
+      idVidName = [extractBefore(eventIDs{stim_i}, '.avi') '_ID*'];
+      %           idVidName(24) = num2str(1);
+      
+      idVid = dir(fullfile(idVidDir, idVidName));
+      
+    end
+    
+    % Load the video
+    idVidObj = VideoReader(fullfile(idVid(1).folder, idVid(1).name));
+    
+    % run through and identify if the pixel where the eye signal was
+    % looking at was black, red, green, or blue.
+    frameSize = [idVidObj.Width idVidObj.Height];
+    for frame_i = 1:size(attendedObjVect{stim_i}, 2)
+      
+      % Pull the corresponding frame of the ID Video
+      frameData = read(idVidObj, frame_i);
+      
+      % Cycle through the trial and match whatever is being looked at.
+      for trial_i = 1:size(attendedObjVect{stim_i}, 1)
+        eyeDataInd = round(eyeInByEventDS(:, trial_i, frame_i))';
+        
+        % If the eyeData is out of the video (either negative or above
+        % the frame size) then put in background.
+        if any(eyeDataInd > frameSize) || any(eyeDataInd <= 0)
+          attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
+          continue
+        end
+        pixelValue = squeeze(frameData(eyeDataInd(2), eyeDataInd(1), :))';
+        
+        % If one of the values is above the threshold, select its
+        % object. Otherwise, remove it.
+        if any(pixelValue > 100)
+          objInd = find(pixelValue > 100, 1);
+          % Identify if it is Red, Green, or Blue, and use that to pick
+          % an object attended.
+          attendedObjVect{stim_i}{trial_i, frame_i} =  objArray{objInd};
+        else
+          attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
+        end
+        
       end
     end
     
-    % move data to the dVa Origin, then shift to pixel space
-    pixelOrigin = [stimFrameMotionData.width/2 stimFrameMotionData.height/2];
-    for eye_ind = 1:size(eyeInByEventDS,1)
-      tmp = eyeInByEventDS(eye_ind, :, :) + dvaOrigin(eye_ind);
-      eyeInByEventDS(eye_ind, :, :) = tmp * (PixelsPerDegree(eye_ind)/scaleFactor) + pixelOrigin(eye_ind);
-    end
-    
-    % Initialize the output cell array.
-    attendedObjVect{stim_i} = cell(size(eyeInByEventDS, 2), size(eyeInByEventDS, 3));
-    
-    switch taskData.paradigm
-      case 'naturalSocial'
-        % For natural videos.
-        if ~isempty(stimFrameMotionData.objNames) % Landscapes/Scrambles
-          
-          % Make variables for each object. Not a clean way of doing this
-          objects = stimFrameMotionData.objNames;
-          for obj_i = 1:length(objects)
-            eval(sprintf('%s = stimFrameMotionData.objLoc{%d};', objects{obj_i}, obj_i));
-          end
-          
-          % Reshape the info to make it easy to compare
-          objRads = stimFrameMotionData.objRadii;
-          objLocStack = [stimFrameMotionData.objLoc{:}];
-          
-          for frame_i = 1:size(eyeInByEventDS, 3)
-            %for each frame, pull and reshape the apporpriate shape coords and
-            %compare to the eye signal across trials.
-            objLoc = reshape(objLocStack(frame_i,:)', 2,12);
-            eyeCoord = [eyeInByEventDS(1, :, frame_i); eyeInByEventDS(2, :, frame_i)];
-            for trial_i = 1:length(eyeCoord)
-              % Calculate distances
-              trialEye = eyeCoord(:,trial_i);
-              objDist = sqrt(sum((objLoc - trialEye).^2, 1));
-              objInd = objDist < objRads;
-              % Assign the correct object. None = bkg, 1 = object, 2 = closest.
-              if sum(objInd) == 0
-                attendedObjVect{stim_i}(trial_i, frame_i) = {'bkg'};
-              elseif sum(objInd) == 1
-                attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
-              elseif sum(objInd) > 1
-                [~,I] = min(objDist(objInd));
-                indArray = find(objInd);
-                objInd = indArray(I);
-                attendedObjVect{stim_i}(trial_i, frame_i) = stimFrameMotionData.objNames(objInd);
-              end
-            end
-            
-          end
-        else
-          attendedObjVect{stim_i}(:) = {'bkg'}; %Landscapes/Scrambles
-        end
-      case {'headTurnCon', 'headTurnIso'}
-        % For the headTurn paradigm, load the video
-        if paradigm == 1
-          %headTurnCon videos each have their own video (unless there are
-          %no agents, in which case there are no labels.
-          
-          % find and load the ID video for the stimuli
-          idVid = dir(fullfile(idVidDir, [extractBefore(eventIDs{stim_i}, '.avi') '*']));
-          
-          % If the idVid is empty, and the eventID contains the code for
-          % scenes and objects, just skip this object.
-          if isempty(idVid)
-            idString = extractAfter(eventIDs{stim_i}, '15');
-            intNum = str2num(idString(1));
-            
-            if intNum == 7 || intNum == 8
-              attendedObjVect{stim_i}(:, :) = deal({'bkg'});
-              continue
-            else
-              error('No ID Video found for %s', eventIDs{stim_i});
-            end
-            
-          end
-          
-        else
-          %headTurnIso video ID generalize across skin
-          idVidName = [extractBefore(eventIDs{stim_i}, '.avi') '_ID*'];
-          idVidName(24) = num2str(1);
-
-          idVid = dir(fullfile(idVidDir, idVidName));
-                    
-        end
-        
-        % Load the video
-        idVidObj = VideoReader(fullfile(idVid(1).folder, idVid(1).name));
-        
-        % run through and identify if the pixel where the eye signal was
-        % looking at was black, red, green, or blue.
-        frameSize = [idVidObj.Width idVidObj.Height];
-        for frame_i = 1:size(attendedObjVect{stim_i}, 2)
-          frameData = read(idVidObj, frame_i);
-          for trial_i = 1:size(attendedObjVect{stim_i}, 1)
-            eyeDataInd = round(eyeInByEventDS(:, trial_i, frame_i))';
-            
-            % If the eyeData is out of the video (either negative or above
-            % the frame size) then just leave.
-            if any(eyeDataInd > frameSize) || any(eyeDataInd <= 0)
-              attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
-              continue
-            end
-            pixelValue = squeeze(frameData(eyeDataInd(2), eyeDataInd(1), :))';
-            
-            % If one of the values is above the threshold, select its
-            % object. Otherwise, remove it.
-            if any(pixelValue > 100)
-              objInd = find(pixelValue > 100, 1);
-              % Identify if it is Red, Green, or Blue, and use that to pick
-              % an object attended.
-              attendedObjVect{stim_i}{trial_i, frame_i} =  objArray{objInd};
-            else
-              attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
-            end
-            
-          end
-        end
-        
-    end
-    
   end
+  
 end
 
 % if some of the stimuli have a different frame count, resample the ones
@@ -233,7 +248,6 @@ objAttendRates = struct();
 objAttendRates.simpleObjList = simpleObjList;
 objAttendRates.attendedPerStim = attendedPerStim;
 objAttendRates.attendedPerStimRate = attendedPerStimRate;
-
 
 %Plot the Result as an area plot, where X = frames
 areaColors = [shapeColors{:} {[.5 .5 .5]}]'; %Shape colors + Background

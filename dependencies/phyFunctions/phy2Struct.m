@@ -10,19 +10,19 @@ plotUnits = false;
 binFile = dir(fullfile(params.phyParams.ephysBinVolume, '**', [dateSubjNum, '.bin']));
 binFile = fullfile(binFile.folder, binFile.name);
 myKsDir = fileparts(binFile);
-[~, B, ~] = fileparts(myKsDir);
 sp = loadKSdir(myKsDir);
 
 % Identify present .tsv files
 clusInfoFiles = dir(fullfile(myKsDir, 'cluster_info.tsv'));
-clusInfoFiles = string(fullfile(clusInfoFiles.folder, clusInfoFiles.name));
 assert(~isempty(clusInfoFiles), 'cluster_info file missing in %s, make sure sorted w/ Phy', myKsDir)
+
+clusInfoFiles = string(fullfile(clusInfoFiles.folder, clusInfoFiles.name));
 clusInfoStruct= tdfread(clusInfoFiles);
 wfs = params.phyParams.waveFormSize;
 
 % Parameters for gwf.
 gwfparams.dataDir = myKsDir;              % KiloSort/Phy output folder
-gwfparams.fileName = strcat(B, '.bin');   % .dat file containing the raw
+gwfparams.fileName = strcat(dateSubjNum, '.bin');   % .dat file containing the raw
 gwfparams.dataType = 'int16';             % Data type of .dat file (this should be BP filtered)
 gwfparams.nCh = sp.n_channels_dat;        % Number of channels that were streamed to disk in .dat file
 gwfparams.wfWin = -(wfs/2)+1:(wfs/2);     % Number of samples before and after spiketime to include in waveform
@@ -78,7 +78,7 @@ end
 
 % Fix 1 - Go through channel by channel and rename units according to their
 % channel
-for ii = 1:length()
+for ii = 1:length(1)
   
 end
 

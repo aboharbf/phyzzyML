@@ -47,6 +47,10 @@ if plotSwitch.selectivityCounts
   selectivityCurveCountBinned(spikePathBank, batchAnalysisParams)
 end
 
+if plotSwitch.eyeCorr
+  allRunEyeCorrelogram(spikePathBank, batchAnalysisParams, figStruct)
+end
+
 %% dimensionality reduction
 
 if plotSwitch.dimRed
