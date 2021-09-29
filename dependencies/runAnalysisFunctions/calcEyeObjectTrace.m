@@ -36,7 +36,7 @@ end
 
 
 idVidDir = fullfile(stimDir, 'idVideos');
-objArray = {'Face1', 'HandR1', 'Body1'};
+objArray = [{'Face1', 'HandR1', 'Body1'}; {'Face2', 'HandR2', 'Body2'}];
 
 eyeInByEventDSPerEvent = cell(size(eventIDs));
 stimFrameMotionData = struct;
@@ -185,12 +185,17 @@ for stim_i = 1:length(eventIDs)
         % If one of the values is above the threshold, select its
         % object. Otherwise, remove it.
         if any(pixelValue > 100)
+          
+          % Identify object based on color, monkey based on shade.
           objInd = find(pixelValue > 100, 1);
-          % Identify if it is Red, Green, or Blue, and use that to pick
-          % an object attended.
-          attendedObjVect{stim_i}{trial_i, frame_i} =  objArray{objInd};
+          monkInd = (pixelValue(objInd) <= 150) + 1;
+          attendedObjVect{stim_i}{trial_i, frame_i} =  objArray{monkInd, objInd};
+          
         else
+          
+          % Otherwise, background
           attendedObjVect{stim_i}{trial_i, frame_i} = 'bkg';
+          
         end
         
       end

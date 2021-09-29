@@ -219,8 +219,6 @@ elseif params.spikeSort == 2
   
   % Unscale the time stamps
   tmpSpikes.TimeStamp = tmpSpikes.TimeStamp/params.cPtCal;
-  
-  
   NEV.Data.Spikes = tmpSpikes;
 
 end

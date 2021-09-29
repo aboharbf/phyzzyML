@@ -7,13 +7,13 @@ function [selTable] = epochTargetStats(spikesByEvent, spikesByEventFixAlign, sel
 timeBins = epochTargParams.times;
 
 spikeCountsByImageByEpoch = cell(size(timeBins,1),1);
+
 % First bin is found using fixAligned data
 [spikeCountsByImageByEpoch{1}, ~, ~] = spikeCounter(spikesByEventFixAlign, timeBins(1, 1), timeBins(1, 2));
 
 for epoch_i = 2:size(timeBins,1)
   [spikeCountsByImageByEpoch{epoch_i}, ~, ~] = spikeCounter(spikesByEvent, timeBins(epoch_i, 1), timeBins(epoch_i, 2));
 end
-
 
 %% Determine Selectivity per Epoch selectivity, comparing target and non-target
 

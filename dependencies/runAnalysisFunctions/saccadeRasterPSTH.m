@@ -1,4 +1,4 @@
-function saccadeRasterPSTH(eyeDataStruct, spikesByChannel, taskData, onsetsByEvent, rasterSaccParams, selTable, psthParams, figStruct)
+function saccadeRasterPSTH(eyeDataStruct, spikesByChannel, onsetsByEvent, rasterSaccParams, selTable, psthParams, figStruct)
 % subEventAnalysis
 % Description - looks through spikesByEvent, calculates PSTH for activity
 % aligned to a specific event as well as a null distribution from the
@@ -11,13 +11,19 @@ function saccadeRasterPSTH(eyeDataStruct, spikesByChannel, taskData, onsetsByEve
 % subEventParams - has path to eventData, stimDir, and variables used to
 % plot PSTHes.
 
-saccadeSelCells = (selTable.subSel_saccades_pVal <= 0.05) | (selTable.subSel_saccadesNonStim_pVal  <= 0.05);
-
+nonStimSaccadesOnly = true;
 saccadeSplit = false;           % Split subEvent in the stimulus depending on whether they were followed by a saccade.
-eyeBehStatsByStim = eyeDataStruct.eyeBehStatsByStim;
-saccadeByStim = eyeDataStruct.saccadeByStim;
-
 trialTemplate = [ones(1, psthParams.psthPre), ones(1, psthParams.psthImDur) * 2, ones(1, psthParams.psthPost) * 3];
+
+eyeBehStatsByStim = eyeDataStruct.eyeBehStatsByStim;
+
+% Highlight cells to which get to be plotted
+saccadeSelCells = (selTable.subSel_saccades_pVal <= 0.05) | (selTable.subSel_saccadesNonStim_pVal  <= 0.05)...
+  | (selTable.subSel_pre_saccades_pVal  <= 0.05) | selTable.saccDir_nonStim_pVal  <= 0.05;
+
+% Highlight cells to which get to be plotted
+% saccadeSelCells = (selTable.subSel_saccades_pVal <= 0.05) | (selTable.subSel_saccadesNonStim_pVal  <= 0.05)...
+%   | (selTable.subSel_pre_saccades_pVal  <= 0.05) | (selTable.saccDir_all_pVal  <= 0.05);
 
 % Generate/Organize Event times for eye movements here, concatonate onto
 % the 'onsetsByEvent' cue.
@@ -28,7 +34,7 @@ circleInRadians(end) = 0;
 % Turn both the saccade times into rasters. In the same function, generate
 % null rasters by sampling other trials of the same stimulus for
 % non-saccade trials.
-[stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, psthParams);
+[stimSaccadeArrays, ~] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, psthParams);
 
 [blinkTimes, saccadeTimes, saccadeLabel, saccadeDir, saccadeImg] = deal([]);                          % Initialize vectors
 
@@ -71,6 +77,15 @@ for stim_i = 1:length(eyeBehStatsByStim)
     end
         
   end
+end
+
+% Filter based on saccades which took place outside of the stimulusPeriod
+if nonStimSaccadesOnly
+  saccKeepInd = saccadeLabel == 1 | saccadeLabel == 3;
+  saccadeLabel = saccadeLabel(saccKeepInd);
+  saccadeImg = saccadeImg(saccKeepInd, :);
+  saccadeDir = saccadeDir(saccKeepInd);
+  saccadeTimes = saccadeTimes(saccKeepInd);
 end
 
 eyeEventTimes = {blinkTimes; saccadeTimes}; 
@@ -130,8 +145,6 @@ onsetsByEvent = saccadeTimesDir;
 rasterSaccParams.refOffset = 0;
 [spikesBySubEvent, spikesEmptyBySubEvent] = alignSpikes(spikesByChannel, onsetsByEvent, ones(length(spikesByChannel),1), rasterSaccParams);
 
-% [spikesBySubEventNull, spikesEmptyBySubEventNull] = alignSpikes(spikesByChannel, onsetsByEventNull, ones(length(spikesByChannel),1), subEventParams);
-
 % Have an index for latter labeling
 cardinalDirKeep = ~cellfun('isempty', onsetsByEvent);
 saccDirNames = saccDirNames(cardinalDirKeep);
@@ -143,57 +156,67 @@ saccDirYLabel(cardinalLabelInd) = cellstr(saccDirNames);
 
 % follow with putting spikesBySubEvent into calcPSTH.
 if ~rasterSaccParams.spikeTimes
-  spikesBySubEventBinned = calcSpikeTimes(spikesBySubEvent, rasterSaccParams.psthParams);
-%   spikesBySubEventNullBinned = calcSpikeTimes(spikesBySubEventNull, subEventParams.psthParams);
-  
-  [psthBySubEvent, psthErrBySubEvent] = calcStimPSTH(spikesBySubEventBinned, spikesEmptyBySubEvent, rasterSaccParams.spikeTimes, rasterSaccParams.psthParams, rasterSaccParams);
-%   [psthBySubEventNull, psthErrBySubEventNull] = calcStimPSTH(spikesBySubEventNullBinned, spikesEmptyBySubEventNull, subEventParams.spikeTimes, subEventParams.psthParams, subEventParams);
+  spikesBySubEventBinned = calcSpikeTimes(spikesBySubEvent, rasterSaccParams.psthParams);  
+  [psthBySubEvent, ~] = calcStimPSTH(spikesBySubEventBinned, spikesEmptyBySubEvent, rasterSaccParams.spikeTimes, rasterSaccParams.psthParams, rasterSaccParams);
 else
-  [psthBySubEvent, psthErrBySubEvent] = calcStimPSTH(spikesBySubEvent, spikesEmptyBySubEvent, rasterSaccParams.spikeTimes, rasterSaccParams.psthParams, rasterSaccParams);
-%   [psthBySubEventNull, psthErrBySubEventNull] = calcStimPSTH(spikesBySubEventNull, spikesEmptyBySubEventNull, subEventParams.spikeTimes, subEventParams.psthParams, subEventParams);
+  [psthBySubEvent, ~] = calcStimPSTH(spikesBySubEvent, spikesEmptyBySubEvent, rasterSaccParams.spikeTimes, rasterSaccParams.psthParams, rasterSaccParams);
 end
 
-
-% Plotting - Generate a two panel figure, with saccades sorted by their
-% direction, then their stimulus timing on the left, with a PSTH on the
-% right.
+% Plotting - Figures representing Rasters and PSTH with respect to
+% direction of saccades.
 
 for chan_i = 1:length(spikesBySubEventBinned{1})
   saccSelUnitInds = saccadeSelCells(strcmp(selTable.channel, figStruct.channelNames{chan_i}));
-  for unit_i = 1:length(spikesBySubEventBinned{1}{chan_i})
+  
+  % If channel has none selective, skip
+  if ~any(saccSelUnitInds)
+    continue
+  end
+  
+  for unit_i = 2:length(spikesBySubEventBinned{1}{chan_i})-1 % Only do this for units.
     
-    % If the unit appears selective to saccades, plot the normal lines, otherwise use the lower res lines. 
+    % If the unit appears selective to saccades, plot the normal lines, otherwise skip. 
     if saccSelUnitInds(unit_i) == 1
       spikePattern = 1;
     else
-      spikePattern = 3;
+      %spikePattern = 3;
+      continue
     end
-    
+          
     if length(spikesBySubEventBinned{1}{chan_i}) == 2 && unit_i == 1
       continue
     end
     
-    chanUnitTag = sprintf('%s, %s', figStruct.channelNames{chan_i}, figStruct.channelUnitNames{chan_i}{unit_i});
-    prefImRasterTitle = sprintf('Saccade Direction Raster and PSTH - %s', chanUnitTag);
-    fh = figure('Name', prefImRasterTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4 0.05 0.37 0.95]);
-    
     % Raster, color coded
-    subAx = subplot(3, 1, 1:2);
+    chanUnitTag = sprintf('%s%s', figStruct.channelNames{chan_i}, figStruct.channelUnitNames{chan_i}{unit_i});
+    figTitle = sprintf('SaccDir_Raster - %s', chanUnitTag); 
+    fh = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4 0.05 0.37 0.95]);
+    
+%     subAx = subplot(3, 1, 1:2);
+    subAx = axes();
     subAx.YTick = []; subAx.XTick = [];
-    rasterColorCoded(subAx, spikesBySubEvent, saccDirNames, rasterSaccParams.psthParams, 500, chan_i, unit_i, imgStruct, 3, spikePattern);
+    rasterColorCoded(subAx, spikesBySubEvent, saccDirNames, rasterSaccParams.psthParams, 500, chan_i, unit_i, struct(), 0, spikePattern);
     xlabel('Time relative to Saccade onset (ms)')
     yticklabels(saccDirYLabel);
     ylabel('Saccade Direction (Degrees)');
-    title('Raster');
+    title(strrep(figTitle, '_', ' '));
     delete(findobj(fh, 'Type', 'Legend'));
     
-    % PSTH, on the right
-    subAx2 = subplot(3, 1, 3);
-    plotPSTH(psthBySubEvent{chan_i}{unit_i}, [], [], rasterSaccParams.psthParams, 'color', 'PSTH', saccDirNames);
-    sgtitle(prefImRasterTitle);
+    saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
     
+    % PSTH, on the right
+    figTitle = sprintf('SaccDir_PSTH - %s', chanUnitTag);
+    fh = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4047 0.0583 0.3604 0.2935]);
+    subAx = axes();
+    
+    % subAx2 = subplot(3, 1, 3);
+    plotPSTH(psthBySubEvent{chan_i}{unit_i}, [], [], rasterSaccParams.psthParams, 'color', 'PSTH', saccDirNames);
+    title(strrep(figTitle, '_', ' '));
+    xlabel('Time from saccade onset (ms)');
+    ylabel('Direction (Deg)');
+    subAx.YLabel.FontSize = 14;
     % Save
-    saveFigure(figStruct.figDir, sprintf('saccadeRaster_%s_%s', chanUnitTag), [], figStruct, figStruct.figTag);
+    saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
     
   end
 end

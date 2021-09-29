@@ -17,7 +17,7 @@ decodingResultsStructs = [decodingResultsStructs.decoding_results];
 
 % Extract clear variables from inputs.
 if length(decodingResultsStructs) ~= 1
-  decoding_results_tmp = decodingResultsStructs(1);
+  decoding_results_tmp = decodingResultsStructs(~[analysisOutputStructs.shuffle_ds]);
 else
   decoding_results_tmp = decodingResultsStructs;
 end
@@ -73,15 +73,29 @@ the_bin_labels = bin_start_times + offSet;
 
 bins_to_label = interp1(the_bin_labels, binArray, points_to_label);
 x_for_lines = interp1(the_bin_labels, binArray, points_for_lines);
-xMin = round(interp1(the_bin_labels, binArray, points_to_label(1) - 50));
 
 points_to_label = points_to_label(~isnan(bins_to_label));
 bins_to_label = bins_to_label(~isnan(bins_to_label));
 
+xMin = round(interp1(the_bin_labels, binArray, points_to_label(1) - 50));
+
+
+if isnan(x_for_lines(1))
+  x_for_lines(1) = binArray(1);
+end
+
+if isnan(x_for_lines(2))
+  x_for_lines(2) = binArray(end);
+end
+
+if isnan(xMin)
+  xMin = binArray(1);
+end
+
 assert(~any(isnan([bins_to_label x_for_lines xMin])), 'NaNs on plotting variables');
 
 % Extract results
-if length(decoding_data) ~= 1
+% if length(decoding_data) ~= 1
   % Initialize arrays
   gridSize = size(decoding_data(1).mean_decoding_results);
   if analysisOutputStructs(1).crossTempDecode
@@ -101,13 +115,11 @@ if length(decoding_data) ~= 1
   correctLineMean = mean(correctLineMeanStack, 2);
   correctLineSTD = mean(correctLineSTDStack, 2);
   
-else
+% end
 
 if size(correctLineMean,1) == size(correctLineMean, 2)
   % This means Cross temporal decoding is on.
   correctLineMean = correctLineMean(logical(eye(size(correctLineMean, 1))));
-end
-
 end
 
 % Extract a per label correct percentage for each label.
@@ -122,16 +134,10 @@ confMat = confMat./sum(confMat,1); % Normalize
 confMat = mean(confMat, 4);
 correctLineStack = nan(size(confMat,1), size(confMat,3));
 
-for bin_i = 1:length(correctLineStack)
+for bin_i = 1:size(correctLineStack, 2)
   infoTmp = confMat(:, :, bin_i);
   correctLineStack(:, bin_i) = infoTmp(logical(eye(length(infoTmp))));
 end
-
-  
-% Create trace w/ mean and std - 
-% cvCount = size(decoding_results{1}.ZERO_ONE_LOSS_RESULTS.decoding_results, 1);
-% meanTracePerCat = squeeze(mean(decoding_results{1}.ZERO_ONE_LOSS_RESULTS.decoding_results, 1));
-% stdTracePerCat = decoding_results{1}.ZERO_ONE_LOSS_RESULTS.stdev.over_CVs_combined_over_resamples;
 
 % Check if plotting error was requested, despite not having many lines.
 if size(correctLineStack, 1) == 1 && plotError
@@ -153,24 +159,42 @@ title(figTitle)
 hold on
 linePlotHandles = gobjects(length(labels) + 2, 1)';
 
+if ~any(contains(analysisStruct.label_names_to_use, '.avi'))
+  colorNum = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0;...
+    0 1 0; 0 0.8 0; 0 0 1; 0 0 0.6;]; % Segment colors;
+  colorLabel = {'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}; % Segment colors;
+  
+  % Sort them
+  [~, sortInd] = ismember(colorLabel, labels);
+  colors = colorNum;
+  correctLineStack = correctLineStack(sortInd ,:);
+  
+end
+
 if justMean
   % Initialize this if only plotting.
   plotLabels = {};
 else
   % Plot each curve individually.
-  linePlotHandles(1:end-2) = plot(correctLineStack', 'linewidth', 3);
+  if any(contains(analysisStruct.label_names_to_use, '.avi'))
+      linePlotHandles(1:end-2) = plot(correctLineStack', 'linewidth', 2);
+  else
+    for ii = 1:size(correctLineStack, 1)
+      linePlotHandles(ii) = plot(1:length(correctLineStack(ii,:)), correctLineStack(ii,:), 'linewidth', 3, 'color', colors(ii,:));
+    end
+  end
   plotLabels = labels;
 end
 
 % Plot the mean and chance
 sigBarLabel = sprintf('Significant regions (>%s%%)', num2str((1 - p_val_threshold) * 100));
 if plotMean || justMean
-  linePlotHandles(length(plotLabels) + 1) = plot(correctLineMean, 'linewidth', 5, 'color', 'k');
+  linePlotHandles(length(plotLabels) + 1) = plot(correctLineMean, 'linewidth', 6, 'color', 'k', 'lineStyle', '-');
   linePlotHandles(length(plotLabels) + 1).Tag = 'All Label Mean';
-  linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
+  linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'k', 'lineStyle', '--');
   allLabels = [plotLabels; 'All Label Mean'; 'Theoretical chance'; sigBarLabel];
 else
-  linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'b');
+  linePlotHandles(length(plotLabels) + 2) = plot(xlim(), [1/length(labels) 1/length(labels)], 'linewidth', 3, 'color', 'k');
   allLabels = [plotLabels; 'Theoretical chance'; sigBarLabel];
 end
 

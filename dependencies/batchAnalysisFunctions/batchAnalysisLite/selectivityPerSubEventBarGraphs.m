@@ -4,6 +4,7 @@ function selectivityPerSubEventBarGraphs(selTable, params)
 % directional saccade selectivity (probably not what we want).
 
 outDir = fullfile(params.outputDir, 'selectivityPerSubEvent');
+eventColors = [[0.9 0 0]; [0.6 0 0]; [0 0 0.8]; [0 0.6 0]; [0.6 0.6 0.6]];
 
 % Generate bar plots showing total counts in each category
 tableVars = selTable.Properties.VariableNames';
@@ -31,10 +32,12 @@ for subSelType_i = 1:length(eventArrays)
   countPerSubEvent = sum(subSelInfo);
   unitCount = size(subSelInfo, 1);
   atLeastOne = sum(any(subSelInfo,2));
+  barParams.labels = subEventPlotNames;
+  barParams.colors = eventColors;
   
   % Plot bar graphs for individual events
   figTitle = sprintf('%s selective for Stim sub-events %s (%d/%d Unique)', params.unitTag, subEvents{subSelType_i},  atLeastOne, unitCount);
-  figH = createBarPlotWithChanceLine(subEventPlotNames, countPerSubEvent, 0, unitCount, figTitle, []);
+  figH = createBarPlotWithChanceLine({'Counts'}, countPerSubEvent', 0, unitCount, figTitle, subEventPlotNames, barParams);
   xlabel('Stimulus Sub-Event');
   
   % Move the legend

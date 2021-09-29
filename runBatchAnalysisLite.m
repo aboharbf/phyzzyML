@@ -20,19 +20,32 @@ end
 
 % stimulusEventCounts = stimulusPresence(spikePathBank);
 
-% Get rid of headTurnIso
-if any(strcmp(spikePathBank.paradigmName, 'headTurnIso'))
-  spikePathBank = spikePathBank(~strcmp(spikePathBank.paradigmName, 'headTurnIso'), :);
-end
-
 if ~contains('selTable', spikePathBank.Properties.VariableNames)
   spikePathBank = processAppendSelTable(spikePathBank, batchAnalysisParams);
   spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;
   save(spikePathFile, 'spikePathBank', '-append')
 end
 
+% spikePathBank.selTable = removeTableVariable(spikePathBank.selTable, {'spikeEyeCorr', 'spikeEyeCorrNull'});
+
 %% Counting
 % crossParadigmCheck(spikePathBank, batchAnalysisParams)
+
+if plotSwitch.spikeEyeCorr
+  spikeEyeCorrHist(spikePathBank, batchAnalysisParams)
+end
+
+if plotSwitch.rampingAnalysis
+  rampingAnalysis(spikePathBank, batchAnalysisParams)
+end
+
+if plotSwitch.latencyAnalysis
+  latencyAnalysis(spikePathBank, batchAnalysisParams)
+end
+
+if plotSwitch.saccadeDirAnalysis
+  saccadeDirAnalysis(spikePathBank, batchAnalysisParams)
+end
 
 if plotSwitch.selCount
   selCount(spikePathBank, batchAnalysisParams)
@@ -60,6 +73,10 @@ if plotSwitch.dimRed
   
   % Perform a PCA and visualize results
   pcaAndPlot(batchAnalysisParams)
+  pcaAndPlotSingleTrial(batchAnalysisParams)
+  
+  % 
+  popDistPlot(batchAnalysisParams)
   
   % Perform a dPCA and visualize results
 %   dpcaAndPlot(batchAnalysisParams)

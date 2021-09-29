@@ -44,7 +44,7 @@ binLabelsNew = binLabels;
 
 % Create the segment colors
 colorPoints = nan(length(binsPresent), 3);
-for ii = 1:size(segmentColors, 1)
+for ii = 1:length(pointsForLabels)-1
   inds2Add = pointsForLabels(ii):pointsForLabels(ii+1);
   colorPoints(inds2Add, :) = repmat(segmentColors(ii,:), [length(inds2Add), 1]);
 end

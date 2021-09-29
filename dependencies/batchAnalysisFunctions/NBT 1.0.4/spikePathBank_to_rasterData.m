@@ -58,11 +58,13 @@ vars2AddOrig = [
   {'epochSel_socVNonSoc_stimLate_selInd'       }
   {'epochSel_socVNonSoc_reward_selInd'         }
   {'epochSel_socVNonSoc_any_selInd'            }
-  {'epochSel_broadCategories_stimEarly_selInd' }
-  {'epochSel_broadCategories_stimLate_selInd'  }
-  {'epochSel_broadCategories_reward_selInd'    }
-  {'epochSel_broadCategories_any_selInd'       }
-  {'slidingWin_broadCatTest_selInd'            }
+  {'taskModulated_selInd'                      }
+  {'M1unit_selInd'                             }
+%   {'epochSel_broadCategories_stimEarly_selInd' }
+%   {'epochSel_broadCategories_stimLate_selInd'  }
+%   {'epochSel_broadCategories_reward_selInd'    }
+%   {'epochSel_broadCategories_any_selInd'       }
+%   {'slidingWin_broadCatTest_selInd'            }
   {'slidingWin_categoriesTest_selInd'          }];
 
 vars2Add = strrep(vars2AddOrig, 'epochSel_socVNonSoc', 'sVns');

@@ -14,6 +14,7 @@ analysisChangeParams.dontZScoreFeatures = 0;   % Turns off the Z scoring
 analysisChangeParams.reportFeaturepVal = 0;   % Turns off the Z scoring
 
 % Add the path to the NB
+params.NDTParams.spikePathLoadParams = params.spikePathLoadParams;
 addpath(genpath(params.NDTPath));
 
 if ~exist(params.outputDir, 'dir')
@@ -24,7 +25,7 @@ params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Generate the appropriate binned data
-for paradigm_i = 1:length(paradigmList)
+for paradigm_i = 1%1:length(paradigmList)
   pName = paradigmList{paradigm_i};
   spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
   pFolder = fullfile(params.outputDir, pName);
@@ -66,7 +67,6 @@ for paradigm_i = 1:length(paradigmList)
   % analysesStructPaths = dir(fullfile(analysisDir, '*.mat'));
   % analysesStructPaths = fullfile({analysesStructPaths.folder}, {analysesStructPaths.name})';
   
-  if 1
   logCellArray = cell(size(analysesStructPaths));  
   parfor analysis_i = 1:length(analysesStructPaths)
     % Get Analysis structure
@@ -144,10 +144,11 @@ for paradigm_i = 1:length(paradigmList)
     logCellArray{analysis_i} = sprintf('Done Ind %d', analysis_i);
       
   end
-  end
+  
   % Remove scrambles, and grab a single file from each 'core type'
   analysesStructPathsUnique = analysesStructPaths(~contains(analysesStructPaths, 'shuffle'));
-  analysesStructPathsUnique = analysesStructPathsUnique(contains(analysesStructPathsUnique, 'S1_1000U'));
+  analysesStructPathsUnique = analysesStructPathsUnique(~contains(analysesStructPathsUnique, 'catBroad'));
+  %analysesStructPathsUnique = analysesStructPathsUnique(contains(analysesStructPathsUnique, 'S1_1000U'));
   
   for analysis_i = 1:length(analysesStructPathsUnique)
     
@@ -175,28 +176,45 @@ for paradigm_i = 1:length(paradigmList)
     % pass all of them to the subsequent file for the sake of getting group
     % means.
     [~, B, ~] = fileparts(analysesStructPathsUnique{analysis_i});
-    coreName = strsplit(B, '_S');
-    analysisTag = strcat(coreName{1}, '_S');
-    analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag) & contains(analysesStructPaths, strcat(num2str(analysisStruct.unitCount), 'U')));
-    tmp1 = load(analysisBatch{1});
+    coreName = strsplit(B);
+    analysisTag = strcat(coreName{1});
+    
+    % Make sure you don't accidentally grab units meant for the other
+    % stimuli condition.
+    analysisCoreInd = contains(analysesStructPaths, analysisTag);
+    unitCountInd = contains(analysesStructPaths, strcat(num2str(analysisStruct.unitCount), 'U'));
+    if ~contains(analysisTag, 'stimuli')
+      stimTagInd = ~contains(analysesStructPaths, 'stimuli');
+    else
+      stimTagInd = true(size(analysisCoreInd));
+    end
+    
+    % Catch to make sure the unitCount not being on doesn't cause problems.
+    if ~any(unitCountInd)
+      unitCountInd = true(size(unitCountInd));
+    end
+    
+    analysisBatch = analysesStructPaths(analysisCoreInd & unitCountInd & stimTagInd);
+    tmp1 = load(analysisBatch{end});
     tmp2 = load(tmp1.analysisStruct.decoding_results_file);
     
     % Per Label Accuracy Trace, Figure 1
     if length(tmp2.decoding_results.ZERO_ONE_LOSS_RESULTS.mean_decoding_results) == 1
-      report_mean_decoding_result_OneBin(analysisBatch, analysisStruct, params)
+      report_mean_decoding_result_OneBin(analysisBatch(end), analysisStruct, params)
       noCTD = true;
     else
-      plot_per_label_accuracy(analysisBatch, analysisStruct, params);
+      % Note only put in many if they are all real (i.e. Subsamplings). Do not feed in scrambles. 
+      plot_per_label_accuracy(analysisBatch(end), analysisStruct, params);
       noCTD = false;
     end
     % Units per line
-    analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag));
-    plot_per_label_accuracy_curve(analysisBatch, analysisStruct, params);
+%     analysisBatch = analysesStructPaths(contains(analysesStructPaths, analysisTag));
+%     plot_per_label_accuracy_curve(analysisBatch, analysisStruct, params);
 
-    % TCT Matrix, Figure 2
-%     if analysisStruct.crossTempDecode && ~noCTD
-%       generate_TCT_plot(analysisBatch, saved_results_struct_name, params)
-%     end
+    %TCT Matrix, Figure 2
+    if analysisStruct.crossTempDecode && ~noCTD
+      generate_TCT_plot(tmp1.analysisStruct, saved_results_struct_name, params)
+    end
     
   end
   

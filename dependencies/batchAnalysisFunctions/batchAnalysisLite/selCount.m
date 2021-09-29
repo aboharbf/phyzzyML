@@ -3,13 +3,18 @@ function selCount(spikePathBank, batchAnalysisParams)
 
 % Now, selectivity across paradigms...
 % selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
+taskMod = true; % Only include taskMod.
 
 paradigmList = unique(spikePathBank.paradigmName);
 monkeyList = {'Sam', 'Mo', 'Combo'};
-unitList = {'MU', 'U'};
-unitTags = {'MUA', digitsPattern};
+unitList = {'U'};
+unitTags = {digitsPattern};
 selParams = batchAnalysisParams.selParam;
-mainOutDir = selParams.outputDir;
+if taskMod
+  mainOutDir = strcat(selParams.outputDir, '_TaskMod');
+else
+  mainOutDir = selParams.outputDir;
+end
 selParams.unitList = unitList;
 selParams.unitTags = unitTags;
 
@@ -39,20 +44,25 @@ for m_i = 3%1:length(monkeyList)
     % plotCountsOnBrain(selTableParadigm, selParams);
     
     % Cycle through cell types, create the plots
-    for unit_i = 2%1:length(unitList)
+    for unit_i = 1:length(unitList)
       
       % Set output directory
       selParams.outputDir = fullfile(mainOutDir, paradigmList{par_i}, monkeyList{m_i}, unitList{unit_i});
       
       unitIndex = contains(selTableParadigm.unitType, unitTags{unit_i});
       selTableParadigmUnit = selTableParadigm(unitIndex, :);
+
+      if taskMod
+        selTableParadigmUnit = selTableParadigmUnit(selTableParadigmUnit.taskModulated_selInd, :);
+      end
       selParams.unitTag = unitList{unit_i};
+      batchAnalysisParams.selParam = selParams;
       
       % Find cells with predefined selectivities for the sake of illustrating
       % effects.
-      exampleCellFinderSubEvent(selTableParadigmUnit, selParams);
-      exampleCellFinderObject(selTableParadigmUnit, selParams)
-      
+%       exampleCellFinderSubEvent(selTableParadigmUnit, batchAnalysisParams);
+%       exampleCellFinderObject(selTableParadigmUnit, batchAnalysisParams)
+%       
       % jointTuningPlot(selTableParadigm, paradigmList{par_i}, selParams)
       jointTuningPlot_Specific(selTableParadigmUnit, paradigmList{par_i}, selParams)
       % Make a bar plot and distribution describing epoch preferences (Activity

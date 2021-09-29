@@ -23,7 +23,6 @@ end
 clear inputs
 clear spikesByCategoryForTF
 clear spikesByEventForTF
-clear taskDataAll
 clear analogInByCategory
 
 %%% Load parameters from analysis and stim param files.
@@ -417,7 +416,7 @@ if plotSwitch.eyeStimOverlay
 end
 
 % Initalize a table which the 3 sensitivity functions will use.
-[selTable, anovaTable] = deal(initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth));
+[selTable, anovaTable] = deal(initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth, spikesByChannel));
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
 
@@ -426,9 +425,9 @@ if plotSwitch.subEventAnalysis
   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
 end
 
-if plotSwitch.saccadeRasterPSTH
-  saccadeRasterPSTH(eyeDataStruct, spikesByChannel, taskData, onsetsByEvent, saccadeRasterParams, selTable, psthParams, figStruct);
-  %   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
+if plotSwitch.orbitPosSel
+  eyeInds = [eyeCalParams.eyeXChannelInd, eyeCalParams.eyeYChannelInd];
+  selTable = orbitPosSel(selTable, spikesByChannel, analogInData(eyeInds,:), psthParams, taskDataAll, figStruct);
 end
 
 epochTargParams.groupLabelsByImage = groupLabelsByImage;
@@ -442,11 +441,18 @@ if isfield(eyeDataStruct, 'eyeBehStatsByStim')
   selTable = saccadeDirSel(spikesByEventBinned, eyeDataStruct.eyeBehStatsByStim, psthParams, taskData, selTable);
 end
 
+if plotSwitch.saccadeRasterPSTH
+  saccadeRasterPSTH(eyeDataStruct, spikesByChannel, onsetsByEvent, saccadeRasterParams, selTable, psthParams, figStruct);
+  %   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
+end
+
 % Compares epochs against baseline and each other.
 selTable = epochCompareStats(spikesByEvent, spikesByEventFixAlign, selTable, epochTargParams);
 
 % Tests between epochs of the conditions between different targets.
 selTable = epochTargetStats(spikesByEvent, spikesByEventFixAlign, selTable, eventIDs, taskData.paradigm, epochTargParams);
+selTable = detectingRampingActivity(selTable, spikesByEventBinned, epochTargParams, psthParams);
+selTable = latencyAnalysisBaseline(selTable, psthByImage, psthByImageFixAlign, psthParams, taskData);
 
 if ~strcmp(taskData.paradigm, 'familiarFace') && isfield(eyeDataStruct, 'eyeBehStatsByStim')
   [anovaTable, anovaBinParams] = epochCatsSlidingWindow(spikesByEventBinned, eyeDataStruct.saccadeByStim, anovaTable, eventIDs, taskData.paradigm, psthParams, epochSWparams);

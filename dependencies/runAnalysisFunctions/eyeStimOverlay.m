@@ -199,7 +199,8 @@ for stim_i = 1:length(eventIDs)
     else
       %Open a new video to save the results (video gets opened at end for
       %spikeOverlay).
-      outputVideo{1} = VideoWriter([outDir 'onlay_' stimVidStruct(1).name]);
+      vidNameNoSpike = [outDir 'onlay_' stimVidStruct(1).name];
+      outputVideo{1} = VideoWriter(vidNameNoSpike);
       outputVideo{1}.FrameRate = stimVid.FrameRate;
       open(outputVideo{1});
     end
@@ -247,7 +248,8 @@ for stim_i = 1:length(eventIDs)
         coords = round(eyeInByEventDS{stim_i}(:, trial_i, frame_i));
         % Place the shapes corresponding to gaze for every trial
         %       if colorCodedTrace ~= 2
-        img1 = insertShape(img1, eyeSig.shape, [coords(1) coords(2) 1],'LineWidth', 5, 'Color', eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}.*255);
+        img1 = insertShape(img1, eyeSig.shape, [coords(1) coords(2) 1],'LineWidth', 10, 'Color', eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}.*255);
+        %img1 = insertShape(img1, eyeSig.shape, [coords(1) coords(2) 1],'LineWidth', 10, 'Color', 'r');
         %       else
         %         img1 = insertShape(img1, eyeSig.shape,[coords(1) coords(2) 1],'LineWidth',5,'Color',[eyeSig.color{colorCodedTrace}{colorIndMat(trial_i, frame_i)}]);
         %       end
@@ -287,7 +289,8 @@ for stim_i = 1:length(eventIDs)
             
             %Open a new video to save the results
             if frame_i == 1
-              outputVideo{chan_i} = VideoWriter(fullfile(outDir, sprintf('onlay_Ch%d_U%d_%s', chan_i, unit_i, stimVidStruct(1).name)));
+              vidPath = fullfile(outDir, sprintf('onlay_Ch%d_U%d_%s', chan_i, unit_i, stimVidStruct(1).name));
+              outputVideo{chan_i} = VideoWriter(vidPath);
               outputVideo{chan_i}.FrameRate = stimVid.FrameRate;
               open(outputVideo{chan_i});
             end
@@ -299,6 +302,13 @@ for stim_i = 1:length(eventIDs)
       else
         % Write the frame
         writeVideo(outputVideo{1}, img1);  % Add the new Frame
+        
+        % To get example frames, have them saved in the same dir
+        if 1
+          imgName = sprintf('%s_Frame%d.png', extractBefore(vidNameNoSpike, '.avi'), frame_i);
+          imwrite(img1, imgName);
+        end
+        
       end
       
     end

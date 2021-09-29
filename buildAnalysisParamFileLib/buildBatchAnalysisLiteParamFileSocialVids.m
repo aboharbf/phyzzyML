@@ -62,7 +62,12 @@ plotSwitch.stimPresCount = 0;         % Figures showing presentation counts acro
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
 plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
-plotSwitch.eyeCorr = 1;               % All run eye correlogram
+plotSwitch.eyeCorr = 0;               % All run eye correlogram
+plotSwitch.spikeEyeCorr = 0;          % All run eye correlogram
+plotSwitch.rampingAnalysis = 0;       % Ramping plot
+plotSwitch.latencyAnalysis = 0;       % Latency plot
+plotSwitch.saccadeDirAnalysis = 0;    % saccade dir examples plot
+
 
 plotSwitch.dimRed = 0;                 
 calcSwitch.dataHigh = 0;
@@ -329,10 +334,10 @@ NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 % NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
 
 % Single Bin decoding
-NDTParams.binWidth = 2800;
-NDTParams.stepSize = 2800;
-NDTParams.binFileStart = 1;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
-NDTParams.binFileEnd = 1;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
+NDTParams.binWidth = 200;
+NDTParams.stepSize = 100;
+NDTParams.binFileStart = 400;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
+NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
 
 NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
 NDTParams.AnalysesDefault.null_shuffle_count = 7;            % The number of times to randomly shuffle the data to generate a null distribution.

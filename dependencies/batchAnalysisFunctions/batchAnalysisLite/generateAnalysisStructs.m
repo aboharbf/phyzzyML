@@ -1,15 +1,18 @@
 function analysisStructArray = generateAnalysisStructs(binnedFileName, paradigmName, analysisDir, pFolder, analysisChangeParams, params)
 % a function which generates analyses.
-paradigmOptions = {'NaturalSocial', 'headTurnCon'};
-paradigmNameTag = {'NS', 'HTC'};
+% paradigmOptions = {'NaturalSocial', 'headTurnCon'};
+% paradigmNameTag = {'NS', 'HTC'};
+
+paradigmOptions = {'NaturalSocial'};
+paradigmNameTag = {'NS'};
 
 % Function which may be of use
 % ff2n(8)
 
 par_i = strcmp(paradigmOptions, paradigmName);
-subSampleRuns = true;             % A switch which enables the generation of a random subsampling of units for each analysis, in increments and numbers defined below.
+subSampleRuns = false;             % A switch which enables the generation of a random subsampling of units for each analysis, in increments and numbers defined below.
 unitsPerSubSample = [25:25:500 600:100:1000];
-subsampleCount = 10;
+subsampleCount = 1;
 
 if ~any(par_i)
   error('paradigm in not specified. Please check list or update k_aid_generate_analyses')
@@ -52,8 +55,7 @@ broadCatSocStruct.label_names_to_use = {'objects', 'idle', 'goalDirected', 'soci
 broadCatSocStruct.coreTitle = 'Broad Categories';
 
 % coreAnalysisStructs = [categoriesStruct socCategoriesStruct nonSocCategoriesStruct socVNonSocStruct broadCatSocStruct];
-% coreAnalysisStructs = [categoriesStruct socVNonSocStruct];
-coreAnalysisStructs = [categoriesStruct broadCatSocStruct];
+coreAnalysisStructs = categoriesStruct;
 [coreAnalysisStructs.the_training_label_names] = deal([]);
 [coreAnalysisStructs.the_test_label_names] = deal([]);
 [coreAnalysisStructs.pseudoGenString] = deal('');
@@ -155,8 +157,8 @@ unitSets = {'U'};
 %   'stimEarlySel', 'stimLateSel', 'stimRewardSel'...
 %   };
 
-analyisTagDir = {'AllUnits'};
-analyisTagPlot = {'All'};
+analyisTagDir = {'AllUnits', 'TaskMod', 'TaskMod_Mo', 'TaskMod_Sam'};
+analyisTagPlot = {'All', 'TaskMod', 'TaskMod M1', 'TaskMod M2'};
   
 % Matching set of variables to change, names must match what is defined in
 % the raster file.
@@ -168,7 +170,9 @@ analyisTagPlot = {'All'};
 %   {{'bCat_any_selInd', 1}, {'subSel_headTurn_all_selInd', 1}}, {{'bCat_any_selInd', 1}, {'subSel_headTurn_all_selInd', 0}}, {{'bCat_any_selInd', 0}, {'subSel_headTurn_all_selInd', 1}}...
 %   {{'baseV_stimEarly_selInd', 1}}, {{'baseV_stimLate_selInd', 1}}, {{'baseV_reward_selInd', 1}}};
 
-analyisTagVars = {''};
+analyisTagVars = {'', {{'taskModulated_selInd', 1}}, ...
+  {{'taskModulated_selInd', 1} {'M1unit_selInd', 1}}, ...
+  {{'taskModulated_selInd', 1} {'M1unit_selInd', 0}}};
 
 % Load the available raster data.
 rasterData = load(rasterFile);
@@ -327,14 +331,17 @@ for unit_set_i = 1:length(unitSets)
             the_feature_preprocessors{pp_i} = eval(analysisStruct.preProc{pp_i});
           end
           analysisStruct.the_feature_preprocessors = the_feature_preprocessors;
-          
+          analysisStruct.unitCount = length(analysisStruct.sites);
+
           % Create a shuffle distribution for all the comparisons
           % downstream
           shuffCount = params.null_shuffle_count;
+          analysisStruct.coreAnalysis = saveFileName;           % Useful fields for later
+          
           for shuff_i = 1:shuffCount
             analysisStruct.decoding_results_file = fullfile(analysisStruct.shuff_file_dir, sprintf('results_decoding_%d.mat', shuff_i));
             analysisStruct.shuffle_ds = true;
-            
+
             repsTag = sprintf('(%d Reps %d %s) ', new_k, length(analysisStruct.sites), unitTag);
             analysisStruct.plotTitle = strcat(analysisStruct.coreTitle, unitSubSecTag, repsTag, pseudoGenTag);
             
@@ -344,9 +351,6 @@ for unit_set_i = 1:length(unitSets)
             analysisCount = analysisCount + 1;
           end
           analysisStruct.shuffle_ds = false;
-
-          % Useful fields for later
-          analysisStruct.coreAnalysis = saveFileName;
           
           % Generate sub-samples.
           if subSampleRuns
@@ -380,10 +384,10 @@ for unit_set_i = 1:length(unitSets)
             
             % Save structure
             analysisStruct.decoding_results_file = fullfile(analysisStruct.save_file_dir, strcat('result_', saveFileName, '.mat'));
-            analysisStruct.unitCount = length(analysisStruct.sites);
             save(fullfile(analysisDir, saveFileName), 'analysisStruct');
             analysisStructArray{analysisCount} = fullfile(analysisDir, saveFileName);
             analysisCount = analysisCount + 1;
+            
           end
           
         end

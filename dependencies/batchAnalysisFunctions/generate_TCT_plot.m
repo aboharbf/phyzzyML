@@ -2,14 +2,6 @@ function generate_TCT_plot(analysisStruct, saved_results_name, params)
 % Code which generates TCT matrix using neural decoding toolbox, and
 % modifies axes to better delinates important times in trial.
 
-if length(analysisStruct) ~= 1
-  % Load all the analyses and decoding results
-  
-  % Generate a dummy version to feed into the following function.
-  
-  
-end
-
 % use core code to generate TCT matrix
 plot_obj = plot_standard_results_TCT_object(analysisStruct.decoding_results_file);
 plot_obj.saved_results_structure_name = saved_results_name;

@@ -79,7 +79,6 @@ end
 figH.Children.FontSize = 16;
 
 title(figTitle);
-xlabel('Preferred Epoch')
 ylabel('Unit Count')
 legend('Location', legLoc)
 

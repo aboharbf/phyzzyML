@@ -5,8 +5,8 @@ function selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthPa
 psthPre = psthParams.psthPre;
 psthImDur = psthParams.psthImDur;
 
-psthPreSacc = 300;
-psthPostSacc = 300;
+psthPreSacc = 200;
+psthPostSacc = 200;
 
 saccPSTHDur = psthPreSacc + psthPostSacc;
 binCount = size(spikesByEventBinned{1}{1}{1},2);
@@ -94,18 +94,20 @@ saccadetimesAll = [saccadeTimesStats.saccadetimes];
 fixDotDuration = round(taskData.taskEventStartTimes - taskData.taskEventFixDur)';
 trialTimeOffset = fixDotDuration(trialIndsAll);
 
-comparisonType = {'fixOnset', 'stimOnset', 'stim', 'all'};
+comparisonType = {'fixOnset', 'stimOnset', 'stim', 'nonStim', 'all'};
 
-for comparison_i = 1:length(comparisonType)
+for comparison_i = 4:length(comparisonType)
   % Filter out saccades which don't happen during the correct period. 
   switch comparisonType{comparison_i}
     case 'fixOnset'
       saccadetimesFix = saccadetimesAll + trialTimeOffset;    % Shift times to the appearance of the fixation dot.
-      saccKeep = saccadetimesFix(1,:) > 0 & saccadetimesFix(1,:) < 300;
+      saccKeep = saccadetimesFix(1,:) >= 0 & saccadetimesFix(1,:) <= 300;
     case 'stimOnset'
-      saccKeep = saccadetimesAll(1,:) > 0 & saccadetimesAll(1,:) < 300;
+      saccKeep = saccadetimesAll(1,:) >= 0 & saccadetimesAll(1,:) <= 300;
     case 'stim'
-      saccKeep = saccadetimesAll(1,:) > 0 & saccadetimesAll(1,:) < psthImDur;
+      saccKeep = saccadetimesAll(1,:) >= 0 & saccadetimesAll(1,:) <= psthImDur;
+    case 'nonStim'
+      saccKeep = saccadetimesAll(1,:) <= 0 | saccadetimesAll(1,:) >= psthImDur;
     case 'all'
       saccKeep = true(1, size(saccadetimesAll,2));
   end
@@ -163,7 +165,6 @@ for comparison_i = 1:length(comparisonType)
       
       % Each Saccade has a direction and a count associated. for all the
       % directions, cycle through
-      [trueMu, ~, ~] = circ_mean(saccadeDir, saccadeSpikes);
       trueR = circ_r(saccadeDir, saccadeSpikes, binSpacing);
       
       % Scramble the labels 2000 times,
@@ -176,6 +177,7 @@ for comparison_i = 1:length(comparisonType)
       
       % plots
       if 0
+        [trueMu, ~, ~] = circ_mean(saccadeDir, saccadeSpikes);
         figure()
         % Plot the Mu for the mean of the direction.
         subplot(1,2,1)

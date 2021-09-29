@@ -7,7 +7,7 @@ pValVars = tableVars(contains(tableVars, 'epochSel') & contains(tableVars, 'pVal
 varName = extractBetween(pValVars, 'epochSel_', '_pVal');
 selIndVars = strcat(extractBefore(pValVars, 'pVal'), 'selInd');
 prefStimVars = strcat(extractBefore(pValVars, 'pVal'), 'prefStim');
-siteTag = strcat(string(selTable.dateSubj), string(selTable.runNum), string(selTable.channel), string(selTable.unitType));
+siteTag = strcat(string(selTable.dateSubj), string(selTable.runNum), '_', string(selTable.channel), string(selTable.unitType));
 
 for ii = 1:length(pValVars)
   % Identify the selective units (selInd)
@@ -32,7 +32,7 @@ for ii = 1:length(pValVars)
   else
     fprintf('==== %s Selective for %s ==== \n', params.unitTag, varName{ii})
     for jj = 1:min(length(sigDiffSitesSorted), 10)
-      fprintf('%s - Site %s - Pref Obj %s \n', num2str(sigDiffsSorted(jj), 3), sigDiffSitesSorted{jj}, sigDiffObj{jj})
+      fprintf('%s - Site %s - Pref Obj %s \n', num2str(sigDiffsSorted(jj), 3), sigDiffSitesSorted{jj}, sigDiffObjSorted{jj})
     end
   end
   

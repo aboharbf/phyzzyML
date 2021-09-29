@@ -56,7 +56,7 @@ for stim_ind = 1:size(plotMat,1)
 end
 
 % Remove catagories containing 0.
-if isfield(params, 'removeEmpty') && params.removeEmpty;
+if isfield(params, 'removeEmpty') && params.removeEmpty
   keepInd = sum(plotMat,1) > 0;
   plotMat = plotMat(:,keepInd);
   params.plotLabels = params.plotLabels(keepInd);

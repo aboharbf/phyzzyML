@@ -7,7 +7,7 @@ function [analysisParamFilename] = buildAnalysisParamFileSocialVids( varargin )
 % naturalSocial Test - 20201117Mo 001
 
 runNum = '001';
-dateSubject = '20201115Mo';
+dateSubject = '20201117Mo';
 assert(~isempty(str2double(runNum)), 'Run number had letters, likely not normal run') %Just for batch runs where unique runs follow unconventional naming scheme.
 
 [~, machine] = system('hostname');
@@ -59,9 +59,12 @@ plotSwitch.eyeStatsAnalysis = 1;            % use ClusterFix to generate a vecto
 plotSwitch.attendedObject = 1;              % Vectors to distinguish where subject is looking. Required for prefImRasterColorCoded.
 plotSwitch.imageEyeMap = 0;                 
 plotSwitch.eyeCorrelogram = 0;              % Eye Gram
+plotSwitch.orbitPosSel = 0;
+plotSwitch.rampingAnalysis = 1;
+plotSwitch.latencyAnalysis = 1;
 
 plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
-plotSwitch.saccadeRasterPSTH = 0;
+plotSwitch.saccadeRasterPSTH = 1;
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
@@ -69,7 +72,7 @@ plotSwitch.spikePupilCorr = 0;              % see the correlation between single
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
-plotSwitch.imagePsth = 0;                   % a PSTH for every stimulus in the file.
+plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
 plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
 plotSwitch.analysisGroupsPsth = 0;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
@@ -374,18 +377,17 @@ eyeStimOverlayParams.eyeSig.color = {{[1. 0. 0.];[0 .4 1.];[.1 .8 .1];[.1 .8 .1]
   
 subEventAnalysisParams.outDir = sprintf('%s/%s/%s/%s/',outputVolume,dateSubject,analysisLabel,runNum);
 subEventAnalysisParams.preAlign = 300;
-subEventAnalysisParams.postAlign = 800;
+subEventAnalysisParams.postAlign = 400;
 subEventAnalysisParams.nullAllStim = 1;
 subEventAnalysisParams.RewardEvent = 1;
 subEventAnalysisParams.rewardAntTime = 200;       % A time to look prior to the mean reward time. This window is compared to the period after reward delivery. PreReward > Post Reward = Reward Anticipation Neuron.
 subEventAnalysisParams.FixEvent = 1;
 subEventAnalysisParams.nullSampleMult = 10;       % For every n stimuli with the event, sample all other stimuli this number of times for the null distribution.
 subEventAnalysisParams.psthParams = psthParams;
-subEventAnalysisParams.psthParams.psthPre = 100;
-subEventAnalysisParams.psthParams.psthImDur = 400;
-subEventAnalysisParams.psthParams.psthPost = 100;
+subEventAnalysisParams.psthParams.psthPre = 200;
+subEventAnalysisParams.psthParams.psthImDur = 300;
+subEventAnalysisParams.psthParams.psthPost = 0;
 subEventAnalysisParams.psthParams.smoothingWidth = 10;
-subEventAnalysisParams.testPeriod = [0 200];                            % The period during which spikes are counted and a t-test is performed.
 subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
 subEventAnalysisParams.stimPlotParams.psthPre = psthParams.psthPre;
 subEventAnalysisParams.stimPlotParams.psthImDur = psthParams.psthImDur;
@@ -396,19 +398,25 @@ subEventAnalysisParams.genPlots = 1;                                    % Asks i
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
 subEventAnalysisParams.preSaccOffset = 200;                               % Offset to use when determining pre-saccade period.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
-                                         'pre-saccades', 'saccades', 'pre-saccadeNonStim', 'saccadesNonStim', 'blinks', 'fixation', 'reward', 'rewardAbsent', 'rewardAnt'};
+                                         'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks', 'fixation', ...
+                                         'reward', 'rewardAbsent', 'rewardAnt'};
+subEventAnalysisParams.possibleEventsPlotNames = {'Head turn, right', 'Head turn, left', 'Body turn', 'Eye contact', 'turnToward', 'turnAway',...
+                                         'Saccade', 'Saccade', 'Saccade', 'Saccade', 'Blink', 'Fixation',...
+                                         'Reward', 'Reward', 'Reward'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
-                                             [0 200]; [0 100]; [0 200]; [0 100]; [-50 150]; [0 200]; [0 200]; [0 200]; [0 subEventAnalysisParams.rewardAntTime]];
+                                             [-200 0]; [0 100]; [-200 0]; [0 100]; [-50 150]; [0 200]; ...
+                                             [0 200]; [0 200]; [-subEventAnalysisParams.rewardAntTime 0]];
 subEventAnalysisParams.nonParametric = 1;                                 % Use non parametric test.
 
 saccadeRasterParams.psthParams = psthParams;
 saccadeRasterParams.preAlign = 400;
 saccadeRasterParams.postAlign = 400;
-saccadeRasterParams.psthParams.psthPre = 300;
-saccadeRasterParams.psthParams.psthImDur = 300;
+saccadeRasterParams.psthParams.psthPre = 200;
+saccadeRasterParams.psthParams.psthImDur = 200;
 saccadeRasterParams.psthParams.psthPost = 0;  
 saccadeRasterParams.spikeTimes = 0;
 saccadeRasterParams.psthParams.movingWin(1) = 240;
+saccadeRasterParams.smoothingWidth = 20;  %psth smoothing width, in ms
 
 % Variables for creating saccade rasters and PSTHes.
 saccadeStackParams.preEventTime = 300;
@@ -501,15 +509,17 @@ epochSWparams.binStep = 25;
 % epochSWparams.startTime = -psthParams.psthPre;
 epochSWparams.startTime = -psthParams.psthPre;
 
-epochSWparams.naturalSocial.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
-epochSWparams.naturalSocial.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...
-                                                  {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
-epochSWparams.naturalSocial.includeEyes = [false false true true];
+% epochSWparams.naturalSocial.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
+% epochSWparams.naturalSocial.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...
+%                                                   {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
+% epochSWparams.naturalSocial.includeEyes = [false false true true];
 
-epochSWparams.headTurnCon.testLabel = {'broadCat', 'categories', 'broadCatEyes', 'categoriesEyes'};
-epochSWparams.headTurnCon.testCategoryLabels = {{'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...
-                                                {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
-epochSWparams.headTurnCon.includeEyes = [false false true true];
+epochSWparams.naturalSocial.testLabel = {'categories', 'categoriesEyes'};
+epochSWparams.naturalSocial.testCategoryLabels = {{'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, ...
+                                                  {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochSWparams.naturalSocial.includeEyes = [false true];
+
+epochSWparams.headTurnCon = epochSWparams.naturalSocial;
 
 epochSWparams.headTurnIso.testLabel = {'Model', 'headTurn', 'headvArms'};
 epochSWparams.headTurnIso.testCategoryLabels = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}};

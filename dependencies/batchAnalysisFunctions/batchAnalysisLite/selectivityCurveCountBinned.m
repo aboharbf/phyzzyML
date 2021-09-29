@@ -3,10 +3,10 @@ function selectivityCurveCountBinned(spikePathBank, batchAnalysisParams)
 % each paradigm.
 
 barplotParams = struct();
-barplotParams.labels = {'socialInteraction', 'chasing', 'fighting', 'mounting', 'grooming',...
+barplotParams.labels = {'chasing', 'fighting', 'mounting', 'grooming',...
                         'goalDirected', 'idle', 'objects', 'scene'};
-barplotParams.colors = [1 0 0; 1 0 0; .95 0 0; .9 0 0; .85 0 0;...
-                        .4 0 0; 0.9 0.6 0.1; 0 0.5 0; 0.5 0.5 0.5];
+barplotParams.colors = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0;...
+                        0 1 0; 0 0.9 0; 0 0 1; 0 0 0.7;];
 
 % Collect unit selectivity
 [anovaTablePerRun] = spikePathLoad(spikePathBank, {'anovaTable'}, batchAnalysisParams.spikePathLoadParams);
@@ -19,8 +19,11 @@ if ~exist(outputDir, 'dir')
 end
 
 paradigmList = unique(spikePathBank.paradigmName);
-unitLabel = {'MUA', digitsPattern};
-unitTypePlot = {'MUA', 'Units'};
+% unitLabel = {'MUA', digitsPattern};
+% unitTypePlot = {'MUA', 'Units'};
+
+unitLabel = {digitsPattern};
+unitTypePlot = {'Units'};
 
 % Bins for the x-axis
 binStep = 25;
@@ -28,8 +31,8 @@ binSize = 150;
 stimSize = 2800 + 500;
 
 % Resort for later
-BaseArrayResort = {{'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}, {'socialInteraction', 'goalDirected', 'idle', 'objects', 'scene'}};   
-BaseArrayTestNames = {'categoriesTest', 'broadCatTest'};
+BaseArrayResort = {{'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}};   
+BaseArrayTestNames = {'categoriesTest'};
 
 for par_i = 1:length(paradigmList)
   
@@ -43,6 +46,7 @@ for par_i = 1:length(paradigmList)
   selTableVars = selTablePerRunParadigm.Properties.VariableNames';
   
   tableVarsPrefStim = anovaTableVars(contains(anovaTableVars, '_prefStim'));
+  tableVarsPrefStim = tableVarsPrefStim(~contains(tableVarsPrefStim, 'broadCat'));
   
   for pref_i = 1:length(tableVarsPrefStim)
     

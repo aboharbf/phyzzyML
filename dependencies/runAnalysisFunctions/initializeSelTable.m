@@ -1,4 +1,4 @@
-function selTable = initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth)
+function selTable = initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth, spikesByChannel)
 
 channelUnitNames = figStruct.channelUnitNames;
 channelNames = figStruct.channelNames;
@@ -56,7 +56,51 @@ runNumVec = repmat(string(runNum), [length(channelVec), 1]);
 
 recDepthVec = repmat(string(recDepth), [length(channelVec), 1]);
 
-selTable = table(dateSubjVec, runNumVec, gridHoleVec, channelVec, unitTypeVec, recDepthVec);
+meanWaveFormVec = cell(size(recDepthVec));
+
+figStruct.closeFig = 1;
+figStruct.exportFig = 1;
+figStruct.saveFig = 0;
+
+for chan_i = 1:length(spikesByChannel)
+  % Identify unique units
+  unitsOnChan = unique(spikesByChannel(chan_i).units)';
+  unitsOnChan = unitsOnChan(unitsOnChan > 0);
+  
+  % Find their mean wave forms
+  for unit_i = unitsOnChan
+    % Find the mean waveform
+    unitIndex = spikesByChannel(chan_i).units == unit_i;
+    waveFormUnit = spikesByChannel(chan_i).waveforms(unitIndex,:);
+    randSamp = randperm(size(waveFormUnit,1), min(size(waveFormUnit, 1), 1000));
+    meanWaveFormTrace = mean(waveFormUnit);
+    
+    % Plotting - dont make it if its already there
+    waveFormTitle = sprintf('%s U%d waveForms', figStruct.channelNames{chan_i}, unit_i);
+    waveFormFigPath = fullfile(figStruct.figDir, strrep(waveFormTitle, ' ', '_'));
+    
+    if ~exist(waveFormFigPath, 'file')
+      figure('Name', waveFormTitle, 'NumberTitle', 'off');
+      plot(waveFormUnit(randSamp,:)'); hold on; plot(meanWaveFormTrace, 'linewidth', 3, 'color', 'k');
+      title(waveFormTitle);
+      xlabel('Sample');
+      ylabel('Amplitude (mV)');
+      xlim([1 length(meanWaveFormTrace)])
+      
+      % Save
+      saveFigure(figStruct.figDir, strrep(waveFormTitle, ' ', '_'), [], figStruct, figStruct.figTag);
+      
+    end
+    
+    % Slot in
+    unitTableIndex = strcmp(unitTypeVec, sprintf('U%d', unit_i)) & strcmp(channelVec, figStruct.channelNames{chan_i});
+    meanWaveFormVec{unitTableIndex} = meanWaveFormTrace;
+
+  end
+  
+end
+
+selTable = table(dateSubjVec, runNumVec, gridHoleVec, channelVec, unitTypeVec, recDepthVec, meanWaveFormVec);
 selTable.Properties.VariableNames = extractBefore(selTable.Properties.VariableNames, 'Vec');
 
 end

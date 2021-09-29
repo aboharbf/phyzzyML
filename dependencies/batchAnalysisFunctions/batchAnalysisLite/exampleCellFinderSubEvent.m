@@ -6,7 +6,7 @@ tableVars = selTable.Properties.VariableNames';
 cohensDVars = tableVars(contains(tableVars, 'subSel') & contains(tableVars, 'cohensD'));
 varName = extractBetween(cohensDVars, 'subSel_', '_cohensD');
 selIndVars = strcat(extractBefore(cohensDVars, 'cohensD'), 'selInd');
-siteTag = strcat(string(selTable.dateSubj), string(selTable.runNum), string(selTable.channel), string(selTable.unitType));
+siteTag = strcat(string(selTable.dateSubj), string(selTable.runNum), '_', string(selTable.channel), string(selTable.unitType));
 
 for ii = 1:length(cohensDVars)
   % Identify the selective units (selInd)
@@ -23,13 +23,17 @@ for ii = 1:length(cohensDVars)
   
   % Print
   if isempty(sigDiffs)
-    fprintf('==== %s Selective for %s - is empty ==== \n', params.unitTag, varName{ii})
+    fprintf('==== %s Selective for %s - is empty ==== \n', params.selParam.unitTag, varName{ii})
   else
-    fprintf('==== %s Selective for %s ==== \n', params.unitTag, varName{ii})
+    fprintf('==== %s Selective for %s ==== \n', params.selParam.unitTag, varName{ii})
     for jj = 1:min(length(sigDiffSitesSorted), 10)
       fprintf('%s - Site %s \n', num2str(sigDiffsSorted(jj), 3), sigDiffSitesSorted{jj})
     end
   end
+  
+  % open the PSTHes.
+  openUnitFigs(sigDiffSitesSorted(1:2), 'saccadeRaster_*', params.analysisDirectory)
+  % openUnitPSTHes(sortedUnitNames(end:-1:end-units2Report+1), batchAnalysisParams.analysisDirectory)
   
 end
 end

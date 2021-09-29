@@ -175,12 +175,12 @@ if ~isempty(eyeBehStatsByStim)
         blinkTimes = [blinkTimes; (eyeTrial.blinktimes(1,:)' + stimuliStartTimes{stim_i}(trial_i))];
       end
       
-      saccadeBins = find(stimSaccadeArrays{stim_i}(trial_i,:)) - psthParams.psthPre;
-      saccadeNullBins = find(stimSaccadeNullArrays{stim_i}(trial_i,:)) - psthParams.psthPre;
-      nonStimSaccInd = saccadeBins < 0 | saccadeBins > psthParams.psthImDur + psthParams.psthPost;
-      nonStimNullSaccInd = saccadeNullBins < 0 | saccadeNullBins > psthParams.psthImDur + psthParams.psthPost;
-      
       if ~isempty(eyeTrial.saccadetimes)
+        saccadeBins = find(stimSaccadeArrays{stim_i}(trial_i,:)) - psthParams.psthPre;
+        saccadeNullBins = find(stimSaccadeNullArrays{stim_i}(trial_i,:)) - psthParams.psthPre;
+        nonStimSaccInd = saccadeBins < 0 | saccadeBins > psthParams.psthImDur;
+        nonStimNullSaccInd = saccadeNullBins < 0 | saccadeNullBins > psthParams.psthImDur;
+        
         saccadeTimes = [saccadeTimes; (saccadeBins' + stimuliStartTimes{stim_i}(trial_i))];
         saccadeNonStimTimes = [saccadeNonStimTimes; (saccadeBins(nonStimSaccInd)' + stimuliStartTimes{stim_i}(trial_i))];
         saccadeNullTimes = [saccadeNullTimes; (saccadeNullBins' + stimuliStartTimes{stim_i}(trial_i))];
@@ -190,9 +190,10 @@ if ~isempty(eyeBehStatsByStim)
     end
   end
   
-  % Generate pre-saccade times
-  preSaccadeTimes = saccadeTimes - subEventParams.preSaccOffset;
-  preSaccadeNonStimTimes = saccadeNonStimTimes - subEventParams.preSaccOffset;
+  % Generate pre-saccade times - *Pre-sacc test period is -200 to 0, so the
+  % event times are the same as for saccades.
+  preSaccadeTimes = saccadeTimes;% - subEventParams.preSaccOffset;
+  preSaccadeNonStimTimes = saccadeNonStimTimes;% - subEventParams.preSaccOffset;
   preSaccadeNullTimes = saccadeNullTimes - subEventParams.preSaccOffset;
   preSaccadeNonStimNullTimes = saccadeNonStimNullTimes - subEventParams.preSaccOffset;
   
@@ -270,8 +271,12 @@ if subEventParams.RewardEvent
   rewardTimesNull = createNullScrambleTimes({rewardTimes}, 300, 200);  % Generate Null times for the rewardTimes event.
     
   % Establish reward anticipation vector based on 'rewardAntTime' param.
-  rewardAntTimes = rewardTimes - subEventParams.rewardAntTime;
-  rewardAntNull = rewardTimes;                                    % Null times for reward anticipation is right after delivery. Reward Ant neurons should have Hz Pre Reward > Hz Post Reward
+  % Reward anticipation testing window is 0 - 200 ms, so times are the same
+  % as reward.
+  % Because the test window is 0 to rewardAntTime, adding it in just makes it normal reward times vs the precending x ms.
+  
+  rewardAntTimes = rewardTimes; 
+  rewardAntNull = rewardTimes + subEventParams.rewardAntTime;  
   
   % Stick onto larger structures - rewardAnt is t tested for the period 
   subEventNames = [subEventNames; "reward"; "rewardAnt"];
@@ -306,10 +311,6 @@ if subEventParams.FixEvent
   onsetsByEvent = [onsetsByEvent; fixOnTimes];
   onsetsByEventNull = [onsetsByEventNull; fixOnTimesNull];
 end
-
-%Ideally this would happen in some form after alignSpikes, instead of
-%before, but the nested cell structure is more difficult to repmat then
-%this, and may not be read the same way.
 
 % Sample the null times, expand each onsertsByEventNull cell by the
 % parameter below (subEventParams.nullSampleMult).
@@ -369,7 +370,11 @@ if ~isempty(onsetsByEvent)
     unitInd = 1;
     
     % Find the test window for this event
-    testPeriodInd = find(cellfun(@(x) contains(subEventNames{event_i}, x), subEventParams.possibleEvents), 1);
+    eventName = subEventNames{event_i};
+    testPeriodInd = strcmp(eventName, subEventParams.possibleEvents);
+    if ~any(testPeriodInd)
+      testPeriodInd = find(cellfun(@(x) contains(eventName, x), subEventParams.possibleEvents), 1);
+    end
     testPeriod = subEventParams.testPeriodPerEvent(testPeriodInd, :);
     assert(~isempty(testPeriod), 'Event %s is missing from array', subEventNames{event_i})
     
@@ -384,6 +389,7 @@ if ~isempty(onsetsByEvent)
         
     for chan_i = 1:chanCount
       for unit_i = 1:unitCount(chan_i)
+        
         % Collect relevant spikes
         eventSpikes = [spikeCounts{event_i}{chan_i}{unit_i}{1}.rates];
         nullSpikes = [spikeCountsNull{event_i}{chan_i}{unit_i}{1}.rates];
@@ -408,25 +414,20 @@ if ~isempty(onsetsByEvent)
         
       end
     end
-    
   end
   
   % Plotting
-  subEventParams.genPlots = 0;
-  if subEventParams.genPlots
-    
-    % Plotting Below
-    tabPerEvent = 0; % Plot line PSTHes for each event.
-    
+  if subEventParams.genPlots    
+    figPerEvent = 1;    % Save a figure for each event. Only save for units since that is what we're using in the paper.
+        
     % If we're plotting, we need to remove all the individual subEvent
     % instances, the plot becomes unreadable with them, and we are
     % predominantly interested in them statistically, not to visualize
     dataInd = find(~contains(subEventNames, '|'))';
     
-    if ~tabPerEvent
-      rowCount = ceil(length(dataInd)/2);
-      colCount = 2;
-    end    
+    % Create a plotting array which can be referenced
+    [~, plotNameInd] = ismember(subEventNames(dataInd), subEventParams.possibleEvents);
+    plotLabels = subEventParams.possibleEventsPlotNames(plotNameInd);
     
     % Generate an array for referencing subEvents correctly.
     eventsInEventDataPlot = strrep(subEventNames, '_',' ');
@@ -438,51 +439,83 @@ if ~isempty(onsetsByEvent)
     
     for chan_i = 1:length(psthBySubEvent)
       unitCount = length(psthBySubEvent{chan_i});
-      for unit_i = 1:unitCount
-        
-        if unit_i == 1 && unitCount == 2
-          continue % Only make plot for MUA.
-        end
+      for unit_i = 2:unitCount-1 % skip unsorted and MUA.
         
         % Create per unit figure
         if ~isempty(figStruct.channelUnitNames{chan_i})
           
-          psthTitle = sprintf('SubEvent comparison - %s %s', figStruct.channelNames{chan_i}, figStruct.channelUnitNames{chan_i}{unit_i});
-          figure('Name',psthTitle,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
+          chUnitStr = sprintf('%s%s', figStruct.channelNames{chan_i}, figStruct.channelUnitNames{chan_i}{unit_i});
           
-          if ~tabPerEvent
-            sgtitle(psthTitle)
+          % If one plot for all events, make it here
+          if ~figPerEvent
+            figTitleSave = sprintf('SubEvent comparison - %s', chUnitStr);
+            figH = figure('Name',figTitleSave,'NumberTitle','off','units','normalized', 'position', figStruct.figPos);
+            sgtitle(figTitle)
           end
           
           % Cycle through events
           for event_i = 1:length(dataInd)
             
-            if ~tabPerEvent
-              axesH = subplot(rowCount, colCount, event_i);
-            else
-              objTab = uitab('Title', subEventNames{dataInd(event_i)});
-              axesH = axes('parent', objTab);
+            % If not significant, don't plot
+            pValNum = testResults{chan_i}{unit_i}{dataInd(event_i)};
+            if pValNum > 0.05
+              continue
             end
             
             % Generate the title
-            testPeriodInd = find(cellfun(@(x) contains(subEventNames{dataInd(event_i)}, x), subEventParams.possibleEvents), 1);
+            eventName = subEventNames{dataInd(event_i)};
+            testPeriodInd = strcmp(eventName, subEventParams.possibleEvents);
+            if ~any(testPeriodInd)
+              testPeriodInd = find(cellfun(@(x) contains(eventName, x), subEventParams.possibleEvents), 1);
+            end
             testPeriod = subEventParams.testPeriodPerEvent(testPeriodInd, :);
-            pValNum = num2str(testResults{chan_i}{unit_i}{dataInd(event_i)}, 2);
-            plotTitle = sprintf('%s (p = %s, %d - %d ms, cohensD = %s, N = %d)', eventsInEventDataPlot{dataInd(event_i)}, pValNum, testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{dataInd(event_i)}, 3), length(spikeCounts{dataInd(event_i)}{chan_i}{unit_i}{1}.rates));
+            
+            % Generate strings for plotting
+            pValStr = num2str(pValNum, 2);
+            eventCount = length(spikeCounts{dataInd(event_i)}{chan_i}{unit_i}{1}.rates);
+            eventNamePlot = plotLabels{event_i};
+            eventName = eventsInEventDataPlot{dataInd(event_i)};
+
+            % Open up the figure
+            if figPerEvent
+              % plotTitle = sprintf('%s, %s (p = %s, %d - %d ms, cD = %s, N = %d)', chUnitStr, eventName, pValStr, testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{dataInd(event_i)}, 3), eventCount);
+              figTitle = sprintf('%s, %s (p = %s, %d - %d ms, cD = %s, N = %d)', chUnitStr, eventName, pValStr, testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{dataInd(event_i)}, 3), eventCount);
+              figH = figure('Name', figTitle, 'NumberTitle','off','units','normalized', 'position', [0.3792    0.1528    0.3771    0.3213]);
+              figTitleSave = sprintf('subEventPSTH_%s_%s', chUnitStr, eventName);
+              plotTitle = sprintf('%s Aligned Activity', eventNamePlot);
+            else
+              plotTitle = sprintf('%s (p = %s, %d - %d ms, cD = %s, N = %d)', eventName, pValStr, testPeriod(1), testPeriod(2), num2str(cohensD{chan_i}{unit_i}{dataInd(event_i)}, 3), eventCount);
+              axesH = subplot(rowCount, colCount, event_i);
+            end
             
             % Variables for plotting
             plotData = [psthBySubEvent{chan_i}{unit_i}(dataInd(event_i), :); psthBySubEventNull{chan_i}{unit_i}(dataInd(event_i), :)];
             plotErr = [psthErrBySubEvent{chan_i}{unit_i}(dataInd(event_i), :); psthErrBySubEventNull{chan_i}{unit_i}(dataInd(event_i), :)];
-            plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle , [{'Event'}, {'Null'}]);
+            
+            % Plot
+            [~, ~, ~, legendH] = plotPSTH(plotData, plotErr, [], subEventParams.psthParams, 'line', plotTitle, [plotLabels(event_i), {'Null'}]);
+            
+            % Label
             ylabel('Fr (Hz)');
+            xlabel('Time from sub-event onset (ms)');
+            legendH.Location = 'southeast';
             hold on
             
-            if dataInd(event_i) ~= length(subEventNames)
+            if dataInd(event_i) ~= length(subEventNames) && ~figPerEvent
               axesH.XLabel.String = '';
             end
-             
+            
+            % If one figure per event, save
+            if figPerEvent
+              saveFigure(figStruct.figDir, figTitleSave, [], figStruct, figStruct.figTag)
+            end
+            
           end
-          saveFigure(figStruct.figDir, psthTitle, [], figStruct, [])
+          
+          if ~figPerEvent
+            saveFigure(figStruct.figDir, figTitleSave, [], figStruct, [])
+          end
+          
         end
       end
     end

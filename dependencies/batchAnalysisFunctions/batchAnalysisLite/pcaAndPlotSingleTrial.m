@@ -1,4 +1,4 @@
-function pcaAndPlot(params)
+function pcaAndPlotSingleTrial(params)
 % Function which looks in the appropriate directory for pcaData, and plots
 % it.
 
@@ -39,7 +39,7 @@ markerSize = 30;
 %   'categories_Combo_headTurnCon_MUA_SNT', 'categories_Combo_headTurnCon_Units_SNT'};
 
 if removeRewardPeriod && removeFixPeriod
-  dimRedPCs = {[1 2 4]; [1 2 3]};
+  dimRedPCs = {[1 2 4]; [1 2 4]};
   cameraPos = {[2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]};
 else
   dimRedPCs = {[3 4 5]; [3 4 5]};
@@ -58,7 +58,7 @@ activityProcessTag = 'SNT';
 dimRedLabel = {'categories_Combo_NaturalSocial_Units', 'categories_Combo_headTurnCon_Units'};
 dimRedLabel = strcat(dimRedLabel, '_', activityProcessTag);
 
-dimRedFiltInd = contains(titles, 'meanResponse') & contains(titles, '200') & contains(titles, activityProcessTag) & contains(titles, 'categories') & contains(titles, 'Combo');
+dimRedFiltInd = contains(titles, 'singleTrial') & contains(titles, '200') & contains(titles, activityProcessTag) & contains(titles, 'categories') & contains(titles, 'Combo');
 dimRedParams = dimRedParams(dimRedFiltInd);
 titles = titles(dimRedFiltInd);
 
@@ -91,6 +91,8 @@ for data_i = 1:length(dimRedParams)
     binLabelInfo.x_for_lines = interp1(binStarts_shifted, 1:length(binStarts_shifted), binLabelInfo.points_for_lines);
     
     binnedDataArray = cellfun(@(x) x(:, keepInd), binnedDataArray, 'UniformOutput', false);
+    binnedDataArray = cellfun(@(x) sum(x, 2), binnedDataArray, 'UniformOutput', false);
+    
     binCount = sum(keepInd);
        
   end
@@ -101,6 +103,10 @@ for data_i = 1:length(dimRedParams)
   
   % Perform PCA on the data
   [coeff, score, ~, ~, explained, ~] = pca(binnedDataStack');
+  
+  for i = 1:length(labels)
+    scatter3(score(i,:,1), score(i, :, 2), score(i, :, 3), markerSize, colors(i, :));
+  end
     
   % Plots
   % Plot 1 - Data Input
@@ -185,7 +191,7 @@ for data_i = 1:length(dimRedParams)
   axHands = gobjects(length(labels)+1,1);
   
   if excludeIndividualTimeCourse
-    figH = figure('name', figTitle, 'units','normalized','position', [0.0700    0.2300    0.3878    0.5900]);
+    figH = figure('name', figTitle, 'units','normalized','position', [0.07 0.23 0.57 0.59]);
     axHands(1) = subplot(1, 1, 1, 'CameraPosition', cameraPos{data_i});
   else
     figH = figure('name', figTitle, 'units','normalized','position', [0.07 0.12 0.85 0.7]);
@@ -198,13 +204,12 @@ for data_i = 1:length(dimRedParams)
   hold on
     
   for i = 1:length(labels)
-    scatter3(scoreToPlot(i,:,1), scoreToPlot(i, :, 2), scoreToPlot(i, :, 3), markerSize, colors(i, :), 'filled');
+    scatter3(scoreToPlot(i,:,1), scoreToPlot(i, :, 2), scoreToPlot(i, :, 3), markerSize, colors(i, :));
   end
   
   xlabel(sprintf('PC %d', pc2Plot(1))); ylabel(sprintf('PC %d', pc2Plot(2))); zlabel(sprintf('PC %d', pc2Plot(3))); 
-  title(figTitle); legH = legend(labels); grid;
-  legH.Position = [0.6896    0.2703    0.1997    0.2655];
-  
+  title(figTitle); legend(labels); grid;
+    
   % Find the points between that mark transitions
   [pointsForLabelsPlot, binsForLabels, binLabelsNew, colorAxis] = bin2Label(binLabelInfo, pointsForLabels, string2Plot, tmpColorMat);
   if ~excludeIndividualTimeCourse

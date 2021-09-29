@@ -24,6 +24,6 @@ for ii = 1:length(binEdges)
 end
 
 binStarts = binEdges(1,:);
-binEnds = binEdges(2,:);
+binEnds = binEdges(2,:) - 1;
 
 end

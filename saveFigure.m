@@ -17,7 +17,7 @@ end
 
 if ~isempty(footer)
   ax = axes('Position',[0 0 1 .05], 'Visible','off');
-  text(ax, .025, .5, footer, 'fontsize',12);
+  text(ax, .025, .5, footer, 'fontsize', 8);
 end
 if figStruct.saveFig     
   savefig(fullfile(outDir, strcat(filename, '.fig')));

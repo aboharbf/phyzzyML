@@ -73,6 +73,12 @@ for run_i = 1:length(selTablePerRun)
   % data, stack it, and expand to a unit*bin*uniqueObj logical array.
   selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params);
   
+  % Create a task modulated inded
+  selTabVars = contains(selTableRun.Properties.VariableNames, 'baseV_') & contains(selTableRun.Properties.VariableNames, '_pVal');
+  pValTaskMod = selTableRun{:, selTabVars};
+  taskModInd = any(pValTaskMod <= alpha, 2);
+  selTableRun.taskModulated_selInd = taskModInd;
+  
   % Sliding Window to Epoch conversion.
   if switch2StimWhole
 %     epochSParamsRun.times = [-500 0; -800 0; 0 2800; 2800 3150];
@@ -97,6 +103,13 @@ for run_i = 1:length(selTablePerRun)
     selTableRun.subSel_rewardCombo_selInd = selTableRun.subSel_reward_selInd;
   else
     selTableRun.subSel_rewardCombo_selInd = selTableRun.subSel_rewardAbsent_selInd;
+  end
+  
+  % Add a label to distinguish Mo neurons from Sam Neurons easily
+  if contains(spikePathBank.Row{run_i}, 'Mo')
+    selTableRun.M1unit_selInd = true(size(selTableRun,1),1);
+  else
+    selTableRun.M1unit_selInd = false(size(selTableRun,1),1);
   end
   
   % Add processed table to the output array
