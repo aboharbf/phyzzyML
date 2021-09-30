@@ -48,7 +48,9 @@ labelSet = {'categories'};
 % storeData = cell(length(paradigmVec), length(unitTypes), length(nameArray));
 
 dataType = {'singleTrial', 'meanResponse'};
+unitSet = {'All', 'taskMod'};
 
+for s_i = 1:length(unitSet)
 for d_i = 1:length(dataType)
   for m_i = 1:length(nameArray)
     for paradigm_i = 1:length(paradigmVec)
@@ -62,6 +64,8 @@ for d_i = 1:length(dataType)
       else
         spikePathBankMP = spikePathBank(contains(spikePathBank.paradigmName, paradigmVec{paradigm_i}), :);
       end
+      
+      switchStruct.unitSet = unitSet{s_i};
       
       % Check if Raster data is present, if not, generate.
       if ~exist(rasterDataDirMP, 'dir') || length(dir(rasterDataDirMP)) == 2
@@ -109,7 +113,7 @@ for d_i = 1:length(dataType)
           plotIndParams.outLogic = false;
           
           % Final destination file name - if it exists, skip this step
-          fileOutName = sprintf('dimRedData_%s_%dW_%dS_%s_%s_%s_%s_%s.mat', dataType{d_i}, binSize, binWidth, labelSet{group_i}, nameArray{m_i}, paradigmLabel, unitTypesLabel{unit_Type_i}, preProcTag);
+          fileOutName = sprintf('dimRedData_%s_%s_%dW_%dS_%s_%s_%s_%s_%s.mat', unitSet{s_i}, dataType{d_i}, binSize, binWidth, labelSet{group_i}, nameArray{m_i}, paradigmLabel, unitTypesLabel{unit_Type_i}, preProcTag);
           dataOutFile = fullfile(preprocDir, fileOutName);
           
           if 0%exist(dataOutFile, 'file')
@@ -185,4 +189,5 @@ for d_i = 1:length(dataType)
       end
     end
   end
+end
 end

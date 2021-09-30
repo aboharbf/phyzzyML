@@ -75,8 +75,10 @@ plotSwitch.spikePupilCorr = 0;              % see the correlation between single
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".
 plotSwitch.stimPSTHoverlay = 0;             % grabs stimuli and plots the PSTH underneath.
+
 plotSwitch.imagePsth = 1;                   % a PSTH for every stimulus in the file.
 plotSwitch.categoryPsth = 0;                % a PSTH for every category represented in the file and the categoryList of stimParamFile.
+
 plotSwitch.analysisGroupsPsth = 0;          % a PSTH for every set of analysisGroups defined below.
 plotSwitch.prefImRaster = 0;                % Raster, Not color coded.
 plotSwitch.prefImRasterColorCoded = 0;      % Raster, uses info from attendedObj switch. 1 is colored spikes, 2 is colored background, 3 is Saccade Image, 4 is pupil img.
@@ -385,10 +387,11 @@ subEventAnalysisParams.nullAllStim = 1;
 subEventAnalysisParams.RewardEvent = 1;
 subEventAnalysisParams.rewardAntTime = 200;       % A time to look prior to the mean reward time. This window is compared to the period after reward delivery. PreReward > Post Reward = Reward Anticipation Neuron.
 subEventAnalysisParams.FixEvent = 1;
+subEventAnalysisParams.StimOnOffEvent = 1;
 subEventAnalysisParams.nullSampleMult = 10;       % For every n stimuli with the event, sample all other stimuli this number of times for the null distribution.
 subEventAnalysisParams.psthParams = psthParams;
 subEventAnalysisParams.psthParams.psthPre = 200;
-subEventAnalysisParams.psthParams.psthImDur = 300;
+subEventAnalysisParams.psthParams.psthImDur = 200;
 subEventAnalysisParams.psthParams.psthPost = 0;
 subEventAnalysisParams.psthParams.smoothingWidth = 10;
 subEventAnalysisParams.psthParams.movingWin = psthParams.movingWin;
@@ -399,23 +402,23 @@ subEventAnalysisParams.stimDir = stimDir;
 subEventAnalysisParams.spikeTimes = calcSwitch.spikeTimes;
 subEventAnalysisParams.genPlots = 1;                                    % Asks if you want to generate plots.
 subEventAnalysisParams.specSubEvent = 0;                                % Analyze individual instances of subEvents in eventData.
-subEventAnalysisParams.preSaccOffset = 200;                               % Offset to use when determining pre-saccade period.
+subEventAnalysisParams.preSaccOffset = 200;                             % Offset to use when determining pre-saccade period.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
-                                         'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks', 'fixation', ...
-                                         'reward', 'rewardAbsent', 'rewardAnt'};
+                                         'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks', 'fixation',...
+                                         'reward', 'rewardAbsent', 'rewardAnt', 'stimOnset', 'stimOffset'};
 subEventAnalysisParams.possibleEventsPlotNames = {'Head turn, right', 'Head turn, left', 'Body turn', 'Eye contact', 'turnToward', 'turnAway',...
-                                         'Saccade', 'Saccade', 'Saccade', 'Saccade', 'Blink', 'Fixation', ...
-                                         'Reward', 'Reward', 'Reward'};
+                                         'Saccade', 'Saccade', 'Saccade', 'Saccade', 'Blink', 'Fixation',...
+                                         'Reward', 'Reward', 'Reward', 'Stimulus Onset', 'Stimulus Offset'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
                                              [-200 0]; [0 100]; [-200 0]; [0 100]; [-50 150]; [0 200];...
-                                             [0 200]; [0 200]; [-subEventAnalysisParams.rewardAntTime 0]];
+                                             [0 200]; [0 200]; [-subEventAnalysisParams.rewardAntTime 0]; [0 200]; [0 200]];
 subEventAnalysisParams.nonParametric = 1;                                 % Use non parametric test.
 
 saccadeRasterParams.psthParams = psthParams;
 saccadeRasterParams.preAlign = 400;
 saccadeRasterParams.postAlign = 400;
-saccadeRasterParams.psthParams.psthPre = 300;
-saccadeRasterParams.psthParams.psthImDur = 300;
+saccadeRasterParams.psthParams.psthPre = 200;
+saccadeRasterParams.psthParams.psthImDur = 100;
 saccadeRasterParams.psthParams.psthPost = 0;  
 saccadeRasterParams.spikeTimes = 0;
 saccadeRasterParams.psthParams.movingWin(1) = 240;

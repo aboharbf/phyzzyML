@@ -19,6 +19,7 @@ smoothTraces = switchStruct.smoothTraces;
 smoothWindow = switchStruct.smoothWindow;
 normalizeTraces = switchStruct.normalizeTraces;
 HzThreshold = switchStruct.HzThreshold;
+unitSetBin = switchStruct.unitSet;
 
 if smoothTraces
   smoothTag = sprintf('_S%d', smoothWindow);
@@ -29,7 +30,7 @@ end
 preProcTag = comboTag([smoothTraces normalizeTraces HzThreshold]);
 
 % Identify output file name
-binnedDataPath = fullfile(rasterDir, sprintf('binned_data_%dW_%dS_%s%s.mat', binWidth, binStep, preProcTag, smoothTag));
+binnedDataPath = fullfile(rasterDir, sprintf('binned_data_%s_%dW_%dS_%s%s.mat', unitSetBin, binWidth, binStep, preProcTag, smoothTag));
 
 if exist(binnedDataPath, 'file')
   fprintf('Data in %s already binned. Returning. \n', rasterDir)
@@ -90,6 +91,13 @@ for file_i = 1:length(rasterFiles)
   
   % Check that the unit meets the desired threshold
   if HzThreshold
+    if ~rasterFile.raster_site_info.taskModulated_selInd
+      excludeInd(file_i) = true;
+      continue
+    end
+  end
+  
+  if strcmp(unitSetBin, 'taskMod')
     if mean(sum(binData,2)) < minRate
       excludeInd(file_i) = true;
       continue

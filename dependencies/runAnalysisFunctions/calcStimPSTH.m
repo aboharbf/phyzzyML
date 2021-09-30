@@ -40,6 +40,8 @@ for channel_i = 1:length(spikesByItem{1})
       spikeData = spikesByItem{item_i}{channel_i}{unit_i};
       if size(spikeData, 1) == 1
         psthErrorType = 1;        % if only one trial, can't use bootstrap
+      else
+        psthErrorType = psthParams.errorType;
       end
       if ~psthEmptyByItem{item_i}{channel_i}{unit_i}
         if spikeTimes

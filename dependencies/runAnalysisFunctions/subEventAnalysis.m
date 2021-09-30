@@ -11,7 +11,8 @@ function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(ey
 % subEventParams - has path to eventData, stimDir, and variables used to
 % plot PSTHes.
 
-saccadeSplit = false;           % Split subEvent in the stimulus depending on whether they were followed by a saccade.
+saccadeSplit = true;           % Split subEvent in the stimulus depending on whether they were followed by a saccade.
+keepNonSplit = true;           % if splitting subevents by saccade or non-saccade, decide if you keep the original. 
 
 % Unpack Variables, some preprocessing. Generate an index for individual
 % trials that take place during the run, matching them to the stimuli as
@@ -234,12 +235,18 @@ if ~isempty(eyeBehStatsByStim)
     end
     
     % Rearrange and overwrite originals
-    onsetsByEvent = reshape(subEventsNew', [], 1);
-    onsetsByEventNull = reshape(subEventNull', [], 1);
-    subEventNames = reshape(subEventNamesNew', [], 1);
+    if keepNonSplit
+      onsetsByEvent = [onsetsByEvent; reshape(subEventsNew', [], 1)];
+      onsetsByEventNull = [onsetsByEventNull; reshape(subEventNull', [], 1)];
+      subEventNames = [subEventNames; reshape(subEventNamesNew', [], 1)];
+    else
+      onsetsByEvent = reshape(subEventsNew', [], 1);
+      onsetsByEventNull = reshape(subEventNull', [], 1);
+      subEventNames = reshape(subEventNamesNew', [], 1);
+    end
   end
-    
-  % Remove empty ones
+  
+    % Remove empty ones - Dont so that subsequent table can stack.
 %   keepInd = ~cellfun('isempty', onsetsByEvent);
 %   onsetsByEvent = onsetsByEvent(keepInd);
 %   subEventNames = subEventNames(keepInd);
@@ -310,6 +317,23 @@ if subEventParams.FixEvent
   subEventNames = [subEventNames; 'fixation'];
   onsetsByEvent = [onsetsByEvent; fixOnTimes];
   onsetsByEventNull = [onsetsByEventNull; fixOnTimesNull];
+end
+
+% Event Type 5 - stimulus onset and offset!
+subEventParams.StimOnOffEvent = 1;
+if subEventParams.StimOnOffEvent
+  % Compare stimulus onset to the 200 ms preceding
+  stimOnTimes = taskData.taskEventStartTimes;
+  stimOnNullTimes = stimOnTimes - 200;
+  
+  % Compare stimulus offset to the 200 ms preceding it. 
+  % for -cohensD, you'd call it a stimulus offset inhibition. 
+  stimOffTimes = taskData.taskEventEndTimes;
+  stimOffNulllTimes = stimOffTimes - 200;
+  
+  subEventNames = [subEventNames; 'stimOnset'; 'stimOffset'];
+  onsetsByEvent = [onsetsByEvent; stimOnTimes; stimOffTimes];
+  onsetsByEventNull = [onsetsByEventNull; stimOnNullTimes; stimOffNulllTimes];
 end
 
 % Sample the null times, expand each onsertsByEventNull cell by the
@@ -427,6 +451,12 @@ if ~isempty(onsetsByEvent)
     
     % Create a plotting array which can be referenced
     [~, plotNameInd] = ismember(subEventNames(dataInd), subEventParams.possibleEvents);
+    if ~all(plotNameInd)
+      missingLabels = find(plotNameInd == 0)';
+      for label_i = missingLabels
+        plotNameInd(label_i) = find(cellfun(@(x) contains(subEventNames(label_i), x), subEventParams.possibleEvents), 1);
+      end
+    end
     plotLabels = subEventParams.possibleEventsPlotNames(plotNameInd);
     
     % Generate an array for referencing subEvents correctly.

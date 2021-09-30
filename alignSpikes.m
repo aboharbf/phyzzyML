@@ -11,17 +11,18 @@ end
 preAlign = params.preAlign;
 postAlign = params.postAlign;
 refOffset = params.refOffset; % this value is subtracted from all times; so, to have all positive times, should be -msPreAlign
+itemCount = length(alignPointsByItem);
+chanCount = length(spikeChannels);
 
-[spikesByItem, psthEmptyByItem] = deal(cell(length(alignPointsByItem),1));
-for item_i = 1:length(alignPointsByItem)
-  itemSpikesByChannel = cell(length(spikeChannels),1); %channels x 1
-  itemEmptyByChannel = cell(length(spikeChannels),1);
+[spikesByItem, psthEmptyByItem] = deal(cell(itemCount, 1));
+for item_i = 1:itemCount
+  [itemSpikesByChannel, itemEmptyByChannel] = deal(cell(chanCount,1)); %channels x 1
   onsets = alignPointsByItem{item_i}; 
-  for channel_i = 1:length(spikeChannels)
+  for channel_i = 1:chanCount
     channelSpikes = spikesByChannel(channel_i);
     units = sort(unique(channelSpikes.units));
-    itemChannelSpikes = cell(length(units)+1,1);
-    itemChannelEmpty = cell(length(units)+1,1);
+    [itemChannelSpikes, itemChannelEmpty] = deal(cell(length(units)+1,1));
+
     for unit_i = 1:length(units)
       tstamps = channelSpikes.times(channelSpikes.units == units(unit_i));
       itemUnitSpikes = repmat(struct('times',[]),length(onsets),1); 
@@ -35,6 +36,7 @@ for item_i = 1:length(alignPointsByItem)
       itemChannelSpikes{unit_i} = itemUnitSpikes;
       itemChannelEmpty{unit_i} = empty;
     end
+    
     % channel MUA
     tstamps = channelSpikes.times;
     itemChannelMUA = repmat(struct('times',[]),length(onsets),1);
@@ -45,6 +47,7 @@ for item_i = 1:length(alignPointsByItem)
         empty = 0;
       end
     end
+    
     itemChannelSpikes{end} = itemChannelMUA;
     itemChannelEmpty{end} = empty;
     itemSpikesByChannel{channel_i} = itemChannelSpikes;

@@ -1,15 +1,6 @@
 function processRunBatchAll()
 % Function which analyzes all data from Mo and Sam.
 
-% Things to change before next batch run:
-% - Consider deleting all the figures in the folders to avoid confusion
-% - create a saccade, non-saccade, and all version of events. Make sure
-% eventTime indexing is robust to this change.
-% - Introduce an 'analysisFinish' time into the analyzedData, so in case
-% errors emerge, I can find them easier.
-% - Consider stopping some testing which you know you wont use if its
-% wasting time.
-
 tic
 [errorStack, errorStackMsg, files2Check] = processRunBatch('buildAnalysisParamFileSocialVids', {'naturalSocial'}, 'Mo');
 MoFin = datetime;
