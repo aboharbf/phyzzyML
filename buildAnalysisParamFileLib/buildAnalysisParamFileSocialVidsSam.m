@@ -424,6 +424,7 @@ saccadeRasterParams.spikeTimes = 0;
 saccadeRasterParams.psthParams.movingWin(1) = 240;
 saccadeRasterParams.smoothingWidth = 20;  %psth smoothing width, in ms
 
+% Variables for creating saccade rasters and PSTHes.
 saccadeStackParams.preEventTime = 300;
 saccadeStackParams.postEventTime = 300;
 saccadeStackParams.preStimTime = saccadeStackParams.preEventTime;

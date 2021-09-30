@@ -17,7 +17,7 @@ switch pad
 end
 
  for ind_i = 1:length(ind)
-  indWin = ind(ind_i)-pre:ind(ind_i)+pre;
+  indWin = ind(ind_i)-pre:ind(ind_i)+post;
   
   % Check front
   if any(indWin <= 0)

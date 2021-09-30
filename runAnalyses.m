@@ -84,6 +84,7 @@ end
 gridHole = taskData.gridHole;
 recDepth = taskData.recDepth;
 analysisOutFilename = strcat(outDir,'analyzedData.mat');
+if 0
 save(analysisOutFilename, 'dateSubject', 'runNum', 'analysisParamFilename', 'gridHole', 'recDepth'); % Task data is already in preprocessed, not sure why I'd want to save it here.
 
 colors = {[0.55 0.13 0.16];[0.93 .2 0.15];[.98 0.65 0.13];[0 0.55 0.25];[0.15, 0.20, 0.5]};
@@ -415,6 +416,10 @@ if plotSwitch.eyeStimOverlay
   save(analysisOutFilename,'eyeInByEventDS', '-append');
 end
 
+end
+
+load(analysisOutFilename)
+
 % Initalize a table which the 3 sensitivity functions will use.
 [selTable, anovaTable] = deal(initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth, spikesByChannel));
 
@@ -441,9 +446,11 @@ if isfield(eyeDataStruct, 'eyeBehStatsByStim')
   selTable = saccadeDirSel(spikesByEventBinned, eyeDataStruct.eyeBehStatsByStim, psthParams, taskData, selTable);
 end
 
+saccadeRasterParams.psthParams.psthImDur = 100;
+
 if plotSwitch.saccadeRasterPSTH
   saccadeRasterPSTH(eyeDataStruct, spikesByChannel, onsetsByEvent, saccadeRasterParams, selTable, psthParams, figStruct);
-  %   save(analysisOutFilename, 'subEventSigStruct', 'specSubEventStruct', '-append');
+  %   save(, 'subEventSigStruct', 'specSubEventStruct', '-append');
 end
 
 % Compares epochs against baseline and each other.
