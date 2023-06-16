@@ -19,12 +19,8 @@ for combo_i = 1:length(comboEvents)
   comboInd = zeros(size(selTable,1), length(subEvents));
   
   if all(contains(subEvents, 'selInd'))
-    if all(ismember(subEvents, selTable.Properties.VariableNames))
-      % For simple indicies, combine like this
-      selTable.(comboEvents{combo_i}) = any(selTable{:, subEvents}, 2);
-    else
-      warning('Combo Event Skipped due to missing members - typical due to Anim not having eyeContact/bodyTurn');
-    end
+    % For simple indicies, combine like this
+    selTable.(comboEvents{combo_i}) = any(selTable{:, intersect(varNames, subEvents)}, 2);
   else
     % For values (like 'diff' variables), combine as below, preserving
     % sign.

@@ -59,6 +59,7 @@ vars2AddOrig = [
   {'epochSel_socVNonSoc_reward_selInd'         }
   {'epochSel_socVNonSoc_any_selInd'            }
   {'taskModulated_selInd'                      }
+  {'taskModStim_selInd'                        }
   {'M1unit_selInd'                             }
 %   {'epochSel_broadCategories_stimEarly_selInd' }
 %   {'epochSel_broadCategories_stimLate_selInd'  }

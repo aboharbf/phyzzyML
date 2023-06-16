@@ -7,13 +7,19 @@ elseif nargin == 7
 end
 
 % params contain colors - use the labels to select colors
-if exist('params', 'var')
+if exist('params', 'var') && isfield(params, 'labels') && isfield(params, 'colors')
   [test, colorInd] = ismember(params.labels, legendEntries);
   colorMat = params.colors(test, :);
   colorInd = colorInd(~colorInd == 0);
   colorMat = colorMat(colorInd,:);
 else
   colorMat = [];
+end
+
+if exist('params', 'var') && isfield(params, 'textSwitch')
+  textSwitch = params.textSwitch;
+else
+  textSwitch = 1;
 end
 
 figH = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [.3 .3 .65 .77]);
@@ -50,7 +56,12 @@ for bar_i = 1:length(barh)
   end
    
   unitTag = string(barh(bar_i).YData);
-  labels2 = string(round(barh(bar_i).YData/unitCount,3) * 100);
+  if length(unitCount) ~= 1
+    labels2 = string(round(barh(bar_i).YData/unitCount(bar_i),3) * 100);
+  else
+    labels2 = string(round(barh(bar_i).YData/unitCount,3) * 100);
+  end
+
   percentTag = strcat('(', labels2, ')');
   
   if ~isempty(legendEntries)
@@ -59,8 +70,10 @@ for bar_i = 1:length(barh)
     barh(bar_i).DisplayName = 'Count';
   end
   
-  textH = text(xtips1, ytips1, unitTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 14);
-  textH = text(xtips1, ytips1, percentTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'FontSize', 14);
+  if textSwitch
+    textH = text(xtips1, ytips1, unitTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 14);
+    textH = text(xtips1, ytips1, percentTag, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'FontSize', 10);
+  end
   ytipsLast = ytips1;
 end
 
@@ -70,6 +83,7 @@ figH.Children.YLim(2) = YlimN(2) * 1.2;
 
 xlim(xlim());
 hold on
+unitCount = round(mean(unitCount));
 if alpha ~= 0
   chanceUnitCount = round(sum(unitCount)*(alpha/2));
   chanceLine = plot([X(1) X(end)], [chanceUnitCount chanceUnitCount], 'Color', 'red', 'LineStyle', '--', 'linewidth', 3);

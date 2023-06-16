@@ -89,7 +89,7 @@ for par_i = 1:length(paradigmList)
     % Params
     psthParams.psthPre = -subEventSigStructPerRun(1).psthWindow(1);
     psthParams.psthImDur = subEventSigStructPerRun(1).psthWindow(2);
-    psthParams.psthPost = 100;
+    %psthParams.psthPost = 100;
     
     % For each run, identify which units are to be plotted
     for unitType_i = 1:2

@@ -9,7 +9,7 @@ function NeuralDecodingTB(spikePathBank, params)
 
 % IMPORTANT SWITCHES
 analysisChangeParams.expandLabelPerSplit = 1;  % Divides the number of labels per split by 3.
-analysisChangeParams.swap2libsvm = 0;          % Swaps whatever classifier is defined in the file to libsvm.
+analysisChangeParams.swap2libsvm = 1;          % Swaps whatever classifier is defined in the file to libsvm.
 analysisChangeParams.dontZScoreFeatures = 0;   % Turns off the Z scoring
 analysisChangeParams.reportFeaturepVal = 0;   % Turns off the Z scoring
 
@@ -25,7 +25,7 @@ params.spikeToRasterParams.spikePathLoadParams = params.spikePathLoadParams;
 paradigmList = unique(spikePathBank.paradigmName);
 
 % Generate the appropriate binned data
-for paradigm_i = 1%1:length(paradigmList)
+for paradigm_i = 1:length(paradigmList)
   pName = paradigmList{paradigm_i};
   spikePathBankParadigm = spikePathBank(strcmp(spikePathBank.paradigmName, pName), :);
   pFolder = fullfile(params.outputDir, pName);

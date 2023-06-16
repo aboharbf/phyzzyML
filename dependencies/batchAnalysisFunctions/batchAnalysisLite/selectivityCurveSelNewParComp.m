@@ -1,4 +1,4 @@
-function selectivityCurveSelNew(spikePathBank, batchAnalysisParams)
+function selectivityCurveSelNewParComp(spikePathBank, batchAnalysisParams)
 % a function which pulls encoding curves from the selectivity table for
 % each paradigm.
 
@@ -17,6 +17,7 @@ stimSize = 2800 + 500;
 the_bin_start_times = 0:binStep:stimSize-binSize;
 points_to_label = [0  1000 2000 2800];
 points_for_lines = [0 2800];
+barGraphData = nan(2,8);
 
 for par_i = 1:length(paradigmList)
   
@@ -58,7 +59,7 @@ for par_i = 1:length(paradigmList)
     
     % Cycle through analyses, combining results and visualizing them
     objCount = length(selTableParadigmPerRun.(prefOjbInd{1}){1});
-    barGraphData = nan(length(sigStretchInd), objCount);
+    %barGraphData = nan(length(sigStretchInd), objCount);
     
     % Find epoch labels
     tmp = cellfun(@(x) strsplit(x, '_'), sigStretchInd, 'UniformOutput', false);
@@ -80,7 +81,7 @@ for par_i = 1:length(paradigmList)
         % Significant objects
         sigObjs = selTableParadigmPerRun.(prefOjbInd{epoch_i})(unit_index);
         sigObjs = vertcat(sigObjs{:});
-        barGraphData(epoch_i,:) = sum(sigObjs);
+        barGraphData(par_i,:) = sum(sigObjs);
         
         % Store for VD
         vennDiagramVectors(:, epoch_i) = any(sigObjs,2);
@@ -88,25 +89,34 @@ for par_i = 1:length(paradigmList)
       end
       
       atleastOne = sum(any(selStretchIndMat,2));
-      unitCount = sum(unit_index);
+      unitCount(par_i) = sum(unit_index);
 
-      % Plotting
-      figTitle = sprintf('%s selectivity during %s test, %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, paradigmList{par_i}, atleastOne, unitCount);
-      plotTitle = sprintf('Category Selectivity');
-      createBarPlotWithChanceLine(epochNames, barGraphData, 0, unitCount, figTitle, testObjs);
-      title(plotTitle);
-      saveFigure(fullfile(outputDir, 'BarGraph'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
-      
-%       % Plot the Venn diagram
-        % Change - Now only focusing on Stimulus period as a single unified
-        % whole.
-%       figTitle = sprintf('%s selectivity for %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, atleastOne, unitCount);
-%       vennXExpanded(vennDiagramVectors(:, 2:4), figTitle, epochNames(2:4))
-%       saveFigure(fullfile(outputDir, 'VennDiagram'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
-      
     end
     
   end
 end
+
+for i=1:size(testObjs,2)
+    testObjs{i}(1) = upper(testObjs{i}(1));
+end
+
+% Plotting
+legend2Add = strcat({'Natural', 'Animated'}, ' (', string(unitCount), ')');
+figTitle = sprintf('%s selectivity during %s test, %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, paradigmList{par_i}, atleastOne, unitCount);
+plotTitle = sprintf('Category Selectivity');
+createBarPlotWithChanceLine(testObjs, barGraphData, 0, unitCount, figTitle, legend2Add);
+title(plotTitle);
+
+axesH = gca;
+axesH.FontSize = 16;
+axesH.Title.FontSize = 16;
+axesH.XTickLabelRotation = 0;
+axesH.XTickLabel{6} = 'Goal\newlineDirected';
+
+figH = gcf;
+figH.Position = [0.2531    0.2333    0.6035    0.4618];
+
+saveFigure(fullfile(outputDir, 'BarGraph'), sprintf('%s - Paradigm Compare', plotTitle), [], batchAnalysisParams.figStruct, [])
+
 
 end

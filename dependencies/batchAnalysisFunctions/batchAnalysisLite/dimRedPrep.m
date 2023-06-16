@@ -48,7 +48,7 @@ labelSet = {'categories'};
 % storeData = cell(length(paradigmVec), length(unitTypes), length(nameArray));
 
 dataType = {'singleTrial', 'meanResponse'};
-unitSet = {'All', 'taskMod'};
+unitSet =  {'All', 'taskMod', 'taskModStim'};
 
 for s_i = 1:length(unitSet)
 for d_i = 1:length(dataType)
@@ -116,7 +116,7 @@ for d_i = 1:length(dataType)
           fileOutName = sprintf('dimRedData_%s_%s_%dW_%dS_%s_%s_%s_%s_%s.mat', unitSet{s_i}, dataType{d_i}, binSize, binWidth, labelSet{group_i}, nameArray{m_i}, paradigmLabel, unitTypesLabel{unit_Type_i}, preProcTag);
           dataOutFile = fullfile(preprocDir, fileOutName);
           
-          if 0%exist(dataOutFile, 'file')
+          if exist(dataOutFile, 'file')
             fprintf('Found %s, skipping... \n', fileOutName)
             continue
           else

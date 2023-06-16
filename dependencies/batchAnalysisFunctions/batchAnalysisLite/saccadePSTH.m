@@ -13,7 +13,7 @@ outputDir = fullfile(params.outputDir, 'saccadeDynamics');
 
 % Collect unit selectivity
 paradigmList = unique(spikePathBank.paradigmName);
-monkeyList = {'Sam', 'Mo', 'Combo'};
+monkeyList = {'Mo', 'Sam'};
 
 % Generate smoothing filter
 if smoothTraces
@@ -32,8 +32,8 @@ else
   colTag = '';
 end
 
-for monkey_i = 1:length(monkeyList)
-  for par_i = 1:length(paradigmList)
+for par_i = 1:length(paradigmList)
+  for monkey_i = 1:length(monkeyList)
     
     pInd = strcmp(spikePathBank.paradigmName, paradigmList{par_i});
     if ~strcmp(monkeyList{monkey_i}, 'Combo')
@@ -43,7 +43,7 @@ for monkey_i = 1:length(monkeyList)
       spikePathBankParadigm = spikePathBank(pInd, :);
     end
     
-%     spikePathBankParadigm = spikePathBank(pInd, :);
+    %     spikePathBankParadigm = spikePathBank(pInd, :);
     
     % Grab necessary data from each run.
     [saccadeStackParamsPerRun, saccadeMatArrayPerRun, saccadeMatLabelPerRun] = spikePathLoad(spikePathBankParadigm, {'saccadeStackParams', 'saccadeMatArray', 'saccadeMatLabel'}, params.spikePathLoadParams);
@@ -62,13 +62,13 @@ for monkey_i = 1:length(monkeyList)
     shorterParams.psthImDur = saccadeStackParamsPerRun{1}.postEventTime;
     shorterParams.psthPost = 0;
     plotParamStack{1} = shorterParams;
-    plotTitleStack{1} = sprintf('Task Event Saccade Mean');
+    plotTitleStack{1} = sprintf('Event Onset Aligned');
     
     longerParams.psthPre = saccadeStackParamsPerRun{1}.preStimTime;
     longerParams.psthImDur = 2800;
     longerParams.psthPost = saccadeStackParamsPerRun{1}.postStimTime;
     plotParamStack{2} = longerParams;
-    plotTitleStack{2} = sprintf('%s Stimulus Saccade Mean %s %s', monkeyList{monkey_i}, smoothTag, colTag);
+    plotTitleStack{2} = sprintf('Stimulus Onset Aligned');
     
     for len_i = 1:length(uniqueLengths)
       events2Plot = eventLengths == uniqueLengths(len_i);
@@ -106,7 +106,7 @@ for monkey_i = 1:length(monkeyList)
     % Initialize data
     subEventData = cell(size(eventNames'));
     plotParamStack = [plotParamStack; plotParamStack(1)];
-    window2Pull = [-plotParamStack{1}.psthPre:plotParamStack{1}.psthImDur] + plotParamStack{2}.psthPre;
+    window2Pull = [-plotParamStack{1}.psthPre:plotParamStack{1}.psthImDur-1] + plotParamStack{2}.psthPre;
     for event_i = 1:length(eventNames)
       eventTimes = eventDataStim{:, eventNames{event_i}};
       stimWEvent = find(cellfun(@(x) size(x, 1) ~= 0, eventTimes));
@@ -122,7 +122,7 @@ for monkey_i = 1:length(monkeyList)
     % Stack, and add necessary cells to arrays
     plotDataStacks =  [plotDataStacks; {subEventData}];
     plotLabelStacks{3} = strrep(eventNames, '_', ' ')';
-    plotTitleStack{3} = sprintf('subEvent Saccade Mean');
+    plotTitleStack{1} = sprintf('Task and Stimulus Event Aligned');
     
     % Turn the arrays into single mean traces, with counts
     plotDataCounts = cellfun(@(x1) cellfun(@(x2) size(x2,1), x1), plotDataStacks, 'UniformOutput', false);
@@ -146,10 +146,17 @@ for monkey_i = 1:length(monkeyList)
     % Plot the data
     figTitle = sprintf('Saccade Dynamics - %s - %s %s %s', monkeyList{monkey_i}, paradigmList{par_i}, colTag, smoothTag);
     h = figure('NumberTitle', 'off', 'Name', figTitle,'units','normalized','outerposition', [0.0042 0.0074 0.6250 0.9139]);
-    subplotSize = [4, {1:3}, 5];
-    for plot_i = 1:length(plotDataStacks)
+    
+    sgtitle(sprintf('Event Aligned Saccade Frequency M%d', monkey_i));
+    subplotSize = [{4}, {1:3}];
+    for plot_i = 1:2
       % Select plots
-      subplot(5 , 1, subplotSize{plot_i})
+      subplot(4 , 1, subplotSize{plot_i})
+      
+      if length(subplotSize{plot_i}) == 1
+        plotLabelStacks{plot_i} = cat(1, plotLabelStacks{[1 3]});
+        plotDataStacks{plot_i} = cat(1, plotDataStacks{[1 3]});
+      end
       
       % Process labels to make them look better
       [plotLabels, resortInd] = resortAndTrimLabels(plotLabelStacks{plot_i});
@@ -157,8 +164,30 @@ for monkey_i = 1:length(monkeyList)
       % Plot
       psthAx = plotPSTH(plotDataStacks{plot_i}(resortInd, :), [], [], plotParamStack{plot_i}, 'color', plotTitleStack{plot_i}, plotLabels);
       
+      % Change color bar label
+      figH = gcf;
+      figH.Children(1).Label.String = 'Prct (%)';
+      
+      % Adjust the edges to show all data
+      psthAx.Children(3).XData = [psthAx.Children(3).XData(1)+(binningSize/2) psthAx.Children(3).XData-(binningSize/2)];
+      psthAx.FontSize = 11;
+      psthAx.Title.FontSize = 15;
+      
+      % Redundant labels, a sign of headTurnCon
+      if length(plotLabels) ~= length(unique(plotLabels))
+        % find unique, in the right order
+        [uniqueLabels, uniqueInd] = unique(psthAx.YTickLabel);
+        [sortList, resortInd] = sort(uniqueInd);
+        uniqueLabels = uniqueLabels(resortInd);
+        
+        % Update PSTH
+        psthAx.YTick = sortList;
+        psthAx.YTickLabel = uniqueLabels;
+        
+      end
+      
       % This label collides w/ the title below.
-      if plot_i ~= 3
+      if plot_i ~= 1
         psthAx.XLabel.String = '';
       end
       

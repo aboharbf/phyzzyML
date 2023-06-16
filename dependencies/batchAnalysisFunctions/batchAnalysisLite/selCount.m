@@ -3,7 +3,7 @@ function selCount(spikePathBank, batchAnalysisParams)
 
 % Now, selectivity across paradigms...
 % selCountCrossParadigm(spikePathBank, selTablePerRun, batchAnalysisParams);
-taskMod = true; % Only include taskMod.
+taskMod = false; % Only include taskMod.
 
 paradigmList = unique(spikePathBank.paradigmName);
 monkeyList = {'Sam', 'Mo', 'Combo'};
@@ -19,7 +19,7 @@ selParams.unitList = unitList;
 selParams.unitTags = unitTags;
 
 for m_i = 3%1:length(monkeyList)
-  for par_i = 1:length(paradigmList)
+  for par_i = 1%1:length(paradigmList)
     
     selParams.paradigmTag = paradigmList{par_i};
     selParams.monkeyTag = monkeyList{m_i};
@@ -31,6 +31,9 @@ for m_i = 3%1:length(monkeyList)
     else
       mInd = true(size(pInd));
     end
+    
+    % New Segment, Comparing paradigms
+    % selectivityPerEventBarGraphsParComp(spikePathBank, selParams)
     
     selTableParadigmPerRun = spikePathBank.selTable(pInd & mInd);
     
@@ -51,13 +54,20 @@ for m_i = 3%1:length(monkeyList)
       
       unitIndex = contains(selTableParadigm.unitType, unitTags{unit_i});
       selTableParadigmUnit = selTableParadigm(unitIndex, :);
-
-      if taskMod
-        selTableParadigmUnit = selTableParadigmUnit(selTableParadigmUnit.taskModulated_selInd, :);
-      end
+      
       selParams.unitTag = unitList{unit_i};
       batchAnalysisParams.selParam = selParams;
       
+      % Make a bar plot and distribution describing epoch preferences (Activity
+      % above baseline during an epoch).
+      if 0
+        epochPreferenceBarGraphsAndVennDiagram(selTableParadigmUnit, selParams)
+      end
+      
+      if taskMod
+        selTableParadigmUnit = selTableParadigmUnit(selTableParadigmUnit.taskModulated_selInd, :);
+      end
+            
       % Find cells with predefined selectivities for the sake of illustrating
       % effects.
 %       exampleCellFinderSubEvent(selTableParadigmUnit, batchAnalysisParams);
@@ -65,9 +75,6 @@ for m_i = 3%1:length(monkeyList)
 %       
       % jointTuningPlot(selTableParadigm, paradigmList{par_i}, selParams)
       jointTuningPlot_Specific(selTableParadigmUnit, paradigmList{par_i}, selParams)
-      % Make a bar plot and distribution describing epoch preferences (Activity
-      % above baseline during an epoch).
-      epochPreferenceBarGraphsAndVennDiagram(selTableParadigmUnit, selParams)
       
       % Make bar plots per Epoch Selectivity - comparing an rates within an
       % epoch across categories. Barplots or Venn Diagram.

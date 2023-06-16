@@ -1,6 +1,12 @@
 function processRunBatchAll()
 % Function which analyzes all data from Mo and Sam.
 
+% Animated stuff
+% Saccade target analysis?
+% saccadeMatLabel is missing for some reason. - shouldn't be anymore, check
+% again.
+% - Make sure subEvent selectivitiy doesn't go crazy w/ animated stimuli.
+
 tic
 [errorStack, errorStackMsg, files2Check] = processRunBatch('buildAnalysisParamFileSocialVids', {'naturalSocial'}, 'Mo');
 MoFin = datetime;
@@ -9,12 +15,12 @@ MoFin = datetime;
 SamFin = datetime;
 toc
 
+[errorStack3, errorStackMsg3, files2Check3] = processRunBatch('buildAnalysisParamFileSocialVids', {'headTurnCon'}, 'Mo');
+MoFin2 = datetime;
+
 [errorStack4, errorStackMsg4, files2Check4] = processRunBatch('buildAnalysisParamFileSocialVidsSam', {'headTurnCon'}, 'Sam');
 SamFin2 = datetime;
 toc
-
-[errorStack3, errorStackMsg3, files2Check3] = processRunBatch('buildAnalysisParamFileSocialVids', {'headTurnCon'}, 'Mo');
-MoFin2 = datetime;
 
 errorStackAll = [errorStack, errorStack2];
 errorStackMsgAll = [errorStackMsg; errorStackMsg2];

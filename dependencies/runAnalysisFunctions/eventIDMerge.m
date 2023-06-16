@@ -45,7 +45,7 @@ switch paradigm
     % variants.
     uniqueStimID = [2, 3, 5];
     
-    intArray = {'chasing', 'grooming', 'mounting', 'fighting', 'idle', 'goalDirected', 'objects', 'scene'};
+    intArray = {'Chasing', 'Grooming', 'Mounting', 'Fighting', 'Idle', 'GoalDirected', 'objects', 'landscape'};
     intNum = {'1', '2', '3', '4', '5', '6'};
     turnArray = {'_noTurn', '_Turn'};
     

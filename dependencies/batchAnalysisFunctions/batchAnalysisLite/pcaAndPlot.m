@@ -10,7 +10,7 @@ pointsForLabels = [0 2400];
 pcaInputType = {'meanResponse', 'singleTrial'};
 
 pcCountTotal = 12;
-recordSpinningVid = false;              
+recordSpinningVid = true;              
 removeRewardPeriod = true;
 removeFixPeriod = true;
 pcaDataPlots = false;
@@ -39,8 +39,10 @@ markerSize = 30;
 %   'categories_Combo_headTurnCon_MUA_SNT', 'categories_Combo_headTurnCon_Units_SNT'};
 
 if removeRewardPeriod && removeFixPeriod
-  dimRedPCs = {[1 2 4]; [1 2 3]};
-  cameraPos = {[2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]};
+  dimRedPCs = {[1 2 4]; [2 3 5]};
+  cameraPos = {[2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3];...
+    [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3];...
+    [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]; [2458.88 -1063.7 1628.3]};
 else
   dimRedPCs = {[3 4 5]; [3 4 5]};
   cameraPos = {[-33.2969 -140.4141   92.1205]; [-33.2969 -140.4141   92.1205]; [-33.2969 -140.4141   92.1205]; [-33.2969 -140.4141   92.1205]};
@@ -61,6 +63,10 @@ dimRedLabel = strcat(dimRedLabel, '_', activityProcessTag);
 dimRedFiltInd = contains(titles, 'meanResponse') & contains(titles, '200') & contains(titles, activityProcessTag) & contains(titles, 'categories') & contains(titles, 'Combo');
 dimRedParams = dimRedParams(dimRedFiltInd);
 titles = titles(dimRedFiltInd);
+
+keepInd = contains(dimRedParams, 'taskModStim');
+dimRedParams = dimRedParams(keepInd);
+titles = titles(keepInd);
 
 for data_i = 1:length(dimRedParams)
   
@@ -203,7 +209,7 @@ for data_i = 1:length(dimRedParams)
   
   xlabel(sprintf('PC %d', pc2Plot(1))); ylabel(sprintf('PC %d', pc2Plot(2))); zlabel(sprintf('PC %d', pc2Plot(3))); 
   title(figTitle); legH = legend(labels); grid;
-  legH.Position = [0.6896    0.2703    0.1997    0.2655];
+  legH.Position = [0.7480    0.7117    0.1997    0.2655];
   
   % Find the points between that mark transitions
   [pointsForLabelsPlot, binsForLabels, binLabelsNew, colorAxis] = bin2Label(binLabelInfo, pointsForLabels, string2Plot, tmpColorMat);
@@ -229,6 +235,10 @@ for data_i = 1:length(dimRedParams)
   end
   % Create video rotating about Axes
   if recordSpinningVid
+    % Remove the Title
+    figH.Children(2).Title.String = '';
+    figH.Color = [1 1 1];
+
     vidObj = VideoWriter(fullfile(outputDir, strcat(figTitle, '.avi')));
     vidObj.FrameRate = vidObj.FrameRate/2;
     open(vidObj);
@@ -239,7 +249,7 @@ for data_i = 1:length(dimRedParams)
     
     % Rotation to add
     rotArray = zeros(120,2);
-    rotArray(1:120,1) = 3;
+    rotArray(1:120,1) = 2;
     
     for frame_i = 1:120
       % Rotate slightly
@@ -252,25 +262,26 @@ for data_i = 1:length(dimRedParams)
     close(vidObj)
   end
   
-  saveFigure(outputDir, ['1. ' figTitle], [], params.figStruct, [])
-
+  % saveFigure(outputDir, ['1. ' figTitle], [], params.figStruct, [])
+  continue
+  
   % Plot each PC
-  figTitle = sprintf('Paradigm %s - Trajectories in Population %s - top %d PCs, %s var', paradigmLabel, titles{data_i}, pcCountTotal, num2str(round(sum(explained(1:pcCountTotal)), 2)));
+  figTitle = sprintf('Traj in Pop %s - %d PCs, %s var', titles{data_i}, pcCountTotal, num2str(round(sum(explained(1:pcCountTotal)), 2)));
   figH2 = figure('name', figTitle, 'units', 'normalized', 'position', [0 0 0.74 0.97]);
   sgtitle(figTitle);
   subplotHands = gobjects(pcCountTotal, 1);
   ylimPlots = [round(min(score(:)), 2), ceil(max(score(:)))];
-  
+  perRow = 3;
+  perCol = ceil(pcCountTotal/perRow);
+
   for PC = 1:pcCountTotal
-    subplotHands(PC) = subplot(ceil(pcCountTotal/3),3, PC);
+    subplotHands(PC) = subplot(perCol, perRow, PC);
     hold on
     for i = 1:length(labels)
       plot(1:binCount, newScore(i, :, PC), 'color', colors(i, :), 'LineWidth', 2);
     end
     
-    % Label the plot - Something isn't lining up here...
-    xticks(binLabelInfo.bins_to_label);
-    xticklabels(binLabelInfo.points_to_label)
+    % Label the plot
     xlim([binLabelInfo.bins_to_label(1), size(newScore, 2)]);
     ylim(ylimPlots)
     
@@ -278,7 +289,13 @@ for data_i = 1:length(dimRedParams)
       plot([binLabelInfo.x_for_lines(line_i), binLabelInfo.x_for_lines(line_i)], [ylimPlots(2), ylimPlots(1)], 'color', 'k', 'lineWidth', 3)
     end
     
-    xlabel('Time'); ylabel('a.u.');
+    if PC >= (pcCountTotal - perRow ) + 1
+      xticks(binLabelInfo.bins_to_label);
+      xticklabels(binLabelInfo.points_to_label)
+      xlabel('Time');
+    end
+    
+    ylabel('a.u.');
     title(sprintf('PC %d - %s%%', PC, num2str(round(explained(PC), 2))))
     hold on
   end

@@ -20,6 +20,11 @@ for run_i = 1:length(selTablePerRun)
   
   % Pull out the table for the run
   selTableRun = selTablePerRun{run_i};
+  
+  if isempty(selTableRun)
+    continue
+  end
+  
   anovaTableRun = anovaTablePerRun{run_i};
   epochCParamsRun = epochCatsParamsPerRun{run_i};
   epochSParamsRun = epochStatsParamsPerRun{run_i};
@@ -33,18 +38,24 @@ for run_i = 1:length(selTablePerRun)
 %   selTableRun(:, var2Remove) = [];
   
   % Check for pVal rows.
-  pValIndex = contains(selTableRun.Properties.VariableNames, '_pVal');
+  pValIndex = contains(selTableRun.Properties.VariableNames, '_pVal') & ~contains(selTableRun.Properties.VariableNames, 'baseV_');
+  baseVIndex = contains(selTableRun.Properties.VariableNames, '_pVal') & contains(selTableRun.Properties.VariableNames, 'baseV_');
   pValVars = selTableRun.Properties.VariableNames(pValIndex)';
   selIndexVars = strcat(extractBefore(pValVars, '_pVal'), '_selInd');
+  baseValVars = selTableRun.Properties.VariableNames(baseVIndex)';
+  baseValVars2 = strcat(extractBefore(baseValVars, '_pVal'), '_selInd'); 
   
   % Collect pVals and convert them to selectivity indicies, based on
   % previously defined alpha.
   pValValues = selTableRun{:, pValVars};
-  selIndexValues = pValValues < alpha;
+  selIndexValues = pValValues <= alpha;
+  selTableRun{:, selIndexVars} = selIndexValues;   % Add them back to the table.
+
+  % Do this for task modulation
+  baseVValues = selTableRun{:, baseValVars};
+  selIndexValues = baseVValues <= params.selParam.alphaTaskMod;
+  selTableRun{:, baseValVars2} = selIndexValues;   % Add them back to the table.
   
-  % Add them back to the table.
-  selTableRun{:, selIndexVars} = selIndexValues;
-   
   % Process the ANOVA table
   anovaVars = anovaTableRun.Properties.VariableNames';
   var2Remove = contains(anovaVars, varExcludeanova);
@@ -73,12 +84,18 @@ for run_i = 1:length(selTablePerRun)
   % data, stack it, and expand to a unit*bin*uniqueObj logical array.
   selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params);
   
-  % Create a task modulated inded
+  % Create a task modulated index
   selTabVars = contains(selTableRun.Properties.VariableNames, 'baseV_') & contains(selTableRun.Properties.VariableNames, '_pVal');
   pValTaskMod = selTableRun{:, selTabVars};
   taskModInd = any(pValTaskMod <= alpha, 2);
   selTableRun.taskModulated_selInd = taskModInd;
-  
+
+  % Create a task modulated stim index
+  selTabVars = contains(selTableRun.Properties.VariableNames, 'baseV_') & contains(selTableRun.Properties.VariableNames, '_pVal') & contains(selTableRun.Properties.VariableNames, 'stim');
+  pValTaskMod = selTableRun{:, selTabVars};
+  taskModInd = any(pValTaskMod <= alpha, 2);
+  selTableRun.taskModStim_selInd = taskModInd;
+
   % Sliding Window to Epoch conversion.
   if switch2StimWhole
 %     epochSParamsRun.times = [-500 0; -800 0; 0 2800; 2800 3150];
@@ -101,8 +118,10 @@ for run_i = 1:length(selTablePerRun)
   % other comparison.
   if all(selTableRun.subSel_rewardAbsent_pVal == 1)
     selTableRun.subSel_rewardCombo_selInd = selTableRun.subSel_reward_selInd;
+    selTableRun.subSel_rewardCombo_cohensD = selTableRun.subSel_reward_cohensD;
   else
     selTableRun.subSel_rewardCombo_selInd = selTableRun.subSel_rewardAbsent_selInd;
+    selTableRun.subSel_rewardCombo_cohensD = selTableRun.subSel_rewardAbsent_cohensD;
   end
   
   % Add a label to distinguish Mo neurons from Sam Neurons easily

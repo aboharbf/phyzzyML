@@ -1,10 +1,10 @@
-function subEventPlotPerStim(eventDataFile)
+function subEventPlotPerStim()
 % Function which turns the eventData table into an image, where each row is
 % a stimulus, each column is a time bin, and each row contains 4 different
 % lines demarking the 4 different events in the eventData.
 
-eventDataFile = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
-outputDir = 'C:\Users\aboha\OneDrive\Lab\Documents\Figures April 2020';
+eventDataFile = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+outputDir = 'C:\OneDrive\Lab\Documents\Figures April 2020';
 
 figStruct = struct();
 figStruct.saveFig = 1;                

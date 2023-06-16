@@ -152,23 +152,44 @@ end
 
 figTitle = sprintf('Decoding for %s', analysisStruct.plotTitle);
 figh = figure('Name', figTitle, 'units', 'normalized', 'outerposition',[.1 .1 0.8 0.8]);
+CoreLabel = strsplit(analysisStruct.plotTitle, ' ');
+plotTitle = sprintf('Decoding for %s', CoreLabel{2});
 
 axesh = axes(figh);
 axesh.FontSize = 20;
-title(figTitle)
+title(plotTitle)
 hold on
 linePlotHandles = gobjects(length(labels) + 2, 1)';
 
-if ~any(contains(analysisStruct.label_names_to_use, '.avi'))
-  colorNum = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0;...
-    0 1 0; 0 0.8 0; 0 0 1; 0 0 0.6;]; % Segment colors;
-  colorLabel = {'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}; % Segment colors;
-  
-  % Sort them
-  [~, sortInd] = ismember(colorLabel, labels);
-  colors = colorNum;
-  correctLineStack = correctLineStack(sortInd ,:);
-  
+% Matrix for line types.
+switch analysisStruct.labelFile
+  case 'cat'
+    colorNum = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0; 0 1 0; 0 0.8 0; 0 0 1; 0 0 0.6;]; % Segment colors;
+    colorLabel = {'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}; % Segment colors;
+    
+    % Sort them
+    [~, sortInd] = ismember(colorLabel, labels);
+    colors = colorNum;
+    correctLineStack = correctLineStack(sortInd ,:);
+    labels = labels(sortInd);
+    lineStyle = repmat({'-'}, [8,1]);
+    lineWidth = 3;
+
+  case {'stimSetA', 'stimSetB'}
+    
+    colorNum = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0; 0 1 0; 0 0.8 0; 0 0 1; 0 0 0.6;]; % Segment colors;
+    colorLabel = {'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}; % Segment colors;
+    
+    % Resort labels, data
+    [labels, resortInd] = resortAndTrimLabels(labels); % Function resorts into order seen in colorLabel
+    correctLineStack = correctLineStack(resortInd ,:);
+        
+    % Color and line style index
+    colorIndex = reshape([1:8; 1:8], [16, 1]);
+    lineStyle = repmat({'-'; ':'}, [8,1]);
+    colors = colorNum(colorIndex,:);
+    lineWidth = 2;
+
 end
 
 if justMean
@@ -176,12 +197,8 @@ if justMean
   plotLabels = {};
 else
   % Plot each curve individually.
-  if any(contains(analysisStruct.label_names_to_use, '.avi'))
-      linePlotHandles(1:end-2) = plot(correctLineStack', 'linewidth', 2);
-  else
-    for ii = 1:size(correctLineStack, 1)
-      linePlotHandles(ii) = plot(1:length(correctLineStack(ii,:)), correctLineStack(ii,:), 'linewidth', 3, 'color', colors(ii,:));
-    end
+  for ii = 1:size(correctLineStack, 1)
+    linePlotHandles(ii) = plot(1:length(correctLineStack(ii,:)), correctLineStack(ii,:), 'linewidth', 3, 'color', colors(ii,:), 'lineStyle', lineStyle{ii});
   end
   plotLabels = labels;
 end

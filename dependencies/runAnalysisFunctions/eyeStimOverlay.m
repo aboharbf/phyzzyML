@@ -18,6 +18,11 @@ computeEyeSpikeMat = eyeStimOverlayParams.computeEyeSpikeMat;
 
 frameMotionData = taskData.frameMotionData;
 frameMotionDataNames = {frameMotionData(:).stimVid}';
+idVidDir = fullfile(eyeStimOverlayParams.stimDir, 'idVideos');
+
+if ~strcmp(taskData.paradigm, 'naturalSocial')
+  videoOutput = 0;
+end
 
 % Remove pre and post stimuli eye data, generate variables for eye sig
 % parcing.
@@ -30,7 +35,7 @@ saccadeByStim = cellfun(extractSaccEye, saccadeByStim, 'UniformOutput', 0);
 origInd = 1:psthParams.psthImDur+1;
 stimPresSec = (psthParams.psthImDur/1000);
 PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
-dvaOrigin =  taskData.eyeCal.origin;
+dvaOrigin =  taskData.eyeCal.origin - taskData.eyeCal.offset;
 scaleFactor = taskData.scaleFactor;
 
 % Initialize some structures
@@ -53,6 +58,8 @@ colormapStored = colormap;
 chanCount = length(spikesByEventBinned{1});
 unitCount = cellfun(@(x) length(x), spikesByEventBinned{1});
 spikeEyeData = initNestedCellArray(spikesByEventBinned);
+convert2Ind = @(x) find(strcmp(x, attendedObjData.objList));
+
 
 %Run each stimuli presented
 for stim_i = 1:length(eventIDs)
@@ -60,7 +67,6 @@ for stim_i = 1:length(eventIDs)
   frameMotionDataInd = strcmp(frameMotionDataNames, eventIDs(stim_i));
   stimFrameMotionData = frameMotionData(frameMotionDataInd);
   attendedObjStim = attendedObjData.attendedObjVect{stim_i};
-  convert2Ind = @(x) find(strcmp(x, attendedObjData.objList));
   objIndex = cellfun(convert2Ind, attendedObjStim);
   
   stimVidStruct = dir([stimDir '/**/' eventIDs{stim_i}]);
@@ -194,23 +200,17 @@ for stim_i = 1:length(eventIDs)
   % If Desired, create video of output
   if videoOutput
     
-    if spikeOverlay
-      outputVideo = cell(length(spikeEyeData), 1);
-    else
-      %Open a new video to save the results (video gets opened at end for
-      %spikeOverlay).
-      vidNameNoSpike = [outDir 'onlay_' stimVidStruct(1).name];
-      outputVideo{1} = VideoWriter(vidNameNoSpike);
-      outputVideo{1}.FrameRate = stimVid.FrameRate;
-      open(outputVideo{1});
-    end
+    %Open a new video to save the results (video gets opened at end for
+    %spikeOverlay).
+    vidNameNoSpike = [outDir 'onlay_' stimVidStruct(1).name];
+    outputVideo{1} = VideoWriter(vidNameNoSpike);
+    outputVideo{1}.FrameRate = stimVid.FrameRate;
+    open(outputVideo{1});
     
-    % Initialize a blend object, create indexes for better handling
-    % sparse indices
-    if spikeOverlay
-      blend = vision.AlphaBlender('Operation', 'blend');
-      sparseIndEnds = stimVid.Height:stimVid.Height:size(spikeEyeMatRS, 2);
-      sparseIndStarts = [1 sparseIndEnds(1:end)+1];
+    if shapeOverlay && contains(eventIDs{stim_i}, 'monkey')
+      % ID Videos
+      idVidPath = dir(fullfile(idVidDir, strcat(extractBefore(eventIDs{stim_i}, '.avi'), '*')));
+      vidIDObj = VideoReader(fullfile(idVidPath.folder, idVidPath.name));
     end
     
     for frame_i = framesIter
@@ -219,31 +219,35 @@ for stim_i = 1:length(eventIDs)
       img1 = read(stimVid, frame_i);
       
       % Add in Shapes (If the data exists, and switch is set)
+%       if shapeOverlay && ~isempty(stimFrameMotionData.objNames) %Landscapes/Scrambles
+%         for obj_i = 1:length(objects)
+%           coords = eval(eval(sprintf('objects{%d}',obj_i)));
+%           coords = round(coords(frame_i,:));
+%           if any(isnan(coords)) %NaN means the object isn't present.
+%             continue
+%           end
+%           switch objectShapes{obj_i}
+%             case 'Circle'
+%               img1 = insertShape(img1, objectShapes{obj_i}, [coords(1) coords(2) objRad(obj_i)], 'LineWidth', 2, 'color', (eyeSig.color{1}{obj_i}.*255));
+%             case 'Line'
+%               %the 2 lines define gazes - the first one comes from Face1, the
+%               %2nd from Face2.
+%               if obj_i == find(strcmp(objectShapes, 'Line'), 1, 'first')
+%                 GazeSource = Face1;
+%               else
+%                 GazeSource = Face2;
+%               end
+%               img1 = insertShape(img1,objectShapes{obj_i},[GazeSource(frame_i,1) GazeSource(frame_i,2) coords(1) coords(2)],'LineWidth',2);
+%           end
+%         end
+%       end
+      
       if shapeOverlay && ~isempty(stimFrameMotionData.objNames) %Landscapes/Scrambles
-        for obj_i = 1:length(objects)
-          coords = eval(eval(sprintf('objects{%d}',obj_i)));
-          coords = round(coords(frame_i,:));
-          if any(isnan(coords)) %NaN means the object isn't present.
-            continue
-          end
-          switch objectShapes{obj_i}
-            case 'Circle'
-              img1 = insertShape(img1, objectShapes{obj_i}, [coords(1) coords(2) objRad(obj_i)], 'LineWidth', 2, 'color', (eyeSig.color{1}{obj_i}.*255));
-            case 'Line'
-              %the 2 lines define gazes - the first one comes from Face1, the
-              %2nd from Face2.
-              if obj_i == find(strcmp(objectShapes, 'Line'), 1, 'first')
-                GazeSource = Face1;
-              else
-                GazeSource = Face2;
-              end
-              img1 = insertShape(img1,objectShapes{obj_i},[GazeSource(frame_i,1) GazeSource(frame_i,2) coords(1) coords(2)],'LineWidth',2);
-          end
-        end
+        idVidFrame = read(vidIDObj, frame_i);
+        img1 = imfuse(img1, idVidFrame,'blend','Scaling','joint');
       end
       
       % Add the eye signal, color coded according to the switch
-      
       for trial_i = 1:size(eyeInByEventDS{stim_i}, 2)
         coords = round(eyeInByEventDS{stim_i}(:, trial_i, frame_i));
         % Place the shapes corresponding to gaze for every trial
@@ -265,57 +269,22 @@ for stim_i = 1:length(eventIDs)
         img1 = insertText(img1,[10 255], num2str(frame_i), 'BoxOpacity' , 0,'FontSize', 20, 'TextColor', 'yellow');
       end
       
-      if spikeOverlay
-        % Extract spikeDataMat, Create an image with spikeData overlaid.
-        for chan_i = 1:length(spikeEyeData{stim_i})
-          for unit_i = length(spikeEyeData{stim_i}{chan_i})
-            
-            % Return the spikeEyeData to full, indexing to find the correct frame.
-            spikeEyeMatRS = spikeEyeData{stim_i}{chan_i}{unit_i};
-            spikeFrameInfo = full(spikeEyeMatRS(:, sparseIndStarts(frame_i):sparseIndEnds(frame_i))');
-            
-            if ~all(all(spikeFrameInfo == 0))
-              % If there are spikes, create an image for them and blend.
-              colorScaler = max(max(spikeFrameInfo))/256;
-              img2 = uint8(ind2rgb(uint8(spikeFrameInfo/colorScaler), colormapStored) * 255);
-              
-              AlphaDataScale = spikeFrameInfo/max(max(spikeFrameInfo));
-              % Combine the images
-              blend.Opacity = AlphaDataScale;
-              imgBlend = blend(img1, img2);
-            else
-              imgBlend = img1;
-            end
-            
-            %Open a new video to save the results
-            if frame_i == 1
-              vidPath = fullfile(outDir, sprintf('onlay_Ch%d_U%d_%s', chan_i, unit_i, stimVidStruct(1).name));
-              outputVideo{chan_i} = VideoWriter(vidPath);
-              outputVideo{chan_i}.FrameRate = stimVid.FrameRate;
-              open(outputVideo{chan_i});
-            end
-            
-            % Write the frame
-            writeVideo(outputVideo{chan_i}, imgBlend);  % Add the new Frame
-          end
-        end
-      else
-        % Write the frame
-        writeVideo(outputVideo{1}, img1);  % Add the new Frame
-        
-        % To get example frames, have them saved in the same dir
-        if 1
-          imgName = sprintf('%s_Frame%d.png', extractBefore(vidNameNoSpike, '.avi'), frame_i);
-          imwrite(img1, imgName);
-        end
-        
+      % Write the frame
+      writeVideo(outputVideo{1}, img1);  % Add the new Frame
+      
+      % To get example frames, have them saved in the same dir
+      if 0
+        imgName = sprintf('%s_Frame%d.png', extractBefore(vidNameNoSpike, '.avi'), frame_i);
+        imwrite(img1, imgName);
       end
+
       
     end
     
     for ii = 1:length(outputVideo)
       close(outputVideo{ii});
     end
+    
   end
   
 end

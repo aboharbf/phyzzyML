@@ -1,8 +1,8 @@
 function saveOpenFigs()
 
 h =  findobj('type','figure');
-saveDir = 'C:\OneDrive\Lab\Documents\DisserationFigs\saccadePostEx';
-figCoreName = 'uniqueCellEx2';
+saveDir = 'C:\OneDrive\Lab\Documents\Thesis\ThesisFigs\pieChartCells';
+figCoreName = 'Fig';
 
 figStruct.saveFig = 1;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved

@@ -1,4 +1,4 @@
-function  selTable = saccadePerUnit(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, paradigm, epochStatsParams, selTable)
+function  selTable = saccadePerLabel(spikesByEventBinned, eyeBehStatsByStim, psthParams, eventIDs, paradigm, epochStatsParams, selTable)
 % A function which compares saccades between different conditions.
 
 % Inputs:
@@ -41,6 +41,7 @@ nonParametric = epochStatsParams.nonParametric;
 % spikesByUnitBinned{chan}{unit}
 chanCount = length(spikesByEventBinned{1});
 chanUnits = cellfun('length', spikesByEventBinned{1});
+spikePad = psthParams.movingWin(1)/2;
 
 % Create index for table
 [unitSelVec, pValVec] = deal(nan(size(selTable,1), length(targNames)));
@@ -51,16 +52,20 @@ for group_i = 1:length(targNames)
   targName = targNames{group_i};
   groupLabelsByEvent = plotMat(:, group_i);
   
-  % ID Target vs Non-target events
+  % ID Target saccades
   targInd = max(groupLabelsByEvent);
   targEventInd = groupLabelsByEvent == targInd;                                     % Find the target index
   nonTargEventInd = ~(groupLabelsByEvent == targInd) & groupLabelsByEvent ~= 0;     % 0 is not part of the analysis group.
   
   stimTargetInd = double(targEventInd);
-  stimTargetInd(nonTargEventInd) = deal(2);
   
   % Initialize matrix of entries for results.
   trueUnitInd = 1;
+  
+  trialsPerStim = cellfun('length', eyeBehStatsByStim);
+  
+  [stimSaccadeArrays, stimSaccadeNullArrays] = generateAdvSaccadeNullTimes(eyeBehStatsByStim, psthParams);
+  % figure(); subplot(1,2,1); imagesc(stimSaccadeArrays{1}); subplot(1,2,2); imagesc(stimSaccadeNullArrays{1});
   
   for chan_i = 1:chanCount
     for unit_i = 1:chanUnits(chan_i)
@@ -69,28 +74,43 @@ for group_i = 1:length(targNames)
       targSacc = cell(2, 1);
       
       for stim_i = find(stimTargetInd)'
+        % Get spike data
+        spikeData = spikesByEventBinned{stim_i}{chan_i}{unit_i};
+        spikeData = spikeData(:, (spikePad+1):end-spikePad);
         
         % Extract saccades for stim
-        saccadeData = [eyeBehStatsByStim{stim_i}{:}]';
-        saccadetimes = [saccadeData.saccadetimes];
-        saccadeDir = [saccadeData.saccadeDirection]';
+        saccadetimes = stimSaccadeArrays{stim_i};
+        saccadeNulltimes = stimSaccadeNullArrays{stim_i};
         
-        saccKeep = saccadetimes(1,:) > 0 & saccadetimes(1,:) < psthParams.psthImDur;
+        % Remove the segment of spike data associated w/ pre-stim, not of
+        % interest. Also makes the times into appropriate indexes.
+        spikeData = spikeData(:, psthParams.psthPre:end);
         
-        saccadetimes = saccadetimes(:, saccKeep) + psthPad;
-        saccadeDir = saccadeDir(saccKeep);
-        saccadeSpikes = zeros(size(saccadeDir));
-        
-        % For each saccade, gather spikes which occured during that period.
-        for sacc_i = 1:size(saccadetimes,2)
-          %       spikeBin = saccadetimes(1, sacc_i):saccadetimes(2, sacc_i); % Use actual sacc times
-          saccStart = saccadetimes(1, sacc_i);
-          spikeBin = (saccStart-preSacc) : (saccStart + postSacc); % use method in paper
-          spikeBin = spikeBin(spikeBin > 0);
-          saccadeSpikes(sacc_i) = sum(sum(spikesByEventBinned{stim_i}{chan_i}{unit_i}(:, spikeBin)));
+        for trial_i = 1:size(saccadetimes,1)
+          saccadesPresent = find(saccadetimes(trial_i,:)) - psthParams.psthPre;
+          nullSaccPresent = find(saccadeNulltimes(trial_i,:)) - psthParams.psthPre;
+          
+          saccadesPresent = saccadesPresent(saccadesPresent > 0 & saccadesPresent < psthParams.psthImDur);
+          nullSaccPresent = nullSaccPresent(nullSaccPresent > 0 & nullSaccPresent < psthParams.psthImDur);
+          
+          allSacc = [saccadesPresent, nullSaccPresent];
+          saccInd = [ones(size(saccadesPresent)), ones(size(nullSaccPresent))*2];
+          
+          % For each saccade, gather spikes which occured during that period.
+          saccadeSpikes = zeros(size(allSacc));
+          for sacc_i = 1:length(allSacc)
+            saccStart = allSacc(sacc_i);
+            spikeBin = (saccStart-preSacc) : (saccStart + postSacc); % use method in paper
+            spikeBin = spikeBin(spikeBin > 0);
+            saccadeSpikes(sacc_i) = sum(spikeData(trial_i, spikeBin), 'all');
+          end
+          
+          % Segregate spike count data
+          for targ_i = 1:2
+            targSacc{targ_i} = [targSacc{targ_i}, saccadeSpikes(saccInd == targ_i)];
+          end
+          
         end
-        
-        targSacc{stimTargetInd(stim_i)} = [targSacc{stimTargetInd(stim_i)}; saccadeSpikes];
         
       end
       

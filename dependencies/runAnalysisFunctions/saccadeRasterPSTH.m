@@ -189,24 +189,25 @@ for chan_i = 1:length(spikesBySubEventBinned{1})
     
     % Raster, color coded
     chanUnitTag = sprintf('%s%s', figStruct.channelNames{chan_i}, figStruct.channelUnitNames{chan_i}{unit_i});
-    figTitle = sprintf('SaccDir_Raster - %s', chanUnitTag); 
-    fh = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4 0.05 0.37 0.95]);
-    
-%     subAx = subplot(3, 1, 1:2);
-    subAx = axes();
-    subAx.YTick = []; subAx.XTick = [];
-    rasterColorCoded(subAx, spikesBySubEvent, saccDirNames, rasterSaccParams.psthParams, 500, chan_i, unit_i, struct(), 0, spikePattern);
-    xlabel('Time relative to Saccade onset (ms)')
-    yticklabels(saccDirYLabel);
-    ylabel('Saccade Direction (Degrees)');
-    title(strrep(figTitle, '_', ' '));
-    delete(findobj(fh, 'Type', 'Legend'));
-    
-    saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
-    
+    if 0
+      figTitle = sprintf('SaccDir_Raster - %s', chanUnitTag);
+      fh = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4 0.05 0.37 0.95]);
+      
+      %     subAx = subplot(3, 1, 1:2);
+      subAx = axes();
+      subAx.YTick = []; subAx.XTick = [];
+      rasterColorCoded(subAx, spikesBySubEvent, saccDirNames, rasterSaccParams.psthParams, 500, chan_i, unit_i, struct(), 0, spikePattern);
+      xlabel('Time relative to Saccade onset (ms)')
+      yticklabels(saccDirYLabel);
+      ylabel('Saccade Direction (Degrees)');
+      title(strrep(figTitle, '_', ' '));
+      delete(findobj(fh, 'Type', 'Legend'));
+      saveFigure(figStruct.figDir, figTitle, [], figStruct, figStruct.figTag);
+    end
+
     % PSTH, on the right
     figTitle = sprintf('SaccDir_PSTH - %s', chanUnitTag);
-    fh = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4047 0.0583 0.3604 0.2935]);
+    fh = figure('Name', figTitle, 'NumberTitle', 'off', 'units', 'normalized', 'outerposition', [0.4047 0.0583 0.36 0.38]);
     subAx = axes();
     
     % subAx2 = subplot(3, 1, 3);

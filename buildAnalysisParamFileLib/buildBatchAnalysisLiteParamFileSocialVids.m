@@ -49,10 +49,10 @@ analysisLabel = 'Basic';
 preprocessedDataFilenameStem = 'preprocessedData.mat';
 analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
-figStruct.saveFig = 1;      % save the figure in its output directory.           
+figStruct.saveFig = 0;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 1;    % export figure using export_fig.
-figStruct.saveFigData = 1;  % save data with the figure.
+figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 
 %% Switches
@@ -65,18 +65,18 @@ plotSwitch.selectivityCounts = 0;     % Counts of units selective for each resul
 plotSwitch.eyeCorr = 0;               % All run eye correlogram
 plotSwitch.spikeEyeCorr = 0;          % All run eye correlogram
 plotSwitch.rampingAnalysis = 0;       % Ramping plot
+plotSwitch.rewardAnalysis = 0;       % Ramping plot
 plotSwitch.latencyAnalysis = 0;       % Latency plot
 plotSwitch.saccadeDirAnalysis = 0;    % saccade dir examples plot
-
 
 plotSwitch.dimRed = 0;                 
 calcSwitch.dataHigh = 0;
 
 plotSwitch.saccadeAnalysis = 0;
-plotSwitch.neuralDecodingTB = 1;      % Run the Neural decoding Toolbox
+plotSwitch.neuralDecodingTB = 0;      % Run the Neural decoding Toolbox
 plotSwitch.meanPSTH = 0;              % figure showing mean PSTH across all units, MUA, and Unsorted.
 plotSwitch.subEventPSTH = 0;          % Analysis of subEvents taking place during stimuli.
-plotSwitch.rewardPSTH = 0;            % Analysis of reward psthes specifically.
+plotSwitch.rewardPSTH = 1;            % Analysis of reward psthes specifically.
 plotSwitch.spikeEyeOverlay = 0;       % Generate an overlay of activity across units according to eye signal.
 plotSwitch.frameFiringRates = 0;      % Figures showing raw, max, mean rates per object depending on viewing during frame.
 plotSwitch.novelty = 0;               % 
@@ -134,6 +134,7 @@ selParam.comboSubEvents = {...
 selParam.figStruct = figStruct;
 
 selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
+selParam.alphaTaskMod = 0.01;     % The alpha to use when thresholding p values across runAnalyses outputs.
 selParam.stretchThreshold = 5;    % For sliding scale tests, how many consecutive bins need to be significant for the unit to count as 'selective'?
 selParam.objectStretches = true;  % Only count stretches as significant in the sliding window test if the preferred object remains the same through out.
 
@@ -328,16 +329,17 @@ NDTParams.spikeToRasterParams.plotIndParams.removeEmpty = 0;
 NDTParams.spikeToRasterParams.plotIndParams.outLogic = 0;
 
 % Params for binning of rasters for analyses.
+% Single Bin decoding
+NDTParams.binWidth = 2800;
+NDTParams.stepSize = 2800;
+NDTParams.binFileStart = 1;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
+NDTParams.binFileEnd = 1;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
+
+% Sliding window decoding
 % NDTParams.binWidth = 200;
 % NDTParams.stepSize = 100;
 % NDTParams.binFileStart = 400;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
 % NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
-
-% Single Bin decoding
-NDTParams.binWidth = 200;
-NDTParams.stepSize = 100;
-NDTParams.binFileStart = 400;       % The amount of time *prior to stim onset* which is included in the binFile and subsequent decoding
-NDTParams.binFileEnd = 400;         % The amount of time *after stim end* which is included in the binFile and subsequent decoding
 
 NDTParams.AnalysesDefault.real_shuffle_count = 1;             % The number of times to run the real test.
 NDTParams.AnalysesDefault.null_shuffle_count = 7;            % The number of times to randomly shuffle the data to generate a null distribution.

@@ -79,7 +79,7 @@ for chan_i = 1:length(spikesByChannel)
     waveFormTitle = sprintf('%s U%d waveForms', figStruct.channelNames{chan_i}, unit_i);
     waveFormFigPath = fullfile(figStruct.figDir, strrep(waveFormTitle, ' ', '_'));
     
-    if ~exist(waveFormFigPath, 'file')
+    if ~exist(strcat(waveFormFigPath, '.png'), 'file')
       figure('Name', waveFormTitle, 'NumberTitle', 'off');
       plot(waveFormUnit(randSamp,:)'); hold on; plot(meanWaveFormTrace, 'linewidth', 3, 'color', 'k');
       title(waveFormTitle);

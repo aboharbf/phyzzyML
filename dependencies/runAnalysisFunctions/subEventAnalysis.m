@@ -1,4 +1,4 @@
-function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, eventIDs, onsetsByEventStim, subEventParams, selTable, psthParams, figStruct)
+function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeBehStatsByStim, spikesByChannel, taskData, eventIDs, onsetsByEventStim, subEventParams, selTable, psthParams, catIndStruct, figStruct)
 % subEventAnalysis
 % Description - looks through spikesByEvent, calculates PSTH for activity
 % aligned to a specific event as well as a null distribution from the
@@ -13,6 +13,7 @@ function [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(ey
 
 saccadeSplit = true;           % Split subEvent in the stimulus depending on whether they were followed by a saccade.
 keepNonSplit = true;           % if splitting subevents by saccade or non-saccade, decide if you keep the original. 
+rewardSocVNonSocSplit = true;   % Split the reward between social and non-social.
 
 % Unpack Variables, some preprocessing. Generate an index for individual
 % trials that take place during the run, matching them to the stimuli as
@@ -193,10 +194,10 @@ if ~isempty(eyeBehStatsByStim)
   
   % Generate pre-saccade times - *Pre-sacc test period is -200 to 0, so the
   % event times are the same as for saccades.
-  preSaccadeTimes = saccadeTimes;% - subEventParams.preSaccOffset;
-  preSaccadeNonStimTimes = saccadeNonStimTimes;% - subEventParams.preSaccOffset;
-  preSaccadeNullTimes = saccadeNullTimes - subEventParams.preSaccOffset;
-  preSaccadeNonStimNullTimes = saccadeNonStimNullTimes - subEventParams.preSaccOffset;
+  preSaccadeTimes = saccadeTimes;
+  preSaccadeNonStimTimes = saccadeNonStimTimes;
+  preSaccadeNullTimes = saccadeNullTimes;
+  preSaccadeNonStimNullTimes = saccadeNonStimNullTimes;
   
   % Sort these lists for the next processing steps
 %   eyeEventTimes = {blinkTimes; saccadeTimes; preSaccadeTimes}; % Putting saccadeTimes in twice for pre-saccade times.
@@ -272,24 +273,48 @@ end
 
 % Event Type 3 - add the Reward as an event
 if subEventParams.RewardEvent
-  
-  % Establish times of reward delivery
-  rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
-  rewardTimesNull = createNullScrambleTimes({rewardTimes}, 300, 200);  % Generate Null times for the rewardTimes event.
+      
+    % Establish times of reward delivery
+    rewardTimes = taskData.juiceOnTimes(~isnan(taskData.juiceOnTimes));
+    rewardTimesNull = createNullScrambleTimes({rewardTimes}, 300, 200);  % Generate Null times for the rewardTimes event.
     
-  % Establish reward anticipation vector based on 'rewardAntTime' param.
-  % Reward anticipation testing window is 0 - 200 ms, so times are the same
-  % as reward.
-  % Because the test window is 0 to rewardAntTime, adding it in just makes it normal reward times vs the precending x ms.
-  
-  rewardAntTimes = rewardTimes; 
-  rewardAntNull = rewardTimes + subEventParams.rewardAntTime;  
-  
-  % Stick onto larger structures - rewardAnt is t tested for the period 
-  subEventNames = [subEventNames; "reward"; "rewardAnt"];
-  onsetsByEvent = [onsetsByEvent; rewardTimes; rewardAntTimes];
-  onsetsByEventNull = [onsetsByEventNull; rewardTimesNull; rewardAntNull];
-  
+    % Establish reward anticipation vector based on 'rewardAntTime' param.
+    % Reward anticipation testing window is -200 - 0 ms, so times are the same
+    % as reward.
+    rewardAntTimes = rewardTimes;
+    
+    % Identify trials which are specifically social
+    
+    % the Null times are the reward times shifted forward to 'undo' the anticipation window being -X.
+    % Anticipation is defined by a higher activity before the reward than after it.
+    rewardAntNull = rewardTimes + subEventParams.rewardAntTime;
+
+    % Stick onto larger structures - rewardAnt is t tested for the period
+    subEventNames = [subEventNames; "reward"; "rewardAnt"];
+    onsetsByEvent = [onsetsByEvent; rewardTimes; rewardAntTimes];
+    onsetsByEventNull = [onsetsByEventNull; rewardTimesNull; rewardAntNull];
+    
+    socInd = catIndStruct.catIndMat(:, strcmp(catIndStruct.categoryList, 'socialInteraction'));
+    agInd = catIndStruct.catIndMat(:, strcmp(catIndStruct.categoryList, 'agents'));
+    contInd = agInd & ~socInd;
+    
+    socStim = catIndStruct.eventIDs(socInd);
+    agStim = catIndStruct.eventIDs(agInd);
+    
+    socTrials = ismember(taskData.taskEventIDs, socStim);
+    agTrials = ismember(taskData.taskEventIDs, agStim);
+    
+    socRewardTimes = taskData.juiceOnTimes(socTrials);
+    agRewardTimes = taskData.juiceOnTimes(agTrials);
+    
+    socRewardTimes = socRewardTimes(~isnan(socRewardTimes));
+    agRewardTimes = agRewardTimes(~isnan(agRewardTimes));
+    
+    % Stick onto larger structures - rewardAnt is t tested for the period
+    subEventNames = [subEventNames; "reward_soc"];
+    onsetsByEvent = [onsetsByEvent; socRewardTimes];
+    onsetsByEventNull = [onsetsByEventNull; agRewardTimes];
+    
   % Generate a 2nd reward comparison, contraining reward to to unrewarded trials.
   if taskData.rewardParadigm
     unRewardedTrials = isnan(taskData.juiceOnTimes);
@@ -484,7 +509,7 @@ if ~isempty(onsetsByEvent)
           end
           
           % Cycle through events
-          for event_i = 1:length(dataInd)
+          for event_i = [1 5 6] %1:length(dataInd)
             
             % If not significant, don't plot
             pValNum = testResults{chan_i}{unit_i}{dataInd(event_i)};

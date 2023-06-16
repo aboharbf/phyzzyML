@@ -4,13 +4,21 @@ function [labelsTrim, resortInd] = resortAndTrimLabels(labels)
 % along with the index of that resorting
 
 % Resort
-if ~any(contains(labels, 'Reward')) && ~any(contains(labels, 'headTurn'))
+if ~any(contains(labels, 'Reward')) && ~any(contains(labels, 'headTurn ')) % space after headTurnto catch event aligned analyses
+  
+  if any(contains(labels, 'headTurn'))
+    labels = eventIDMerge(labels);
+  end
+  
   gdInd = find(contains(labels, 'GoalDir'));
   idleInd = find(contains(labels, 'Idle'));
   objInd = find(contains(labels, 'objects'));
   landInd = find(contains(labels, 'landscape'));
-  socInd = find(contains(labels, 'monkey') & ~contains(labels, {'Idle', 'GoalDir'}));
-  resortInd = [socInd; gdInd; idleInd; objInd; landInd];
+  ChasInd = find(contains(labels, 'Chas') & ~contains(labels, {'Idle', 'GoalDir'}));
+  FigInd = find(contains(labels, 'Fig') & ~contains(labels, {'Idle', 'GoalDir'}));
+  MountInd = find(contains(labels, 'Mou') & ~contains(labels, {'Idle', 'GoalDir'}));
+  GroomInd = find(contains(labels, 'Groom') & ~contains(labels, {'Idle', 'GoalDir'}));
+  resortInd = [ChasInd; FigInd; MountInd; GroomInd; gdInd; idleInd; objInd; landInd];
   labels = labels(resortInd);
 else
   labelsTrim = labels;
@@ -29,8 +37,10 @@ if any(contains(labels, 'monkey'))
   labelsTrim = strrep(labelsTrim, 'monkey', '');
 end
 
-if all(contains(labels, '_'))
+if all(contains(labels, '_')) && any(contains(labels, 'monkey'))
   labelsTrim = strcat(extractBefore(labelsTrim, '_'), cellfun(@(x) x(end), labelsTrim));
+else
+  labelsTrim = strrep(labelsTrim, '_', ' ');
 end
 
 end

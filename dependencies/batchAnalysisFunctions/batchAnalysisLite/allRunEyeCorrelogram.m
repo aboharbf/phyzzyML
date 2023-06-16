@@ -17,7 +17,7 @@ monkeyArray = {'Mo', 'Sam', 'Combo'};
 % make outputDir
 outputDir = fullfile(params.outputDir, 'eyeCorr');
 
-for m_i = 1:length(monkeyArray)
+for m_i = 3%1:length(monkeyArray)
   for par_i = 1
     
     % Focus on the specific subset of data to process
@@ -38,7 +38,7 @@ for m_i = 1:length(monkeyArray)
     % stimulus into the same cell
     
     uniqueIDs = unique([eventIDsPerRun{:}]);
-    uniqueIDsPlot = strrep(uniqueIDs, '_', ' ');
+
     [allTrialeyeByEvent, runNameByEvent] = deal(cell(size(uniqueIDs)));
     for uni_i = 1:length(uniqueIDs)
       % Identify which data belongs to the stimulus per run.
@@ -61,6 +61,11 @@ for m_i = 1:length(monkeyArray)
     
     %sampRate = 1/eyeCalParams.samplingRate;
     [eventCorr, trialPerEvent] = deal(nan(size(runNameByEvent)));
+    
+    [uniqueIDsPlot, resortInd] = resortAndTrimLabels(uniqueIDs);
+    uniqueIDsPlot(1:end-8) = strcat('monkey', uniqueIDsPlot(1:end-8));
+    allTrialeyeByEvent = allTrialeyeByEvent(resortInd);
+    runNameByEvent = runNameByEvent(resortInd);
     
     %Cycle through "by Event" eye data"
     for event_i = 1:length(allTrialeyeByEvent)
@@ -95,42 +100,42 @@ for m_i = 1:length(monkeyArray)
       eventCorr(event_i) = mean(eyeCorrAll(:));
       
       %Plotting Time
-      eyeTitle = sprintf('Eye signal Intertrial correlation - %s', uniqueIDsPlot{event_i});
-      figure('Name', eyeTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.1 0.1 0.54 0.69]);
-      subplot(4,1, [1:3])
-      imageH = imagesc(eyeMatCorr);
-      axesH = imageH.Parent;
-      title(eyeTitle)
-      colorbar
+%       eyeTitle = sprintf('Eye signal Intertrial correlation - %s', uniqueIDsPlot{event_i});
+%       figure('Name', eyeTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.1 0.1 0.54 0.69]);
+% %       subplot(4,1, [1:3])
+%       imageH = imagesc(eyeMatCorr);
+%       axesH = imageH.Parent;
+%       title(eyeTitle)
+%       colorbar
       
       %Chop it up
-      tLen = length(eyeMatCorr);
+%       tLen = length(eyeMatCorr);
       lineSpots = cumsum(trialPerRun);
-      for line_i = 1:length(lineSpots)
-        lineInd = lineSpots(line_i) + 0.5;
-        %Draw vertical line
-        line([lineInd lineInd], [0 tLen], 'Linewidth',.5, 'color', 'k')
-        %Draw horzontal line
-        line([0 tLen], [lineInd lineInd], 'Linewidth',.5, 'color', 'k')
-      end
+%       for line_i = 1:length(lineSpots)
+%         lineInd = lineSpots(line_i) + 0.5;
+%         %Draw vertical line
+%         line([lineInd lineInd], [0 tLen], 'Linewidth',.5, 'color', 'k')
+%         %Draw horzontal line
+%         line([0 tLen], [lineInd lineInd], 'Linewidth',.5, 'color', 'k')
+%       end
       
-      [axesH.YTick, axesH.XTick] = deal(lineSpots - (trialPerRun/2));
-      axesH.YTickLabel = arrayfun(@(x) sprintf('%d:%s', x, runNameByEvent{event_i}{x}(6:end)), 1:length(runNameByEvent{event_i}), 'UniformOutput', false);
-      axesH.XTickLabel = 1:length(runNameByEvent{event_i});
+%       [axesH.YTick, axesH.XTick] = deal(lineSpots - (trialPerRun/2));
+%       axesH.YTickLabel = arrayfun(@(x) sprintf('%d:%s', x, runNameByEvent{event_i}{x}(6:end)), 1:length(runNameByEvent{event_i}), 'UniformOutput', false);
+%       axesH.XTickLabel = 1:length(runNameByEvent{event_i});
       
-      axH3 = subplot(4,1,4);
-      binSize = 100;
-      stepSize = 25;
-      [corrDataX, binStarts, binEnds] = slidingWindowCorr(eyeXMat', binSize, stepSize);
-      [corrDataY, ~, ~] = slidingWindowCorr(eyeYMat', binSize, stepSize);
-      binLabels = mean(cat(1, binStarts, binEnds), 1);
-      plot(mean(cat(2, corrDataX, corrDataY), 2))
-      axH3.XTick = 1:10:length(corrDataY);
-      axH3.XTickLabel = binLabels(1:10:length(corrDataY));
-      axH3.XLim = [1 length(corrDataY)];
+%       axH3 = subplot(4,1,4);
+%       binSize = 100;
+%       stepSize = 25;
+%       [corrDataX, binStarts, binEnds] = slidingWindowCorr(eyeXMat', binSize, stepSize);
+%       [corrDataY, ~, ~] = slidingWindowCorr(eyeYMat', binSize, stepSize);
+%       binLabels = mean(cat(1, binStarts, binEnds), 1);
+%       plot(mean(cat(2, corrDataX, corrDataY), 2))
+%       axH3.XTick = 1:10:length(corrDataY);
+%       axH3.XTickLabel = binLabels(1:10:length(corrDataY));
+%       axH3.XLim = [1 length(corrDataY)];
       
       % Save
-      saveFigure(outputDir, sprintf('EyeCorr_%s', uniqueIDs{event_i}), [], figStruct, []);
+      % saveFigure(outputDir, sprintf('EyeCorr_%s', uniqueIDs{event_i}), [], figStruct, []);
       
       % Simpiler map - take averages across all the runs for this stim
       eyeMatCorrSimp = zeros(length(runNameByEvent{event_i}));
@@ -142,7 +147,7 @@ for m_i = 1:length(monkeyArray)
       end
       
       % Plot
-      eyeAvgTitle = sprintf('Eye signal inter-trial correlation, Averaged across Runs - %s', uniqueIDsPlot{event_i});
+      eyeAvgTitle = sprintf('Average Interrun eye correlation - %s', uniqueIDsPlot{event_i});
       figure('Name', eyeAvgTitle, 'NumberTitle', 'off', 'units', 'normalized', 'position', [0.1 0.1 0.54 0.69]);
       imgH = imagesc(eyeMatCorrSimp);
       axeH2 = imgH.Parent;
@@ -153,7 +158,7 @@ for m_i = 1:length(monkeyArray)
       axeH2.YTickLabel = arrayfun(@(x) sprintf('%d:%s', x, runNameByEvent{event_i}{x}(6:end)), 1:length(runNameByEvent{event_i}), 'UniformOutput', false);
       axeH2.XTickLabel = 1:length(runNameByEvent{event_i});
       
-      saveFigure(outputDir, sprintf('EyeCorrAvg_%s', uniqueIDs{event_i}), [], figStruct, []);
+      saveFigure(outputDir, sprintf('EyeCorrAvg_%s', uniqueIDsPlot{event_i}), [], figStruct, []);
       
     end
   end

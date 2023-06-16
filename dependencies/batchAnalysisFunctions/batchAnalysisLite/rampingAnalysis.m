@@ -1,4 +1,4 @@
-function rampingAnalysis(spikePathBank, batchAnalysisParams)
+function rewardAnalysis(spikePathBank, batchAnalysisParams)
 % A Function to tally across processed runs and the 'selTable' produced.
 
 % Now, selectivity across paradigms...
@@ -188,7 +188,7 @@ for m_i = 3%1:length(monkeyList)
       for epoch_i = 1:length(epochNames)
         % Title
         epochInd = find(rampingDataPool(:,1) == epoch_i);
-        epochRamps = rampingDataPool(epochInd, 4);  % 4 is Slope, 6 is R^2
+        epochRamps = rampingDataPool(epochInd, 7);  % 4 is Slope, 6 is R^2
         [~, epochInd2] = sort(epochRamps, 'descend');
         
         % Create sorted list
@@ -213,27 +213,19 @@ for m_i = 3%1:length(monkeyList)
         % openUnitFigs(sortedUnitNames(end:-1:end-units2Report+1), batchAnalysisParams.analysisDirectory)
         
         % Extra Section - How about event aligned activity?
-        switch epochNames{epoch_i}
-          case {"Reward"}
-            % for rewards, ramping activity may end after or before reward
-            % delivery.
-            num2Check = 9;
-            openUnitFigs(sortedUnitNames(num2Check), 'subEventPSTH_*_reward*',  batchAnalysisParams.analysisDirectory)
-            openUnitFigs(sortedUnitNames(num2Check), 'imPSTH_*',  batchAnalysisParams.analysisDirectory)
-            fprintf('%s \n', sortedUnitNames(num2Check))
 
-            num2Check = 0;
-            openUnitFigs(sortedUnitNames(end-num2Check), 'subEventPSTH_*_reward*',  batchAnalysisParams.analysisDirectory)
-            openUnitFigs(sortedUnitNames(end-num2Check), 'imPSTH_*',  batchAnalysisParams.analysisDirectory)
-            fprintf('%s \n', sortedUnitNames(end-num2Check))
-            
-            openUnitFigs("20201202Mo003_Ch29U1", 'subEventPSTH_*_reward*',  batchAnalysisParams.analysisDirectory)
-            openUnitFigs("20201202Mo003_Ch29U1", 'imPSTH_*',  batchAnalysisParams.analysisDirectory)
-            fprintf('%s \n', "20201202Mo003_Ch29U1")
-
-%           case 'Fixation'
-%             openUnitFigs(sortedUnitNames(1:10), 'subEventPSTH_*_fix*',  batchAnalysisParams.analysisDirectory)
-%             openUnitFigs(sortedUnitNames(1:10), 'imPSTH_*',  batchAnalysisParams.analysisDirectory)
+        % for rewards, ramping activity may end after or before reward
+          % delivery.
+          num2Check = 1:61;
+          FixRampUnits = {'20210629Sam005_Ch6U1'};
+          openUnitFigs(FixRampUnits, 'imPSTH_*',  [], batchAnalysisParams.analysisDirectory)
+          openUnitFigs(FixRampUnits, 'subEventPSTH_*',  'stimOnset', batchAnalysisParams.analysisDirectory)
+          for ii = num2Check
+            %openUnitFigs(sortedUnitNames(ii), 'subEventPSTH_*',  'stimOnset', batchAnalysisParams.analysisDirectory)
+            openUnitFigs(sortedUnitNames(ii), 'imPSTH_*',  [], batchAnalysisParams.analysisDirectory)
+            fprintf('%s \n', sortedUnitNames(ii))
+          end
+          
         end
         
       end

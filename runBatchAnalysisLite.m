@@ -35,8 +35,16 @@ if plotSwitch.spikeEyeCorr
   spikeEyeCorrHist(spikePathBank, batchAnalysisParams)
 end
 
+if plotSwitch.spikeEyeCorr
+  lookingPatternsAnalysis(spikePathBank, batchAnalysisParams)
+end
+
 if plotSwitch.rampingAnalysis
   rampingAnalysis(spikePathBank, batchAnalysisParams)
+end
+
+if plotSwitch.rewardAnalysis
+  rewardAnalysis(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.latencyAnalysis
@@ -45,6 +53,11 @@ end
 
 if plotSwitch.saccadeDirAnalysis
   saccadeDirAnalysis(spikePathBank, batchAnalysisParams)
+  FixStimOnsetAnalysis(spikePathBank, batchAnalysisParams)
+  StimOnSetSaccadeAnalysis(spikePathBank, batchAnalysisParams)
+  stimOffsetRewardAnalysis(spikePathBank, batchAnalysisParams)
+  stimSubEventAnalysis(spikePathBank, batchAnalysisParams)
+  socSaccAnalysis(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.selCount
@@ -53,6 +66,7 @@ end
 
 if plotSwitch.selectivityCurve
   selectivityCurveSelNew(spikePathBank, batchAnalysisParams)
+  selectivityCurveSelNewParComp(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.selectivityCounts
@@ -99,6 +113,7 @@ end
 
 if plotSwitch.neuralDecodingTB
   batchAnalysisParams.NDTParams.spikePathLoadParams = batchAnalysisParams.spikePathLoadParams;
+  batchAnalysisParams.NDTParams.stimParamFile = batchAnalysisParams.stimParamsFilename;
   NeuralDecodingTB(spikePathBank, batchAnalysisParams.NDTParams);
 end
 

@@ -67,7 +67,7 @@ plotSwitch.rampingAnalysis = 1;
 plotSwitch.latencyAnalysis = 1;
 
 plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity surrounding an event (defined in eventData, generated w/ eventDetectionApp), vs null.
-plotSwitch.saccadeRasterPSTH = 1;
+plotSwitch.saccadeRasterPSTH = 0;
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
 plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
@@ -405,13 +405,13 @@ subEventAnalysisParams.specSubEvent = 0;                                % Analyz
 subEventAnalysisParams.preSaccOffset = 200;                             % Offset to use when determining pre-saccade period.
 subEventAnalysisParams.possibleEvents = {'headTurn_right', 'headTurn_left', 'bodyTurn', 'eyeContact', 'turnToward', 'turnAway',...
                                          'pre-saccades', 'saccades', 'pre-saccadesNonStim', 'saccadesNonStim', 'blinks', 'fixation',...
-                                         'reward', 'rewardAbsent', 'rewardAnt', 'stimOnset', 'stimOffset'};
+                                         'reward', 'reward_soc', 'rewardAbsent', 'rewardAnt', 'stimOnset', 'stimOffset'};
 subEventAnalysisParams.possibleEventsPlotNames = {'Head turn, right', 'Head turn, left', 'Body turn', 'Eye contact', 'turnToward', 'turnAway',...
                                          'Saccade', 'Saccade', 'Saccade', 'Saccade', 'Blink', 'Fixation',...
-                                         'Reward', 'Reward', 'Reward', 'Stimulus Onset', 'Stimulus Offset'};
+                                         'Reward', 'Reward', 'Reward', 'Reward', 'Stimulus Onset', 'Stimulus Offset'};
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
                                              [-200 0]; [0 100]; [-200 0]; [0 100]; [-50 150]; [0 200];...
-                                             [0 200]; [0 200]; [-subEventAnalysisParams.rewardAntTime 0]; [0 200]; [0 200]];
+                                             [0 200]; [0 200]; [0 200]; [-subEventAnalysisParams.rewardAntTime 0]; [0 200]; [0 200]];
 subEventAnalysisParams.nonParametric = 1;                                 % Use non parametric test.
 
 saccadeRasterParams.psthParams = psthParams;
@@ -488,20 +488,20 @@ if psthParams.psthPre == 500
 end
 
 epochTargParams.stimParamsFilename = stimParamsFilename;
-epochTargParams.nonParametric = 0;                      % switch to run non Parametric tests.
+epochTargParams.nonParametric = 1;                      % switch to run non Parametric tests.
  
 epochTargParams.times = [preFix; Fix; stimEarly; stimLate; reward];
 epochTargParams.labels = {'preFix', 'Fix', 'stimEarly', 'stimLate', 'reward'};    
 
-epochTargParams.naturalSocial.targNames = {'socVNonSoc', 'categories', 'broadCategories'};
-epochTargParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}};
-epochTargParams.naturalSocial.targetEpochs = [0 1 1 1 1; 0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochTargParams.naturalSocial.oneVsAll = [0 0 0];
+epochTargParams.naturalSocial.targNames = {'socVNonSoc', 'categories'};
+epochTargParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochTargParams.naturalSocial.targetEpochs = [0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochTargParams.naturalSocial.oneVsAll = [0 0];
 
-epochTargParams.headTurnCon.targNames = {'socVNonSoc', 'categories', 'broadCategories'};
-epochTargParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}, {'socialInteraction', 'idle', 'goalDirected', 'objects', 'scene'}};
-epochTargParams.headTurnCon.targetEpochs = [0 1 1 1 1; 0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochTargParams.headTurnCon.oneVsAll = [0 0 0];
+epochTargParams.headTurnCon.targNames = {'socVNonSoc', 'categories'};
+epochTargParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
+epochTargParams.headTurnCon.targetEpochs = [0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
+epochTargParams.headTurnCon.oneVsAll = [0 0];
 
 epochTargParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
 epochTargParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};

@@ -564,6 +564,24 @@ if any(contains(translationTable, 'monkey'))
   
 end
 
+%% General structures related to eye signals
+
+eyeCal.PixelsPerDegree = MLConfig.PixelsPerDegree;
+eyeCal.origin = MLConfig.EyeTransform{1,2}.origin;
+eyeCal.gain = MLConfig.EyeTransform{1,2}.gain;
+
+% Check if the stimuli are moved. If so, add this to the gain to align the
+% eye signal (Sam's fixation dot and stimuli were 5 degrees lower than
+% Mo's).
+
+% This number is subtracted in subsequent functions. So sign flip as
+% needed.
+if any(data(1).ObjectStatusRecord.SceneParam(1).Position ~= 0, 'all')
+  eyeCal.offset = data(1).ObjectStatusRecord.SceneParam(1).Position(1,:);
+else
+  eyeCal.offset = [0 0];
+end
+
 %% Output
 %Adding random numbers to these - they aren't relevant for my current task,
 %nor are they directly recorded by MKL.
@@ -608,9 +626,7 @@ taskData.stimParams = 0;
 taskData.RFmap = 0;
 taskData.eyeData = tmpEye;
 taskData.screenStats = screenStats;
-taskData.eyeCal.PixelsPerDegree = MLConfig.PixelsPerDegree;
-taskData.eyeCal.origin = MLConfig.EyeTransform{1,2}.origin;
-taskData.eyeCal.gain = MLConfig.EyeTransform{1,2}.gain;
+taskData.eyeCal = eyeCal;
 
 end
 

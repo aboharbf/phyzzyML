@@ -46,16 +46,19 @@ for m_i = 3%1:length(monkeyList)
       selParams.unitTag = unitList{unit_i};
      
       % Pull 
-      units2Find = 'saccDir';
+      units2Find = 'saccGen';
       switch units2Find
         case 'saccDir'
           selTableSaccDir = selTableParadigmUnit(selTableParadigmUnit.saccDir_nonStim_selInd, :);
           unitScore = selTableSaccDir.saccDir_nonStim_pVal;
           figTag2Find = 'SaccDir_PSTH*';
+          filtTag = [];
         case 'saccGen'
-          selTableSaccDir = selTableParadigmUnit(selTableParadigmUnit.subSel_pre_saccades_selInd, :);
+          %selTableSaccDir = selTableParadigmUnit(selTableParadigmUnit.subSel_pre_saccades_selInd, :);
+          selTableSaccDir = selTableParadigmUnit(selTableParadigmUnit.subSel_saccades_selInd, :);
           unitScore = selTableSaccDir.subSel_pre_saccades_pVal;
-          figTag2Find = 'SaccDir_PSTH*';
+          figTag2Find = 'subEvent_*';
+          filtTag = 'saccade';
       end
       
       otherTag = 'subEventPSTH_*';
@@ -67,29 +70,18 @@ for m_i = 3%1:length(monkeyList)
       unitLabelsSorted = unitLabels(sortInd);
       
       % Presaccade
-      presaccadeUnits = {'20210625Sam005_Ch10U1', '20210629Sam003_Ch45U1', '202001204Mo003_Ch21U1','20201120Mo003_Ch2U1'};
-      
-      for ii = 1:length(presaccadeUnits)
-        openUnitFigs(presaccadeUnits(ii), figTag2Find, [], batchAnalysisParams.analysisDirectory)
-        openUnitFigs(presaccadeUnits(ii), otherTag, 'saccade', batchAnalysisParams.analysisDirectory)
+%       presaccadeUnits = {'20210625Sam005_Ch10U1', '20210629Sam003_Ch45U1', '202001204Mo003_Ch21U1','20201120Mo003_Ch2U1'};
+      unitLabelsSortedTmp = unitLabelsSorted(contains(unitLabelsSorted, 'Ch8U1'));
+
+      for ii = 1:20%length(unitLabelsSorted)
+        %openUnitFigs(unitLabelsSorted(ii), figTag2Find, [], batchAnalysisParams.analysisDirectory)
+        openUnitFigs(unitLabelsSorted(ii), otherTag, filtTag, batchAnalysisParams.analysisDirectory)
       end
       
-      % Code for cleaning up figure once one is open and selected
-      h =  findobj('type','figure');
-      psthHands = h(1:4);
-      rasterHands = h(5:8);
-      
-      for fig_i = 1:length(rasterHands)
-        figH = rasterHands(fig_i);
-        rasterH = figH.Children(end);
-        rasterH.XLim = [-200, 100];
-        %delete(rasterH.Children(end))
-      end
-      
-      for fig_i = 1:length(psthHands)
-        psthH = psthHands(fig_i).Children(end);
-        psthH.Children(end).CData = psthH.Children(end).CData(:, 100:400);
-        xlim(psthH, [-200, 100])
+      % Post saccade units
+      for ii = 11:20%length(unitLabelsSorted)
+        openUnitFigs(unitLabelsSortedTmp, figTag2Find, [], batchAnalysisParams.analysisDirectory)
+        openUnitFigs(unitLabelsSortedTmp, otherTag, 'saccade', batchAnalysisParams.analysisDirectory)
       end
       
     end

@@ -1,4 +1,4 @@
-function [plotMat, briefStimList, params]= plotIndex(stimuliList, params)
+function [plotMat, briefStimList, params] = plotIndex(stimuliList, params)
 %% plotIndex
 % use to generate an index for retrieving relevant data structures for
 % plotting

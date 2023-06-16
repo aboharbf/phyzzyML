@@ -1,4 +1,4 @@
-function selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, selTable)
+function selTable = saccadeDirSel(spikesByEventBinned, eyeBehStatsByStim, psthParams, taskData, catIndStruct, selTable)
 % A function which uses the circStats toolbox to implement saccade
 % selectivity.
 
@@ -7,9 +7,8 @@ psthImDur = psthParams.psthImDur;
 
 psthPreSacc = 200;
 psthPostSacc = 200;
+socSaccOnly = true;
 
-saccPSTHDur = psthPreSacc + psthPostSacc;
-binCount = size(spikesByEventBinned{1}{1}{1},2);
 
 % Inputs:
 % - spikesByEventBinned: {stim}{chan}{unit}(trial*bin) structure of binned
@@ -62,7 +61,11 @@ end
 
 % simplify eyeBehStatsByStim into an easily referenced structure, removing
 % anything not needed.
-saccadeTimesTmp = [eyeBehStatsByStim{:}]';
+if socSaccOnly
+  saccadeTimesTmp = [eyeBehStatsByStim{:}]';
+else
+  
+end
 saccadeTimesTmp = [saccadeTimesTmp{:}];
 fields2Remove = fields(saccadeTimesTmp);
 fields2Remove = setdiff(fields2Remove, {'saccadetimes', 'SaccadeClusterValues', 'saccadeDirection', 'saccadeAngle'});

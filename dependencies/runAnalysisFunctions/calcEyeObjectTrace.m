@@ -6,7 +6,7 @@ function eyeDataStruct = calcEyeObjectTrace(eyeInByEvent, channelUnitNames, psth
 
 plotType = 'none'; %'trace'; %'area';%
 PixelsPerDegree = taskData.eyeCal.PixelsPerDegree;
-dvaOrigin =  taskData.eyeCal.origin;
+dvaOrigin =  taskData.eyeCal.origin - taskData.eyeCal.offset;
 frameMotionData = taskData.frameMotionData;
 scaleFactor = taskData.scaleFactor;
 frameMotionDataNames = {frameMotionData(:).stimVid}';
@@ -83,7 +83,7 @@ for stim_i = 1:length(eventIDs)
   attendedObjVect{stim_i} = cell(size(eyeInByEventDS, 2), size(eyeInByEventDS, 3));
   
   if strcmp(taskData.paradigm, 'naturalSocial') && ~contains(eventIDs(stim_i), 'monkey')
-    
+    fprintf('Triggered for %s \n', eventIDs{stim_i})
     % For natural videos without monkeys (Objects, Scenes, Scrambles)
     if ~isempty(stimFrameMotionData.objNames) % Landscapes/Scrambles
       

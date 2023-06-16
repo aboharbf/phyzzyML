@@ -165,7 +165,6 @@ if ~usePreprocessed
   taskDataAll = taskData;
   taskData = excludeTrials(taskData, excludeStimParams); %exclude trials for lost fixation etc. 
   
-  
   %% find Stimulus length
   
   if stimTiming.shortest == stimTiming.longest

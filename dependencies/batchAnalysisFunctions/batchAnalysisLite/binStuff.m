@@ -11,7 +11,7 @@ end
 
 totalBinsCurrent = size(data2Bin,2);
 binStarts = 1:binStep:totalBinsCurrent;
-binEnds = binStarts + binSizes;
+binEnds = (binStarts + binSizes)-1;
 binEdges = [binStarts; binEnds];
 
 % Make sure the bins fit

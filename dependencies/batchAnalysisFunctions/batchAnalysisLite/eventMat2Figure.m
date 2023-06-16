@@ -64,7 +64,6 @@ for ii = 1:size(eventMat,3)
     refAx = axesH;
   else
     axesH.Visible = 'off';
-    
   end
   
 end

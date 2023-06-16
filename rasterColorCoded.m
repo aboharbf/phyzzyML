@@ -9,6 +9,10 @@ function [ ] = rasterColorCoded(inputHandle, spikesByItem, pictureLabels, psthPa
 % Color Spikes vs Color Shaded Region
 %Set the figure handle as the current handle
 
+if ~exist('spikePattern', 'var')
+  spikePattern = 1;
+end
+
 switch class(inputHandle)
   case 'matlab.ui.Figure'
     set(0, 'CurrentFigure', inputHandle)

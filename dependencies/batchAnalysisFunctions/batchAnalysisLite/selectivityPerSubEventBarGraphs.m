@@ -11,8 +11,10 @@ tableVars = selTable.Properties.VariableNames';
 selIndLog = contains(tableVars, 'subSel_') & contains(tableVars, 'selInd') & ~contains(tableVars, 'reward') & ~contains(tableVars, 'blink');
 subEventSelVars = tableVars(selIndLog);
 
+subEventSelVars = subEventSelVars(~contains(subEventSelVars, 'sacc'));
+
 subEvInd = contains(subEventSelVars, 'Turn') | contains(subEventSelVars, 'Contact');
-subEvents = {'SubEvents' , 'eyeEvents'};
+subEvents = {'SubEvents' , 'taskEvents'};
 
 % Generate counts of selectivity in other regards (broadCat, socVNonSoc)
 % for creating Venn Diagrams
@@ -53,7 +55,8 @@ for subSelType_i = 1:length(eventArrays)
   if subSelType_i == 1
     event2KeepIndex = (contains(subEventPlotNames, 'headTurn') & ~contains(subEventPlotNames, 'all'));
   else
-    event2KeepIndex = (contains(subEventPlotNames, 'saccade') & contains(subEventPlotNames, 'NonStim'));
+%     event2KeepIndex = (contains(subEventPlotNames, 'saccade') & contains(subEventPlotNames, 'NonStim'));
+    event2KeepIndex = ~contains(subEventPlotNames, 'all');
   end
   subEventPlotNamesVenn = subEventPlotNames(event2KeepIndex)';
   subSelInfo = subSelInfo(:,event2KeepIndex);

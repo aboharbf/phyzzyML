@@ -91,17 +91,23 @@ for file_i = 1:length(rasterFiles)
   
   % Check that the unit meets the desired threshold
   if HzThreshold
-    if ~rasterFile.raster_site_info.taskModulated_selInd
+    if mean(sum(binData,2)) < minRate
       excludeInd(file_i) = true;
       continue
     end
   end
   
-  if strcmp(unitSetBin, 'taskMod')
-    if mean(sum(binData,2)) < minRate
-      excludeInd(file_i) = true;
-      continue
-    end
+  switch unitSetBin
+    case 'taskMod'
+      if ~rasterFile.raster_site_info.taskModulated_selInd
+        excludeInd(file_i) = true;
+        continue
+      end
+    case 'taskModStim'
+      if ~rasterFile.raster_site_info.taskModStim_selInd
+        excludeInd(file_i) = true;
+        continue
+      end
   end
   
   % Normalize

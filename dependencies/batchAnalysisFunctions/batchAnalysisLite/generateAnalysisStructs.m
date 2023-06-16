@@ -3,8 +3,8 @@ function analysisStructArray = generateAnalysisStructs(binnedFileName, paradigmN
 % paradigmOptions = {'NaturalSocial', 'headTurnCon'};
 % paradigmNameTag = {'NS', 'HTC'};
 
-paradigmOptions = {'NaturalSocial'};
-paradigmNameTag = {'NS'};
+paradigmOptions = {'NaturalSocial', 'headTurnCon'};
+paradigmNameTag = {'NS', 'HTC'};
 
 % Function which may be of use
 % ff2n(8)
@@ -157,8 +157,8 @@ unitSets = {'U'};
 %   'stimEarlySel', 'stimLateSel', 'stimRewardSel'...
 %   };
 
-analyisTagDir = {'AllUnits', 'TaskMod', 'TaskMod_Mo', 'TaskMod_Sam'};
-analyisTagPlot = {'All', 'TaskMod', 'TaskMod M1', 'TaskMod M2'};
+analyisTagDir = {'AllUnits', 'TaskMod', 'StimMod', 'StimMod_Mo', 'StimMod_Sam', 'Mo', 'Sam'};
+analyisTagPlot = {'All', 'TaskMod', 'StimMod', 'StimMod M1', 'StimMod M2', 'M1', 'M2'};
   
 % Matching set of variables to change, names must match what is defined in
 % the raster file.
@@ -170,9 +170,12 @@ analyisTagPlot = {'All', 'TaskMod', 'TaskMod M1', 'TaskMod M2'};
 %   {{'bCat_any_selInd', 1}, {'subSel_headTurn_all_selInd', 1}}, {{'bCat_any_selInd', 1}, {'subSel_headTurn_all_selInd', 0}}, {{'bCat_any_selInd', 0}, {'subSel_headTurn_all_selInd', 1}}...
 %   {{'baseV_stimEarly_selInd', 1}}, {{'baseV_stimLate_selInd', 1}}, {{'baseV_reward_selInd', 1}}};
 
-analyisTagVars = {'', {{'taskModulated_selInd', 1}}, ...
-  {{'taskModulated_selInd', 1} {'M1unit_selInd', 1}}, ...
-  {{'taskModulated_selInd', 1} {'M1unit_selInd', 0}}};
+analyisTagVars = {'', {{'taskModulated_selInd', 1}}, {{'taskModStim_selInd', 1}}, ...
+  {{'taskModStim_selInd', 1} {'M1unit_selInd', 1}}, ...
+  {{'taskModStim_selInd', 1} {'M1unit_selInd', 0}},...
+  {{'M1unit_selInd', 1}}, ...
+  {{'M1unit_selInd', 0}}, ...
+};
 
 % Load the available raster data.
 rasterData = load(rasterFile);
