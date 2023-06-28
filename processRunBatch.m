@@ -10,9 +10,11 @@ function [errorStack, errorStackMsg, files2Check] = processRunBatch(varargin)
 %     - two arguments, the first as described above, the 2nd in the form of
 %     a cell array with desired paradigms {'naturalSocial', 'headTurnCon',
 %     'headTurnIso', 'familiarFace'}
-%     - Currently commented out: two arguments, the first as described above, the second of the form
-%       {{'param1', 'arg1'}; {'param2','arg2'}}, which will replace
-%       parameters defined in the analysisParamFile and the paramTable.
+%     - three arguments, the first two as described above, the 3rd being
+%     the monkeyName, which matches the name of the folder in the typical
+%     convention 'dateSubjName'.
+%     - Look at 'processRunBatchAll()' for batch of commands for full
+%     processing.
 
 [~, machine] = system('hostname');
 machine = machine(~isspace(machine));
@@ -21,7 +23,7 @@ switch machine
   case 'Skytech_FA'
     outputVolumeBatch = 'D:\DataAnalysis';                                            % The output folder for analyses performed.
     dataLog = 'D:\EphysData\Data\analysisParamTable.xlsx';                            % Only used to find recording log, used to overwrite params.
-    eventDataPath = 'C:\Users\aboha\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+    eventDataPath = 'C:\Onedrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
     subEventBatchStructPath = sprintf('%s/subEventBatchStruct.mat',outputVolumeBatch);
   case 'homeDesktopWork'
     outputVolumeBatch = 'H:\Analyzed';                                            % The output folder for analyses performed.

@@ -294,6 +294,8 @@ if subEventParams.RewardEvent
     onsetsByEvent = [onsetsByEvent; rewardTimes; rewardAntTimes];
     onsetsByEventNull = [onsetsByEventNull; rewardTimesNull; rewardAntNull];
     
+    % Rewards distinguishing between rewards and non-reward, agent
+    % containing stimuli
     socInd = catIndStruct.catIndMat(:, strcmp(catIndStruct.categoryList, 'socialInteraction'));
     agInd = catIndStruct.catIndMat(:, strcmp(catIndStruct.categoryList, 'agents'));
     contInd = agInd & ~socInd;

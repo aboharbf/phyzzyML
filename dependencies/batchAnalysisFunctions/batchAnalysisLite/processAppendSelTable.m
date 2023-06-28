@@ -5,26 +5,77 @@ function spikePathBank = processAppendSelTable(spikePathBank, params)
 % Collect unit selectivity
 [selTablePerRun, anovaTablePerRun, anovaBinParams, epochCatsParamsPerRun, epochStatsParamsPerRun, psthParamsPerRun] = spikePathLoad(spikePathBank, {'selTable', 'anovaTable', 'anovaBinParams', 'epochSWparams', 'epochTargParams', 'psthParams'}, params.spikePathLoadParams);
 alpha = params.selParam.alpha;
+mctMethod = params.selParam.mctmethod;
 strThres = params.selParam.stretchThreshold;
-
-% Keep the tables seperate, since they have to be returned to
-% spikePathBank.
-processedSelTableArray = cell(size(selTablePerRun));
 
 % Variables to exclude
 varExcludeanova = {'slidingWin_socIntTest_Eye'};
 % varExcludesel = {'_cohensD'};
 switch2StimWhole = true;            % Convert the sliding window test from parameters defined in the initial run to those defined below.
 
-for run_i = 1:length(selTablePerRun)
-  
-  % Pull out the table for the run
-  selTableRun = selTablePerRun{run_i};
-  
-  if isempty(selTableRun)
-    continue
+tables2Process = find(~cellfun('isempty', selTablePerRun))';
+
+mergeAndReport = False;
+if mergeAndReport
+  % Combine all the tables
+  % Generate variables for unifying the columns across all the runs.
+  [columnNames, columnTypes] = deal([]);
+  for run_i = tables2Process
+    columnNames = [columnNames, selTablePerRun{run_i}.Properties.VariableNames];
+    columnTypes = [columnTypes, varfun(@class, selTablePerRun{run_i},'OutputFormat','cell')];
   end
+
+  [~, col_idx] = unique(columnNames);
+  col_idx = sort(col_idx);
+  uniqueCol = columnNames(col_idx);
+  columnTypes = columnTypes(col_idx);
+
+  selTableAll = [];
+  for run_i = tables2Process
+
+    % Pull out the table for the run
+
+    % Add in missing columns with nans.
+    [newCol, col_idx] = setdiff(uniqueCol, selTableRun.Properties.VariableNames);
+    colDataTypes = columnTypes(col_idx);
+    for col_i = 1:length(newCol)
+      switch colDataTypes{col_i}
+        case 'double'
+          selTableRun{:, newCol(col_i)} = nan;
+        case 'cell'
+          selTableRun{:, newCol(col_i)} = {''};
+        case 'string'
+          selTableRun{:, newCol(col_i)} = '';
+      end
+    end
+
+    selTableAll = [selTableAll; selTableRun];
+
+  end
+
+  % Once the selTable is combined run through generating the desired 'selInd'
+  % columns.
+  selTableUnits = selTableAll(contains(selTableAll.unitType, digitsPattern), :);
+
+  % Variables - remove those not being considered for use. 
+  pValVars = selTableUnits.Properties.VariableNames(contains(selTableUnits.Properties.VariableNames', '_pVal'))';
+  % keepIdx = ~contains(pValVars, {'subSel_reward', 'epochSel_categories', 'saccDir', 'saccSel_categories', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal'});
+  keepIdx = ~contains(pValVars, {'saccDir', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal', '_vBase_pVal', 'epochSel_categories'});
+  pValVars = pValVars(keepIdx);
+
+  selIndexValues = generateSelectivityIndex(selTableRun{:, pValVars}, alpha, mctMethod);
+
+  % Summary stats
+  TM_Idx = contains(pValVars, 'baseV_');
+  TM_Idx = contains(pValVars, 'epochSel_socVNonSoc_') & contains(pValVars, '_vBase_pVal');
+  tmIdx = any(selIndexValues(:, TM_Idx'),2);
+  compT = horzcat(pValVars, num2cell(100*sum(selIndexValues(tmIdx,:))/sum(tmIdx))')
   
+end
+
+for run_i = tables2Process
+  
+  selTableRun = selTablePerRun{run_i};
   anovaTableRun = anovaTablePerRun{run_i};
   epochCParamsRun = epochCatsParamsPerRun{run_i};
   epochSParamsRun = epochStatsParamsPerRun{run_i};
@@ -36,26 +87,21 @@ for run_i = 1:length(selTablePerRun)
   % Remove undesired variables
 %   var2Remove = contains(selTableRun.Properties.VariableNames, varExcludesel);
 %   selTableRun(:, var2Remove) = [];
-  
-  % Check for pVal rows.
+    
+  % Collect pVals and convert them to selectivity indicies
   pValIndex = contains(selTableRun.Properties.VariableNames, '_pVal') & ~contains(selTableRun.Properties.VariableNames, 'baseV_');
-  baseVIndex = contains(selTableRun.Properties.VariableNames, '_pVal') & contains(selTableRun.Properties.VariableNames, 'baseV_');
   pValVars = selTableRun.Properties.VariableNames(pValIndex)';
-  selIndexVars = strcat(extractBefore(pValVars, '_pVal'), '_selInd');
-  baseValVars = selTableRun.Properties.VariableNames(baseVIndex)';
-  baseValVars2 = strcat(extractBefore(baseValVars, '_pVal'), '_selInd'); 
   
-  % Collect pVals and convert them to selectivity indicies, based on
-  % previously defined alpha.
-  pValValues = selTableRun{:, pValVars};
-  selIndexValues = pValValues <= alpha;
+  % We don't care about all the tests run. Filter the pValVars variable for
+  % the tests we actually want to report.
+  keepIdx = ~contains(pValVars, {'saccDir', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal', '_vBase_pVal', 'epochSel_categories'});
+  pValVars = pValVars(keepIdx);
+  
+  % Create and store the selectivity indicies.
+  selIndexVars = strcat(extractBefore(pValVars, '_pVal'), '_selInd');
+  selIndexValues = generateSelectivityIndex(selTableRun{:, pValVars}, alpha, mctMethod);
   selTableRun{:, selIndexVars} = selIndexValues;   % Add them back to the table.
 
-  % Do this for task modulation
-  baseVValues = selTableRun{:, baseValVars};
-  selIndexValues = baseVValues <= params.selParam.alphaTaskMod;
-  selTableRun{:, baseValVars2} = selIndexValues;   % Add them back to the table.
-  
   % Process the ANOVA table
   anovaVars = anovaTableRun.Properties.VariableNames';
   var2Remove = contains(anovaVars, varExcludeanova);
@@ -136,7 +182,73 @@ for run_i = 1:length(selTablePerRun)
   
 end
 
-spikePathBank.selTable = processedSelTableArray;
+% Combine tables 
+selTableAll = [];
+for run_i = 1:length(processedSelTableArray)
+  selTableAll = [selTableAll; processedSelTableArray{run_i}];
+end
+
+% for each of the required comparisons, collect the correct values for
+% comparisons, and the method for MCT.
+fprintf('spikePathBank reduces to only runs with');
+
+pVal_idx = contains(selTableAll.Properties.VariableNames, 'pVal');
+pVal_idx(1:7) = 1;
+selTableUnits = selTableAll(contains(selTableAll.unitType, digitsPattern),pVal_idx);
+
+% Create lists of groups to be compared. the total number of comparisons
+% here (columns * units) will be used for corrections.
+
+end
+
+function selIndMat = generateSelectivityIndex(pValMat, alpha, mctMethod)
+% Function which takes in a vector or matrix of p values (shape n_neurons * n_tests), which need to be
+% corrected for multiple comparisons. Returns a binary array of the same size and
+% shape, indicating whether a null hypothesis is rejected.
+
+% Testing done per neuron.
+
+selIndMat = zeros(size(pValMat));
+
+for unit_i = 1:size(pValMat,1)
+  unit_tests = pValMat(unit_i,:);
+  sorted_tests = sort(unit_tests);
+  m = sum(~isnan(sorted_tests));
+  
+  switch mctMethod
+    case 'fdr'
+        % Benjamini Hochberg technique (Intro to Stat Learning Ed2. Pg 573)
+        j = 1:m;
+        thresholdVal = (alpha.* j)./m;
+
+        compVec = sorted_tests(1:m) < thresholdVal;
+        pValIdx = find(compVec, 1, 'last');
+        pValThreshold = sorted_tests(pValIdx);
+
+    case 'fwe'
+      % Holm's Step-Down Procedure (ISL Ed2, Pg 566)
+      % Calculate adjusted p-values (q-values)
+      qvalues = zeros(1, m);
+      for j = 1:m
+          qvalues(j) = (alpha / (m + 1 - j));
+      end
+
+      compVec = sorted_tests(1:m) < qvalues;
+      pValIdx = find(compVec,1, 'last');
+      pValThreshold = sorted_tests(pValIdx);
+      
+     case 'bon'
+      pValThreshold = alpha/m;
+  end
+  
+  % if some value is below the threshold, compare the rest of vector
+  if ~isempty(pValThreshold)
+    selIndMat(unit_i, :) = unit_tests <= pValThreshold;
+  end
+  
+end
+
+selIndMat = logical(selIndMat);
 
 end
 

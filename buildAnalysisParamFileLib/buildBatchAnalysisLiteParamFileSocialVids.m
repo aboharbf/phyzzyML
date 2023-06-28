@@ -2,12 +2,30 @@ function [batchAnalysisParamFilename] = buildBatchAnalysisLiteParamFileSocialVid
 % Generate a file which specifies the parameters for batch analysis. 
 
 monkey = 'Combo';    % Which monkeys data to analyze - 'Sam', 'Mo', or 'Combo'.
+lastSwitch = false;
 
 [~, machine] = system('hostname');
 machine = machine(~isspace(machine));
 
 switch machine
   case 'Skytech_FA'
+    if lastSwitch
+      analysisDirectory = 'D:\DataAnalysis_Last';
+      outputDir = 'D:\batchAnalysis_Last';
+    else
+      analysisDirectory = 'D:\DataAnalysis';
+      outputDir = 'D:\batchAnalysis';
+    end
+    stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
+    stimDir = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\');
+    subEventBatchStructPath = slashSwap(fullfile(analysisDirectory, 'subEventBatchStruct.mat'));
+    batchRunxls = fullfile(analysisDirectory,'BatchRunResults.xlsx');
+    eventDataPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Stimuli and Code\SocialCategories\eventData.mat';
+    frameMotionDataPath = fullfile(stimDir, 'frameMotion_complete.mat');
+    recordingLogxls = 'C:\EphysData\Data\RecordingsMoUpdated.xlsx';
+    NDTPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\NeuralDecodingToolbox';
+    NDTAnalysesPath = 'C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\buildAnalysisParamFileLib\NDT_analyses';
+  case 'PC304462' % Laptop
     analysisDirectory = 'D:\DataAnalysis';
     outputDir = 'D:\batchAnalysis';
     stimParamsFilename = slashSwap('C:\OneDrive\Lab\ESIN_Ephys_Files\Analysis\phyzzyML\stimParamFileLib\StimParamFileSocialVids_Full.mat');   %#ok
@@ -59,9 +77,9 @@ figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 
-plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
+plotSwitch.selCount = 1;              % Create counts across paradigms for sensitivity to different epochs.
 plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
 plotSwitch.eyeCorr = 0;               % All run eye correlogram
 plotSwitch.spikeEyeCorr = 0;          % All run eye correlogram
 plotSwitch.rampingAnalysis = 0;       % Ramping plot
@@ -133,6 +151,7 @@ selParam.comboSubEvents = {...
 
 selParam.figStruct = figStruct;
 
+selParam.mctmethod = 'fdr';       % 'fwe' for Family wise error , 'fdr' false discovery rate
 selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
 selParam.alphaTaskMod = 0.01;     % The alpha to use when thresholding p values across runAnalyses outputs.
 selParam.stretchThreshold = 5;    % For sliding scale tests, how many consecutive bins need to be significant for the unit to count as 'selective'?

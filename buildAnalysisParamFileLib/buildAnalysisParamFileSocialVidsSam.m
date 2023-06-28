@@ -412,7 +412,7 @@ subEventAnalysisParams.possibleEventsPlotNames = {'Head turn, right', 'Head turn
 subEventAnalysisParams.testPeriodPerEvent = [[0 200]; [0 200]; [0 200]; [0 200]; [0 200]; [0 200];...
                                              [-200 0]; [0 100]; [-200 0]; [0 100]; [-50 150]; [0 200];...
                                              [0 200]; [0 200]; [0 200]; [-subEventAnalysisParams.rewardAntTime 0]; [0 200]; [0 200]];
-subEventAnalysisParams.nonParametric = 1;                                 % Use non parametric test.
+subEventAnalysisParams.nonParametric = 0;                                 % Use non parametric test.
 
 saccadeRasterParams.psthParams = psthParams;
 saccadeRasterParams.preAlign = 400;
@@ -488,7 +488,7 @@ if psthParams.psthPre == 500
 end
 
 epochTargParams.stimParamsFilename = stimParamsFilename;
-epochTargParams.nonParametric = 1;                      % switch to run non Parametric tests.
+epochTargParams.nonParametric = 0;                      % switch to run non Parametric tests.
  
 epochTargParams.times = [preFix; Fix; stimEarly; stimLate; reward];
 epochTargParams.labels = {'preFix', 'Fix', 'stimEarly', 'stimLate', 'reward'};    
@@ -496,12 +496,12 @@ epochTargParams.labels = {'preFix', 'Fix', 'stimEarly', 'stimLate', 'reward'};
 epochTargParams.naturalSocial.targNames = {'socVNonSoc', 'categories'};
 epochTargParams.naturalSocial.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
 epochTargParams.naturalSocial.targetEpochs = [0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochTargParams.naturalSocial.oneVsAll = [0 0];
+epochTargParams.naturalSocial.oneVsAll = [1 0]; % Switch to do a target v baseline (targ = whichever group gets id'd as 1) or an anova across all groups (should use for categories (0).
 
 epochTargParams.headTurnCon.targNames = {'socVNonSoc', 'categories'};
 epochTargParams.headTurnCon.targ = {{'agents', 'socialInteraction'}, {'chasing', 'fighting', 'grooming', 'mounting', 'idle', 'goalDirected', 'objects', 'scene'}};
 epochTargParams.headTurnCon.targetEpochs = [0 1 1 1 1; 0 1 1 1 1];           % Which of the labeled time bins to do the comparison for, per group, defined in analysisGroups.stimulusLabelGroups.groups, where first element is target.
-epochTargParams.headTurnCon.oneVsAll = [0 0];
+epochTargParams.headTurnCon.oneVsAll = [1 0];
 
 epochTargParams.headTurnIso.targNames = {'model', 'headTurn', 'headvArms', 'turnToward',};
 epochTargParams.headTurnIso.targ = {{'fullModel', 'smoothModel', 'dotModel'}, {'headTurn', 'noTurn'}, {'headIso', 'bioMotion'}, {'turnAway', 'turnToward'}};

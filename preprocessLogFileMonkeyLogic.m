@@ -386,7 +386,7 @@ end
 %% In cases where the stimuli are .avi's, we should check for the appropriate frameMotion data (representing)
 if any(strfind(translationTable{1},'.avi'))
   %assumes filename below sitting in directory with stimuli
-  frameMotionFile = dir([params.stimDir '/**/frameMotion_complete.mat']);
+  frameMotionFile = dir([params.stimDir '/**/frameMotion_complete2.mat']);
   load(fullfile(frameMotionFile(1).folder, frameMotionFile(1).name), 'frameMotionData');
   %go through the translation table, comparing to frameMotionData.stimVid
   frameMotionNames = [{frameMotionData(:).stimVid}'];

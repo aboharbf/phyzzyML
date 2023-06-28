@@ -126,8 +126,12 @@ end
 nameInd = regexp(B,'\D');
 %Extract folder names and run names.
 fileNames = {filesOfInterest.name}';
-dirNames = extractBetween(fileNames,1,max(nameInd));
-runNames = extractBetween(fileNames,max(nameInd)+1,'.');
+dirNames = extractBetween(fileNames, 1, '.');
+dirNames = cellfun(@(x) x(1:end-3), dirNames, 'UniformOutput', false);
+
+pattern = '(\d{3})\D*$';
+matches = cellfun(@(x) regexp(x, pattern, 'match'), fileNames);
+runNames = extractBefore(matches, '.');
 tmpDirName = unique(dirNames);
 
 %Cycle through those folders

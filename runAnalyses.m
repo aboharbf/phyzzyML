@@ -12,6 +12,8 @@ function [analysisOutFilename] = runAnalyses(inputs)
 %   - makes tuning curves for parameterized images or categories, as
 %     specified in the stim param file
 %% unpack inputs
+
+% if 0
 %List of inputs to be unpacked
 inputFields = fields(inputs);
 
@@ -419,6 +421,11 @@ end
 [selTable, anovaTable] = deal(initializeSelTable(figStruct, dateSubject, runNum, gridHole, recDepth, spikesByChannel));
 
 % Determine selectivity for events labeled in eventData, + blinks & rewards.
+
+% save(strcat(dateSubject, '_preSelTable.mat'))
+% end
+% load('20210625Sam_preSelTable.mat')
+% plotSwitch.subEventAnalysis = 0;
 
 if plotSwitch.subEventAnalysis
   [subEventSigStruct, specSubEventStruct, selTable] = subEventAnalysis(eyeDataStruct.eyeBehStatsByStim, spikesByChannel, taskData, eventIDs, onsetsByEvent, subEventAnalysisParams, selTable, psthParams, catIndStruct, figStruct);
