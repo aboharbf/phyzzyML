@@ -7,6 +7,7 @@ function spikePathBank = processAppendSelTable(spikePathBank, params)
 alpha = params.selParam.alpha;
 mctMethod = params.selParam.mctmethod;
 strThres = params.selParam.stretchThreshold;
+onlyTaskMod = params.selParam.onlyTaskMod;
 
 % Variables to exclude
 varExcludeanova = {'slidingWin_socIntTest_Eye'};
@@ -15,7 +16,7 @@ switch2StimWhole = true;            % Convert the sliding window test from param
 
 tables2Process = find(~cellfun('isempty', selTablePerRun))';
 
-mergeAndReport = False;
+mergeAndReport = false;
 if mergeAndReport
   % Combine all the tables
   % Generate variables for unifying the columns across all the runs.
@@ -34,8 +35,9 @@ if mergeAndReport
   for run_i = tables2Process
 
     % Pull out the table for the run
+    selTableRun = selTablePerRun{run_i};
 
-    % Add in missing columns with nans.
+  % Add in missing columns with nans.
     [newCol, col_idx] = setdiff(uniqueCol, selTableRun.Properties.VariableNames);
     colDataTypes = columnTypes(col_idx);
     for col_i = 1:length(newCol)
@@ -60,18 +62,19 @@ if mergeAndReport
   % Variables - remove those not being considered for use. 
   pValVars = selTableUnits.Properties.VariableNames(contains(selTableUnits.Properties.VariableNames', '_pVal'))';
   % keepIdx = ~contains(pValVars, {'subSel_reward', 'epochSel_categories', 'saccDir', 'saccSel_categories', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal'});
-  keepIdx = ~contains(pValVars, {'saccDir', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal', '_vBase_pVal', 'epochSel_categories'});
+  keepIdx = ~contains(pValVars, {'saccDir', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal', 'epochSel_categories_Fix_pVal', '_vBase_pVal'});
   pValVars = pValVars(keepIdx);
 
-  selIndexValues = generateSelectivityIndex(selTableRun{:, pValVars}, alpha, mctMethod);
+  selIndexValues = generateSelectivityIndex(selTableAll{:, pValVars}, alpha, mctMethod);
 
   % Summary stats
   TM_Idx = contains(pValVars, 'baseV_');
-  TM_Idx = contains(pValVars, 'epochSel_socVNonSoc_') & contains(pValVars, '_vBase_pVal');
   tmIdx = any(selIndexValues(:, TM_Idx'),2);
   compT = horzcat(pValVars, num2cell(100*sum(selIndexValues(tmIdx,:))/sum(tmIdx))')
   
 end
+
+processedSelTableArray = cell(length(tables2Process),1);
 
 for run_i = tables2Process
   
@@ -89,19 +92,31 @@ for run_i = tables2Process
 %   selTableRun(:, var2Remove) = [];
     
   % Collect pVals and convert them to selectivity indicies
-  pValIndex = contains(selTableRun.Properties.VariableNames, '_pVal') & ~contains(selTableRun.Properties.VariableNames, 'baseV_');
+  pValIndex = contains(selTableRun.Properties.VariableNames, '_pVal');
   pValVars = selTableRun.Properties.VariableNames(pValIndex)';
   
   % We don't care about all the tests run. Filter the pValVars variable for
   % the tests we actually want to report.
-  keepIdx = ~contains(pValVars, {'saccDir', 'subSel_stim', 'subSel_fix', 'blinks', 'saccades', 'epochSel_socVNonSoc_Fix_pVal', '_vBase_pVal', 'epochSel_categories'});
+  keepIdx = ~contains(pValVars, {'saccDir', 'subSel_stim', 'subSel_fix', 'blinks', 'epochSel_socVNonSoc_Fix_pVal', '_vBase_pVal', 'epochSel_categories'});
   pValVars = pValVars(keepIdx);
   
   % Create and store the selectivity indicies.
   selIndexVars = strcat(extractBefore(pValVars, '_pVal'), '_selInd');
   selIndexValues = generateSelectivityIndex(selTableRun{:, pValVars}, alpha, mctMethod);
-  selTableRun{:, selIndexVars} = selIndexValues;   % Add them back to the table.
 
+  % Add in task modulated info here
+  baseVarIdx = contains(pValVars, 'baseV_')';
+  stimBaseVarIdx = (contains(pValVars, 'baseV_') & contains(pValVars, 'stim'))';
+  selTableRun.taskModulated_selInd = any(selIndexValues(:, baseVarIdx), 2);
+  selTableRun.taskModStim_selInd = any(selIndexValues(:, stimBaseVarIdx), 2);
+  
+  if onlyTaskMod
+    selIndexValues(~selTableRun.taskModulated_selInd, :) = false;
+  end
+  
+  % Add them back to the table.
+  selTableRun{:, selIndexVars} = selIndexValues;   
+  
   % Process the ANOVA table
   anovaVars = anovaTableRun.Properties.VariableNames';
   var2Remove = contains(anovaVars, varExcludeanova);
@@ -129,18 +144,6 @@ for run_i = tables2Process
   % For the preferred objects, things are more complicated. collect the
   % data, stack it, and expand to a unit*bin*uniqueObj logical array.
   selTableRun = convertSigRuns2Inds(anovaTableRun, selTableRun, params);
-  
-  % Create a task modulated index
-  selTabVars = contains(selTableRun.Properties.VariableNames, 'baseV_') & contains(selTableRun.Properties.VariableNames, '_pVal');
-  pValTaskMod = selTableRun{:, selTabVars};
-  taskModInd = any(pValTaskMod <= alpha, 2);
-  selTableRun.taskModulated_selInd = taskModInd;
-
-  % Create a task modulated stim index
-  selTabVars = contains(selTableRun.Properties.VariableNames, 'baseV_') & contains(selTableRun.Properties.VariableNames, '_pVal') & contains(selTableRun.Properties.VariableNames, 'stim');
-  pValTaskMod = selTableRun{:, selTabVars};
-  taskModInd = any(pValTaskMod <= alpha, 2);
-  selTableRun.taskModStim_selInd = taskModInd;
 
   % Sliding Window to Epoch conversion.
   if switch2StimWhole
@@ -179,25 +182,26 @@ for run_i = tables2Process
   
   % Add processed table to the output array
   processedSelTableArray{run_i} = selTableRun;
-  
+    
 end
 
 % Combine tables 
-selTableAll = [];
-for run_i = 1:length(processedSelTableArray)
-  selTableAll = [selTableAll; processedSelTableArray{run_i}];
-end
-
-% for each of the required comparisons, collect the correct values for
-% comparisons, and the method for MCT.
-fprintf('spikePathBank reduces to only runs with');
-
-pVal_idx = contains(selTableAll.Properties.VariableNames, 'pVal');
-pVal_idx(1:7) = 1;
-selTableUnits = selTableAll(contains(selTableAll.unitType, digitsPattern),pVal_idx);
+% selTableAll = [];
+% for run_i = 1:length(processedSelTableArray)
+%   selTableAll = [selTableAll; processedSelTableArray{run_i}];
+% end
+% 
+% % for each of the required comparisons, collect the correct values for
+% % comparisons, and the method for MCT.
+% fprintf('spikePathBank reduces to only runs with');
+% 
+% pVal_idx = contains(selTableAll.Properties.VariableNames, 'pVal');
+% pVal_idx(1:7) = 1;
+% selTableUnits = selTableAll(contains(selTableAll.unitType, digitsPattern),pVal_idx);
 
 % Create lists of groups to be compared. the total number of comparisons
 % here (columns * units) will be used for corrections.
+spikePathBank.selTable = processedSelTableArray;
 
 end
 

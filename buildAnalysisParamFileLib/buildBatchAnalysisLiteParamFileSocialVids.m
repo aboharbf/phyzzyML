@@ -154,6 +154,7 @@ selParam.figStruct = figStruct;
 selParam.mctmethod = 'fdr';       % 'fwe' for Family wise error , 'fdr' false discovery rate
 selParam.alpha = 0.05;            % The alpha to use when thresholding p values across runAnalyses outputs.
 selParam.alphaTaskMod = 0.01;     % The alpha to use when thresholding p values across runAnalyses outputs.
+selParam.onlyTaskMod = true;     	% Any selectivity on a unit which has a 0 for taskMod gets set to 0. Mostly for plotting purposes.
 selParam.stretchThreshold = 5;    % For sliding scale tests, how many consecutive bins need to be significant for the unit to count as 'selective'?
 selParam.objectStretches = true;  % Only count stretches as significant in the sliding window test if the preferred object remains the same through out.
 

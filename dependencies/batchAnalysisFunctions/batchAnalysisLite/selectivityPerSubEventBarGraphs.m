@@ -20,7 +20,8 @@ subEvents = {'SubEvents' , 'taskEvents'};
 % for creating Venn Diagrams
 epochSelInd = contains(tableVars, 'epochSel') & contains(tableVars, '_selInd') & ~contains(tableVars, 'vBase') & contains(tableVars, 'any');
 epochSelIndVars = tableVars(epochSelInd);
-eventArrays = {subEventSelVars(subEvInd), subEventSelVars(~subEvInd)};
+% eventArrays = {subEventSelVars(subEvInd), subEventSelVars(~subEvInd)};
+eventArrays = {subEventSelVars(subEvInd)};
 
 for subSelType_i = 1:length(eventArrays)
   

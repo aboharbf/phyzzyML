@@ -68,7 +68,7 @@ plotSwitch.subEventAnalysis = 1;            % plot traces comparing activity sur
 plotSwitch.saccadeRasterPSTH = 1;
 plotSwitch.neuroGLM = 0;                    % implements neuroGLM package from jpillow lab/github.
 
-plotSwitch.eyeStimOverlay = 1;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
+plotSwitch.eyeStimOverlay = 0;              % Visualize eye traces on stimuli. Depends greatly on switches below (may just be used for certain variables).
 plotSwitch.spikePupilCorr = 0;              % see the correlation between single trial PSTHes and pupil size.
 
 plotSwitch.clusterOnEyePaths = 0;           % Resort spikes based on distinct eye paths, make "New events".

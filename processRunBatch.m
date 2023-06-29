@@ -39,7 +39,7 @@ switch machine
     error('Matching machine not found')
 end
 
-usePreprocessed = 0;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
+usePreprocessed = 1;                                                          % uses preprocessed version of Phyzzy, only do when changing plotSwitch or calcSwitch and nothing else.
 runParallel = 1;                                                              % Use parfor loop to go through processRun. Can't be debugged within the loop.
 debugMode = 0;                                                                % Allows for easier debugging of the non-parallel loop. 'runParallel' must be false.
 

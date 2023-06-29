@@ -10,8 +10,11 @@ outDir = fullfile(params.outputDir, 'selectivityPerEvent');
 figTitle = sprintf('%s activity selective for Fix and Reward during %s', params.unitTag, params.paradigmTag);
 plotTitle = sprintf('Task Event Unit Selectivity');
 
-eventTableTag = {'fixation', 'stimOnset', 'stimOffset', 'rewardCombo'};
-eventNames = {'Fixation', 'Stimulus Onset', 'Stimulus Offset', 'Reward'};
+% eventTableTag = {'fixation', 'stimOnset', 'stimOffset', 'rewardCombo'};
+% eventNames = {'Fixation', 'Stimulus Onset', 'Stimulus Offset', 'Reward'};
+
+eventTableTag = {'rewardCombo'};
+eventNames = {'Reward'};
 
 unitCount = size(selTable, 1);
 eventCounts = sum(selTable{:, strcat('subSel_', eventTableTag, '_selInd')});

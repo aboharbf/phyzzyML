@@ -15,12 +15,12 @@ MoFin = datetime;
 SamFin = datetime;
 toc
 
-[errorStack3, errorStackMsg3, files2Check3] = processRunBatch('buildAnalysisParamFileSocialVids', {'headTurnCon'}, 'Mo');
-MoFin2 = datetime;
-
-[errorStack4, errorStackMsg4, files2Check4] = processRunBatch('buildAnalysisParamFileSocialVidsSam', {'headTurnCon'}, 'Sam');
-SamFin2 = datetime;
-toc
+% [errorStack3, errorStackMsg3, files2Check3] = processRunBatch('buildAnalysisParamFileSocialVids', {'headTurnCon'}, 'Mo');
+% MoFin2 = datetime;
+% 
+% [errorStack4, errorStackMsg4, files2Check4] = processRunBatch('buildAnalysisParamFileSocialVidsSam', {'headTurnCon'}, 'Sam');
+% SamFin2 = datetime;
+% toc
 
 errorStackAll = [errorStack, errorStack2];
 errorStackMsgAll = [errorStackMsg; errorStackMsg2];
