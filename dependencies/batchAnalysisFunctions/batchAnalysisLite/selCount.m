@@ -33,7 +33,7 @@ for m_i = 3%1:length(monkeyList)
     end
     
     % New Segment, Comparing paradigms
-    % selectivityPerEventBarGraphsParComp(spikePathBank, selParams)
+%     selectivityPerEventBarGraphsParComp(spikePathBank, selParams)
     
     selTableParadigmPerRun = spikePathBank.selTable(pInd & mInd);
     
@@ -44,7 +44,7 @@ for m_i = 3%1:length(monkeyList)
     selParams.outputDir = fullfile(mainOutDir, paradigmList{par_i}, monkeyList{m_i});
     
     % Now, for each unitType and selectivity, map out gridHole contents.
-    % plotCountsOnBrain(selTableParadigm, selParams);
+%     plotCountsOnBrain(selTableParadigm, selParams);
     
     % Cycle through cell types, create the plots
     for unit_i = 1:length(unitList)
@@ -70,9 +70,9 @@ for m_i = 3%1:length(monkeyList)
             
       % Find cells with predefined selectivities for the sake of illustrating
       % effects.
-%       exampleCellFinderSubEvent(selTableParadigmUnit, batchAnalysisParams);
-%       exampleCellFinderObject(selTableParadigmUnit, batchAnalysisParams)
-%       
+      exampleCellFinderSubEvent(selTableParadigmUnit, batchAnalysisParams);
+      exampleCellFinderObject(selTableParadigmUnit, batchAnalysisParams)
+       
       % jointTuningPlot(selTableParadigm, paradigmList{par_i}, selParams)
       jointTuningPlot_Specific(selTableParadigmUnit, paradigmList{par_i}, selParams)
       

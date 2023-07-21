@@ -89,7 +89,7 @@ function print2eps(name, fig, export_options, varargin)
 % 07/07/15: Fixed issue #83: use numeric handles in HG1
 % 22/07/15: Fixed issue #91 (thanks to Carlos Moffat)
 % 28/09/15: Fixed issue #108 (thanks to JacobD10)
-% 01/11/15: Fixed issue #112: optional renderer for bounding-box computation (thanks to Jesús Pestana Puerta)
+% 01/11/15: Fixed issue #112: optional renderer for bounding-box computation (thanks to JesÃºs Pestana Puerta)
 % 21/02/16: Enabled specifying non-automated crop amounts
 % 22/02/16: Better support + backward compatibility for transparency (issue #108)
 % 10/06/16: Fixed issue #159: text handles get cleared by Matlab in the print() command
@@ -112,6 +112,9 @@ function print2eps(name, fig, export_options, varargin)
 % 11/03/21: Added documentation about export_options.regexprep; added sanity check (issue #324)
 % 21/07/21: Fixed misleading warning message about regexprep field when it's empty (issue #338)
 % 26/08/21: Added a short pause to avoid unintended image cropping (issue #318)
+% 16/03/22: Fixed occasional empty files due to excessive cropping (issues #350, #351)
+% 15/05/22: Fixed EPS bounding box (issue #356)
+% 13/04/23: Reduced (hopefully fixed) unintended EPS/PDF image cropping (issues #97, #318)
 %}
 
     options = {'-loose'};
@@ -325,7 +328,7 @@ function print2eps(name, fig, export_options, varargin)
     end
 
     % Ensure that everything is fully rendered, to avoid cropping (issue #318)
-    drawnow; pause(0.01);
+    drawnow; pause(0.05);
 
     % Print to eps file
     print(fig, options{:}, name);
@@ -433,7 +436,7 @@ function print2eps(name, fig, export_options, varargin)
             %}
 
             % This is much faster although less accurate: fix all non-gray lines to have a LineWidth of 0.75 (=1 LW)
-            % Note: This will give incorrect LineWidth of 075 for lines having LineWidth<0.75, as well as for non-gray grid-lines (if present)
+            % Note: This will give incorrect LineWidth of 0.75 for lines having LineWidth<0.75, as well as for non-gray grid-lines (if present)
             %       However, in practice these edge-cases are very rare indeed, and the difference in LineWidth should not be noticeable
             %fstrm = regexprep(fstrm, '([CR]C\n2 setlinecap\n1 LJ)\nN', '$1\n1 LW\nN');
             % This is faster (the original regexprep could take many seconds when the axes contains many lines):
@@ -540,9 +543,16 @@ function print2eps(name, fig, export_options, varargin)
 
         % 2. Create a bitmap image and use crop_borders to create the relative
         %    bb with respect to the PageBoundingBox
-        drawnow; pause(0.02);  % avoid unintended cropping (issue #318)
+        drawnow; pause(0.05);  % avoid unintended cropping (issue #318)
         [A, bcol] = print2array(fig, 1, renderer);
         [aa, aa, aa, bb_rel] = crop_borders(A, bcol, bb_padding, crop_amounts); %#ok<ASGLU>
+        if any(bb_rel>1) || any(bb_rel<=0) || bb_rel(2)>0.15 % invalid cropping - retry after prolonged pause
+            pause(0.15);  % avoid unintended cropping (issues #350, #351)
+            [A, bcol] = print2array(fig, 1, renderer);
+            [aa, aa, aa, bb_rel] = crop_borders(A, bcol, bb_padding, crop_amounts); %#ok<ASGLU>
+        end
+        bb_rel(bb_rel>1) = 1;  % ignore invalid values
+        bb_rel(bb_rel<0) = 1;  % ignore invalid values (fix issue #356)
 
         try set(hTitles,'Color','k'); catch, end
 

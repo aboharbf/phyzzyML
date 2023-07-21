@@ -25,6 +25,12 @@ end
 if figStruct.exportFig
   export_fig(fullfile(outDir, strcat(filename, '.png')),'-m1.2','-transparent','-opengl');
 end
+
+if isfield(figStruct, 'exportFigSvg') && figStruct.exportFigSvg
+%   export_fig(fullfile(outDir, strcat(filename, '.svg')), '-svg', '-m1.2','-opengl');
+  saveas(gcf, fullfile(outDir, strcat(filename, '.svg')), 'svg')
+end
+
 if figStruct.saveFigData && ~isempty(figData)
   save(fullfile(outDir,[filename,'_data.mat']),'figData');
 end

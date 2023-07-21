@@ -2,6 +2,7 @@ function vennXExpanded(sigInd, figTitle, colNames)
 % A wrapper for vennX, which makes it more straight forward to turn an
 % array of logical values into the appropriate cross sections. 
 
+scrambleText = false;
 [unitCount, colInCount] = size(sigInd);
 numberSize = 24;
 labelSize = 20;
@@ -47,39 +48,42 @@ else
 end
 
 % Calculate error bars
-countPerEvent = sum(sigInd);
-eventOverlapMeanSD = nan(size(chanceTitleInds));
-for chance_i = 1:size(chanceTitleInds, 1)
-  scrambSet = nan(1000,1);
-  for scramb_i = 1:1000
-    % Randomly grab X of the total population
-    scrambMat = zeros(unitCount,2);
-    for uni_p = 1:2
-      scrambMat(randperm(unitCount, countPerEvent(chanceTitleInds(chance_i, uni_p))), uni_p) = deal(1);
-    end    
-    
-    scrambSet(scramb_i) = sum(sum(scrambMat,2) == 2);
-    
-  end
-  eventOverlapMeanSD(chance_i, 1) = mean(scrambSet);
-  eventOverlapMeanSD(chance_i, 2) = std(scrambSet);
-end
+if scrambleText
+  countPerEvent = sum(sigInd);
+  eventOverlapMeanSD = nan(size(chanceTitleInds));
+  for chance_i = 1:size(chanceTitleInds, 1)
+    scrambSet = nan(1000,1);
+    for scramb_i = 1:1000
+      % Randomly grab X of the total population
+      scrambMat = zeros(unitCount,2);
+      for uni_p = 1:2
+        scrambMat(randperm(unitCount, countPerEvent(chanceTitleInds(chance_i, uni_p))), uni_p) = deal(1);
+      end    
 
-% Once more for the 3 way
-if size(sigInd,2) == 3
-  scrambSet = nan(1000,1);
-  for scramb_i = 1:1000
-    % Randomly grab X of the total population
-    scrambMat = zeros(unitCount,3);
-    for uni_p = 1:3
-      scrambMat(randperm(unitCount, countPerEvent(uni_p)), uni_p) = deal(1);
+      scrambSet(scramb_i) = sum(sum(scrambMat,2) == 2);
+
     end
-    
-    scrambSet(scramb_i) = sum(sum(scrambMat,2) == 3);
-    
+    eventOverlapMeanSD(chance_i, 1) = mean(scrambSet);
+    eventOverlapMeanSD(chance_i, 2) = std(scrambSet);
   end
-  eventOverlapMeanSD(4,1) = mean(scrambSet);
-  eventOverlapMeanSD(4,2) = std(scrambSet);
+
+  % Once more for the 3 way
+  if size(sigInd,2) == 3
+    scrambSet = nan(1000,1);
+    for scramb_i = 1:1000
+      % Randomly grab X of the total population
+      scrambMat = zeros(unitCount,3);
+      for uni_p = 1:3
+        scrambMat(randperm(unitCount, countPerEvent(uni_p)), uni_p) = deal(1);
+      end
+
+      scrambSet(scramb_i) = sum(sum(scrambMat,2) == 3);
+
+    end
+    eventOverlapMeanSD(4,1) = mean(scrambSet);
+    eventOverlapMeanSD(4,2) = std(scrambSet);
+  end
+
 end
 
 sigCountVenn = sum(sigIndTmp);
@@ -110,8 +114,10 @@ for num_i = 1:length(numberHandles)
   end
 end
 
-plotTags = {'A', 'B', 'C'};
-colNames = strcat(colNames, '^', plotTags(1:length(colNames)));
+if scrambleText
+  plotTags = {'A', 'B', 'C'};
+  colNames = strcat(colNames, '^', plotTags(1:length(colNames)));
+end
 
 % Add Labels
 text(0.068, 0.95, colNames{1}, 'units', 'normalized', 'FontSize', labelSize, 'FontWeight', 'bold');
@@ -120,16 +126,18 @@ if length(sigCountVenn) == 7
   text(0.53, 0.045, colNames{3}, 'units', 'normalized', 'FontSize', labelSize, 'FontWeight', 'bold');
 end
 
-labelCount = 0;
-for ii = 1:size(chanceTitleInds,1)
-  text2Insert = sprintf('%s + %s, %s +/- %s', plotTags{chanceTitleInds(ii, 1)}, plotTags{chanceTitleInds(ii, 2)}, ...
-    num2str(eventOverlapMeanSD(ii,1),4), num2str(eventOverlapMeanSD(ii,2),2));
-  tmpX = text(0.016, 0.12 - (0.04 * labelCount), text2Insert, 'units', 'normalized', 'FontSize', chanceLabelSize);
-  labelCount = labelCount + 1;
-end
+if scrambleText
+  labelCount = 0;
+  for ii = 1:size(chanceTitleInds,1)
+    text2Insert = sprintf('%s + %s, %s +/- %s', plotTags{chanceTitleInds(ii, 1)}, plotTags{chanceTitleInds(ii, 2)}, ...
+      num2str(eventOverlapMeanSD(ii,1),4), num2str(eventOverlapMeanSD(ii,2),2));
+    tmpX = text(0.016, 0.12 - (0.04 * labelCount), text2Insert, 'units', 'normalized', 'FontSize', chanceLabelSize);
+    labelCount = labelCount + 1;
+  end
 
-if size(eventOverlapMeanSD,1) == 4
-  text2Insert = sprintf('%s + %s + %s, %s +/- %s', plotTags{1}, plotTags{2}, plotTags{3}, ...
-    num2str(eventOverlapMeanSD(4,1),4), num2str(eventOverlapMeanSD(4,2),2));
-  tmpX = text(0.016, 0.12 - (0.04 * labelCount), text2Insert, 'units', 'normalized', 'FontSize', chanceLabelSize);
+  if size(eventOverlapMeanSD,1) == 4
+    text2Insert = sprintf('%s + %s + %s, %s +/- %s', plotTags{1}, plotTags{2}, plotTags{3}, ...
+      num2str(eventOverlapMeanSD(4,1),4), num2str(eventOverlapMeanSD(4,2),2));
+    tmpX = text(0.016, 0.12 - (0.04 * labelCount), text2Insert, 'units', 'normalized', 'FontSize', chanceLabelSize);
+  end
 end

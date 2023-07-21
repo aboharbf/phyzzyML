@@ -42,31 +42,37 @@ sigPerEpochCountPos = sum(sigMat & posMat);
 sigPerEpochCountNeg = sum(sigMat & ~posMat);
 
 dataMat = [sigPerEpochCountPos; sigPerEpochCountNeg];
-legendLabels = {'Increased firing', 'decreased firing'};
+legendLabels = {'Increased firing', 'Decreased firing'};
 
 % Plot 1
 alpha = params.alphaTaskMod;
 figTitle = sprintf('%s modulated during each Epoch (%d/%d Unique, a = %s)', params.unitTag, sigBaselineCount, unitCount, num2str(alpha));
 plotTitle = sprintf('Modulation during each Epoch');
-createBarPlotWithChanceLine(epochList, dataMat, alpha, unitCount, figTitle, legendLabels);
+createBarPlotWithChanceLine(epochList, dataMat, 0, unitCount, figTitle, legendLabels);
 title(plotTitle);
 modDir = fullfile(outDir, 'Modulation');
 xlabel('Epoch')
-saveFigure(modDir, sprintf('BG %s - %s', params.paradigmTag, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
 figH = gcf;
 figH.Position = [0.0508    0.2931    0.4500    0.4986];
 
-% Venn Diagram
-sigMatVenn = [sigMat(:,1), sigMat(:,2) | sigMat(:,3), sigMat(:,4)];
-colNames = {'Fix', 'Stimulus', 'Reward'};
-figTitle = sprintf('%s modulated during each Epoch (%d/%d Unique, a = %s)', params.unitTag, sigBaselineCount, unitCount, num2str(alpha));
-plotTitle = sprintf('Modulation during each Epoch');
-vennXExpanded(sigMatVenn, figTitle, colNames)
-title(plotTitle);
-figH = gcf;
-figH.Position = [0.4000    0.3542    0.3781    0.5625];
+saveFigure(modDir, sprintf('BG %s - %s', params.paradigmTag, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
 
-saveFigure(modDir, sprintf('VD %s - %s', params.paradigmTag, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
+
+% Venn Diagram
+if 1
+  sigMatVenn = [sigMat(:,1), sigMat(:,2) | sigMat(:,3), sigMat(:,4)];
+  colNames = {'Fix', 'Stimulus', 'Reward'};
+  figTitle = sprintf('%s modulated during each Epoch (%d/%d Unique, a = %s)', params.unitTag, sigBaselineCount, unitCount, num2str(alpha));
+  plotTitle = sprintf('Modulation during each Epoch');
+  vennXExpanded(sigMatVenn, figTitle, colNames)
+  title(plotTitle);
+  figH = gcf;
+  figH.Position = [0.4000    0.3542    0.3781    0.5625];
+  
+  saveFigure(modDir, sprintf('VD %s - %s', params.paradigmTag, strrep(figTitle, '/', ' of ')), [], params.figStruct, [])
+
+end
+
 
 %% Plot 2 - preference index
 

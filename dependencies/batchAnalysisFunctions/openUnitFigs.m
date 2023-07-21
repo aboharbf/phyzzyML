@@ -8,7 +8,7 @@ if isa(unitChannelString, 'table')
   unitChannelString = strcat(unitChannelString.dateSubj, unitChannelString.runNum, '_', unitChannelString.channel, unitChannelString.unitType);
 end
 
-plotDir = 'D:\DataAnalysis_Old';
+% plotDir = 'D:\DataAnalysis_Old';
 
 allFigs = dir(fullfile(plotDir, '**', figTag));
 allFigs = fullfile({allFigs.folder}, {allFigs.name})';

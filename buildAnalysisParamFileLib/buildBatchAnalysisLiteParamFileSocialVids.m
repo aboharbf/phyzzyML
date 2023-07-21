@@ -69,7 +69,8 @@ analysisParamFilenameStem = 'AnalysisParams.mat'; %change name should be 'leaf'
 
 figStruct.saveFig = 0;      % save the figure in its output directory.           
 figStruct.closeFig = 0;     % close the figure once it is saved
-figStruct.exportFig = 0;    % export figure using export_fig.
+figStruct.exportFig = 0;    % export figure using export_fig to png format.
+figStruct.exportFigSvg = 1; % export figure using export_fig to svg format.
 figStruct.saveFigData = 0;  % save data with the figure.
 figStruct.noOverWrite = 0;  % If a figure is already there, don't make it again.
 

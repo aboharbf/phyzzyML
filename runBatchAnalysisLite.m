@@ -1,6 +1,5 @@
 function [analysisOutFilename] = runBatchAnalysisLite(spikePathBank, batchAnalysisParams)
-%% Overwrite switches with what is currently in file, keeping the
-%spikePathLoadParams, which holds most important stuff.
+%% Overwrite switches with what is currently in file, keeping the spikePathLoadParams, which holds most important stuff.
 spikePathLoadParamsKeep = batchAnalysisParams.spikePathLoadParams;
 batchAnalysisParams = load(fullfile(batchAnalysisParams.outputDir, 'batchAnalysisParams.mat'));
 batchAnalysisParams.spikePathLoadParams = spikePathLoadParamsKeep;
@@ -12,7 +11,7 @@ figStruct = batchAnalysisParams.figStruct;
 
 %% Pre-Analysis processing
 
-if ~strcmp('stimPresCount',spikePathBank.Properties.VariableNames)
+if ~contains('stimPresCount',spikePathBank.Properties.VariableNames)
   spikePathBank = stimulusStatistics(spikePathBank, batchAnalysisParams.stimStructParams);
   spikePathFile = batchAnalysisParams.spikePathLoadParams.batchAnalysisOutput;
   save(spikePathFile, 'spikePathBank', '-append')

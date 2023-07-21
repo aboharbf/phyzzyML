@@ -96,10 +96,10 @@ end
 for event_i = length(eventLabels) %[1:length(eventLabels)-2 length(eventLabels)]
   figTitle = sprintf('Units Per Recording Site - %s - %s', eventLabels{event_i}, unitType{unit_i});
   figH = figure('Name', figTitle, 'units', 'normalized', 'position', [0.5521 0.3972 0.3646 0.4861]);
-  colormap winter
+  colormap hot
   cmap = colormap();
 
-  colormap winter
+  colormap hot
   dummyImageHandle = imagesc(1:max(eventDataAll{event_i}));
   dummyImageHandle.Parent.Visible = 'off';
   colorbarH = colorbar();
@@ -113,14 +113,20 @@ for event_i = length(eventLabels) %[1:length(eventLabels)-2 length(eventLabels)]
   scaleFactor = max(eventDataAll{event_i})/size(cmap,1);      % Scale the highest value in the data to the index for the highest value in the color map.
   sizeDataScaled = round(eventDataAll{event_i}/scaleFactor);
   
+  % If you want to simplify the plot, make all the shapes the same size
+  colorData = sizeDataScaled;
+  if 1
+    sizeDataScaled = ones(size(sizeDataScaled)) * max(sizeDataScaled);
+  end
+  
   shapeDataUnique = unique(shapeDataAll{event_i});
   % Plot them
   hold on
-  colormap winter
+  colormap hot
   for shape_i = 1:length(shapeDataUnique)
     plotInd = strcmp(shapeDataAll{event_i}, shapeDataUnique(shape_i));
     if any(sizeDataScaled(plotInd))
-      scatterH = scatter(xCoordunitAll{event_i}(plotInd), yCoordunitAll{event_i}(plotInd), sizeDataScaled(plotInd), cmap(sizeDataScaled(plotInd), :), 'filled');
+      scatterH = scatter(xCoordunitAll{event_i}(plotInd), yCoordunitAll{event_i}(plotInd), sizeDataScaled(plotInd), cmap(colorData(plotInd), :), 'filled');
       scatterH.Marker = shapeDataUnique(shape_i);
     end
   end
@@ -136,10 +142,10 @@ for event_i = length(eventLabels) %[1:length(eventLabels)-2 length(eventLabels)]
   axesH.XLim = [26.5 32.5];
   axesH.XTick = 27:32;
   
-  axesH.Color = [0.7 0.7 0.7];
+  axesH.Color = [1 0 0];
   axesH.FontSize = 12;
   colorbarH.FontSize = 12;
-  legend({'Monkey 1', 'Monkey 2'}, 'location', 'northwest')
+  legend({'Monkey 1', 'Monkey 2'}, 'location', 'northwest', 'FontSize', 20)
   title(figTitle);
 
   saveFigure(fullfile(params.outputDir, unitType{unit_i}, 'plotsOnBrains'), figTitle, [], params.figStruct, [])
