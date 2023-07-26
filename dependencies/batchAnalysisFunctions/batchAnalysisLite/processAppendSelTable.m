@@ -105,7 +105,7 @@ for run_i = tables2Process
   selIndexValues = generateSelectivityIndex(selTableRun{:, pValVars}, alpha, mctMethod);
 
   % Add in task modulated info here
-  baseVarIdx = contains(pValVars, 'baseV_')';
+  baseVarIdx = contains(pValVars, 'baseV_')'; % pValVars(contains(pValVars, 'baseV_')) read out vars
   stimBaseVarIdx = (contains(pValVars, 'baseV_') & contains(pValVars, 'stim'))';
   selTableRun.taskModulated_selInd = any(selIndexValues(:, baseVarIdx), 2);
   selTableRun.taskModStim_selInd = any(selIndexValues(:, stimBaseVarIdx), 2);

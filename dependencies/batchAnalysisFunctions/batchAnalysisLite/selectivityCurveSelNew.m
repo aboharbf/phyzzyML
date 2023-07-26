@@ -10,6 +10,14 @@ paradigmList = unique(spikePathBank.paradigmName);
 unitLabel = {digitsPattern};
 unitTypePlot = {'Units'};
 
+barplotParams = struct();
+barplotParams.labels = {'chasing', 'fighting', 'mounting', 'grooming',...
+                        'goalDirected', 'idle', 'objects', 'scene'};
+barplotParams.colors = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0;...
+                        0 1 0; 0 0.9 0; 0 0 1; 0 0 0.7;];
+                      
+TM_only = 1;    % Switch which only counts units which are also task modulated during the stimulus.
+
 % Bins for the x-axis
 binStep = 25;
 binSize = 150;
@@ -17,6 +25,10 @@ stimSize = 2800 + 500;
 the_bin_start_times = 0:binStep:stimSize-binSize;
 points_to_label = [0  1000 2000 2800];
 points_for_lines = [0 2800];
+
+% Resort for later
+BaseArrayResort = {{'chasing', 'fighting', 'mounting', 'grooming', 'goalDirected', 'idle', 'objects', 'scene'}};   
+BaseArrayTestNames = {'categories'};
 
 for par_i = 1:length(paradigmList)
   
@@ -46,15 +58,13 @@ for par_i = 1:length(paradigmList)
     pValLabels = tableVars(contains(tableVars, 'pVal') & testInd);
     varLabels = tableVars(contains(tableVars, 'VarExp') & testInd);
     prefSelLabels = tableVars(contains(tableVars, '_prefStim') & testInd);
-    
-    testInd = contains(tableVarsSel, testsPerformed{test_i});
+    dataArray = {pValLabels; varLabels; prefSelLabels};
 
     % Find rows w/ Var - sel Table
+    testInd = contains(tableVarsSel, testsPerformed{test_i});
     selTableVars = tableVarsSel(contains(tableVarsSel, 'SW') & testInd);
     sigStretchInd = selTableVars(contains(selTableVars, 'sigStretch'));
     prefOjbInd = selTableVars(contains(selTableVars, 'sigObj'));
-    
-    dataArray = {pValLabels; varLabels; prefSelLabels};
     
     % Cycle through analyses, combining results and visualizing them
     objCount = length(selTableParadigmPerRun.(prefOjbInd{1}){1});
@@ -68,6 +78,16 @@ for par_i = 1:length(paradigmList)
       
       unit_index = contains(selTableParadigmPerRun.unitType, unitLabel{unit_i});
       
+      % If filtering based on task modulation, do so here
+      if TM_only
+        unit_index = unit_index & selTableParadigmPerRun.taskModulated_selInd;
+        plotTitle = sprintf('Category Selectivity, Task Modulated');
+      else
+        plotTitle = sprintf('Category Selectivity');
+      end
+      
+      selTableParadigmPerRunUnit = selTableParadigmPerRun(unit_index, :);
+      
       % Store data per epoch
       vennDiagramVectors = nan(sum(unit_index), length(epochNames));
       
@@ -75,10 +95,10 @@ for par_i = 1:length(paradigmList)
       for epoch_i = 1:length(epochNames)
         % Identify runs with significant stretches, and retrieve the labels
         % associated with them
-        selStretchIndMat(:,epoch_i) = selTableParadigmPerRun.(sigStretchInd{epoch_i})(unit_index);
+        selStretchIndMat(:,epoch_i) = selTableParadigmPerRunUnit.(sigStretchInd{epoch_i});
         
         % Significant objects
-        sigObjs = selTableParadigmPerRun.(prefOjbInd{epoch_i})(unit_index);
+        sigObjs = selTableParadigmPerRunUnit.(prefOjbInd{epoch_i});
         sigObjs = vertcat(sigObjs{:});
         barGraphData(epoch_i,:) = sum(sigObjs);
         
@@ -89,11 +109,17 @@ for par_i = 1:length(paradigmList)
       
       atleastOne = sum(any(selStretchIndMat,2));
       unitCount = sum(unit_index);
+      
+      % Prior to plotting, resort
+      testInd = strcmp(BaseArrayTestNames, testsPerformed{test_i});
+      [~, resortInd] = ismember(BaseArrayResort{testInd}, testObjs);
+      barGraphData = barGraphData(:, resortInd);
+      testObjs = testObjs(resortInd);
 
       % Plotting
       figTitle = sprintf('%s selectivity during %s test, %s (%d/%d Unique)', unitTypePlot{unit_i}, testsPerformed{test_i}, paradigmList{par_i}, atleastOne, unitCount);
-      plotTitle = sprintf('Category Selectivity');
-      createBarPlotWithChanceLine(epochNames, barGraphData, 0, unitCount, figTitle, testObjs);
+                            
+      createBarPlotWithChanceLine(epochNames, barGraphData, 0, unitCount, figTitle, testObjs, barplotParams);
       title(plotTitle);
       saveFigure(fullfile(outputDir, 'BarGraph'), sprintf('%s %s', paradigmList{par_i}, strrep(figTitle, '/', ' of ')), [], batchAnalysisParams.figStruct, [])
       

@@ -65,12 +65,7 @@ end
 
 if plotSwitch.selectivityCurve
   selectivityCurveSelNew(spikePathBank, batchAnalysisParams)
-  selectivityCurveSelNewParComp(spikePathBank, batchAnalysisParams)
-end
-
-if plotSwitch.selectivityCounts
-%   selectivityCurveCount(spikePathBank, batchAnalysisParams)
-  selectivityCurveCountBinned(spikePathBank, batchAnalysisParams)
+  %selectivityCurveSelNewParComp(spikePathBank, batchAnalysisParams) % Comparing animated and non-animated
 end
 
 if plotSwitch.eyeCorr
