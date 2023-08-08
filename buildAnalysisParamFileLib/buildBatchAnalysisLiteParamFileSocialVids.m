@@ -79,8 +79,8 @@ calcSwitch.excludeRepeats = 0;
 plotSwitch.stimPresCount = 0;         % Figures showing presentation counts across all runs, in development.
 
 plotSwitch.selCount = 0;              % Create counts across paradigms for sensitivity to different epochs.
-plotSwitch.selectivityCurve = 1;      % Plot a curve for selectivity based on sliding window analysis done in each run.
-plotSwitch.selectivityCounts = 1;     % Counts of units selective for each result from the sliding window analysis.
+plotSwitch.selectivityCurve = 0;      % Plot a curve for selectivity based on sliding window analysis done in each run.
+plotSwitch.selectivityCounts = 0;     % Counts of units selective for each result from the sliding window analysis.
 plotSwitch.eyeCorr = 0;               % All run eye correlogram
 plotSwitch.spikeEyeCorr = 0;          % All run eye correlogram
 plotSwitch.rampingAnalysis = 0;       % Ramping plot

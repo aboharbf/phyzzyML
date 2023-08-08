@@ -1,4 +1,4 @@
-function lookingPatternsAnalysis(spikePathBank, batchAnalysisParams)
+function lookingPatternsAnalysisSummary(spikePathBank, batchAnalysisParams)
 % A function which creates bar plots represeting how often specific objects
 % in particular scenes are attended to.
 
@@ -87,7 +87,13 @@ collapseObjs = true;      % Collapse across 1 and 2 (i.e. 'Face1' and 'Face2' ->
 mergeHands = true;        % For consistency, merge all 'Hand' counts for chasing/fighting into body
 handBodyMergeIdx = contains(uniqueStimList, {'Chasing', 'Fighting'});
 
-meanStatsPerStim = initNestedCellArray(statsPerMonkeyPar, 'zeros', [2 length(allObjPres)], 100);
+if collapseObjs
+  objCount = 4;
+else
+  objCount = length(allObjPres);
+end
+
+meanStatsPerStim = initNestedCellArray(statsPerMonkeyPar, 'zeros', [2 objCount], 100);
 for m_i = 1:length(monkeyList)
   for par_i = 1:length(paradigmList)
     for stim_i = 1:length(statsPerMonkeyPar{m_i, par_i})
@@ -107,7 +113,7 @@ for m_i = 1:length(monkeyList)
       end
       
       meanStatsPerStim{m_i, par_i}{stim_i}(1,:) = mean(stimData, 1);
-      meanStatsPerStim{m_i, par_i}{stim_i}(2,:) = std(stimData, 0, 1)/size(stimData,1);
+      meanStatsPerStim{m_i, par_i}{stim_i}(2,:) = std(stimData, 0, 1);
       
     end
   end
@@ -115,6 +121,15 @@ end
 
 
 % Plot time
+allAverage = true;        % A switch which produces a single bar plot, taking the average across all the stimuli
+
+% Create a color palette for each stimuli
+barplotParams = struct();
+barplotParams.labels = {'Chasing', 'Fighting', 'Mounting', 'Grooming',...
+                        'GoalDir', 'Idle', 'objects', 'landscape'};
+barplotParams.colors = [1 0 0; 0.8 0 0; 0.6 0 0; 0.4 0 0;...
+                        0 1 0; 0 0.9 0; 0 0 1; 0 0 0.7;];
+
 if collapseObjs
   params.labels = {'Face', 'Body', 'Hand'};
   params.colors = [255 0 0; 0 0 255; 0 255 0]/255;
@@ -122,7 +137,7 @@ else
   params.labels = {'Face1', 'Face2', 'Body1', 'Body2', 'HandR1', 'HandR2', 'bkg'};
   params.colors = [255 0 0; 130 0 0; 0 0 255; 0 0 130; 0 255 0; 0 130 0; 130 130 130]/255;
 end
-    
+
 for par_i = 1:length(paradigmList)
   
   if contains(paradigmList{par_i}, 'Natural')
@@ -131,6 +146,22 @@ for par_i = 1:length(paradigmList)
     keepInd = ~contains(parStim{par_i}, {'land', 'obj'});
   end
   
+  uniqueStimColorSet = zeros(length(parStim{par_i}),3);
+  for stim_i = 1:length(barplotParams.labels)
+    stim_word = barplotParams.labels{stim_i};
+    stim_idx = contains(uniqueStimList, stim_word);
+    uniqueStimColorSet(stim_idx,:) = repmat(barplotParams.colors(stim_i, :), [sum(stim_idx), 1]);
+  end
+  
+  keepInd = contains(parStim{par_i}, 'monkey');
+  uniqueStimColorSet = uniqueStimColorSet(keepInd,:);
+  
+  tmp = [];
+  for i = 1:size(uniqueStimColorSet, 1)
+    tmp = vertcat(tmp, repmat(uniqueStimColorSet(i, :), [3,1]));
+  end
+  uniqueStimColorSet = tmp;
+    
   for m_i = 1:length(monkeyList)
     
     data2Plot = meanStatsPerStim{m_i, par_i};
@@ -149,31 +180,56 @@ for par_i = 1:length(paradigmList)
     meanPerObjStim = meanPerObjStim(:, keepInd);
     stdPerObjStim = stdPerObjStim(:, keepInd);
     
+    if collapseObjs
+      if allAverage
+        meanPerObjStimRaw = meanPerObjStim * 100;
+        stdPerObjStimRaw = stdPerObjStim * 100;
+        
+        meanPerObjStim = mean(meanPerObjStim, 2, 'omitnan');
+        stdPerObjStim = mean(stdPerObjStim, 2, 'omitnan');
+        
+        params.labels = {'Face', 'Body', 'Hand'};
+        stimuliPlotList = {'Test'};
+      end
+    end
     params.textSwitch = false;
     
     % Switch to percent as out of 100
     meanPerObjStim = meanPerObjStim * 100;
     stdPerObjStim = stdPerObjStim * 100;
-        
-    %   subplot(2,1,1)
-    segmentCount = 4;
-    perRowCount = ceil(length(stimuliPlotList)/segmentCount);
-    segmentIndStarts = [1:perRowCount:length(stimuliPlotList)];
-    segmentEndInds = [segmentIndStarts(2:end)-1 length(stimuliPlotList)];
+    x = 1:3;
+    x_cat = categorical({'Faces', 'Bodies', 'Hands'});
+    x_cat = reordercats(x_cat,{'Faces', 'Bodies', 'Hands'});
     
-    for ii = 1:length(segmentIndStarts)
-      figH = createBarPlotWithChanceLine(stimuliPlotList(segmentIndStarts(ii):segmentEndInds(ii)), meanPerObjStim(:, segmentIndStarts(ii):segmentEndInds(ii)), 0, 0, 'Looking time per Object', params.labels, params);
-      delete(figH.Children(1))
-      figH.Children(end).FontSize = 8;
-      figH.Position = [0.1184    0.2035    0.4398    0.1986];
-      if ii ~= 1
-        figH.Children(end).Title.String = '';        
-      end
-      ylabel('% Looking time');
-      ylim([0 80])
-    end
+    barh = bar(x_cat, meanPerObjStim, 'w');
     
+    % Adjust the width of the bars
+    barWidth = 1;  % Change this value to control bar width (0 to 1)
+    set(barh, 'BarWidth', barWidth);
     
+    hold on
+%     er = errorbar(x, meanPerObjStim, stdPerObjStim);
+%     er.Color = [0 0 0];                            
+%     er.LineStyle = 'none';  
+    
+    % Prepare for scatterplot
+    meanPerObjStimRaw(meanPerObjStimRaw == 0) = nan;
+    x_scatter = repmat(x', [1,size(meanPerObjStimRaw,2)]);
+    scatter(x_scatter(:),meanPerObjStimRaw(:), 50, uniqueStimColorSet, 'filled', 'LineWidth', 2)
+    
+    hold off
+    titleHandle = title('Time Spent Looking per Object', 'FontSize', 14);
+    titleHandle.Position(2) = titleHandle.Position(2) + 2;
+    
+    xLabelHandle = xlabel('Object', 'FontSize', 14);
+    xLabelHandle.Position(2) = -4.5;
+  
+    yLabelHandle = ylabel('Looking time (%)', 'FontSize', 14);
+    yLabelHandle.Position(1) = 0.2;
+    
+    figh = gcf();
+    figh.Position = [1.3762e+03 172.2000 368 607.2000];
+
   end
 end
 

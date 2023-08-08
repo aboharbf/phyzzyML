@@ -35,7 +35,8 @@ if plotSwitch.spikeEyeCorr
 end
 
 if plotSwitch.spikeEyeCorr
-  lookingPatternsAnalysis(spikePathBank, batchAnalysisParams)
+  %lookingPatternsAnalysis(spikePathBank, batchAnalysisParams)
+  lookingPatternsAnalysisSummary(spikePathBank, batchAnalysisParams)
 end
 
 if plotSwitch.rampingAnalysis
